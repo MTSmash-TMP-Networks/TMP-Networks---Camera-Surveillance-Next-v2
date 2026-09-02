@@ -3,6 +3,16 @@
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
+## Public Beta
+
+**TMP Camera Surveillance Next 2.20.29 is currently provided as a free public beta.**
+
+This release is intended for testing, evaluation and early deployments. Features, licensing, release channels and update mechanisms may change before the first stable commercial release.
+
+The availability of this beta release on GitHub does not mean that future versions, stable releases or product updates will remain freely or publicly distributed through GitHub. Future stable releases and updates may be delivered through a dedicated TMP Update Service and may require a valid software license, update entitlement or support agreement.
+
+Users may continue to operate an installed beta version subject to the license terms supplied with that version. Access to a public beta does not automatically grant an entitlement to future commercial releases, feature updates or maintenance releases.
+
 ## Quick start
 
 1. Extract the complete ZIP into a permanent local directory.
@@ -82,6 +92,8 @@ They contain the installation identity, credentials, configuration, database, lo
 ## License and trademarks
 
 This distribution is governed by the license agreement supplied with the software. Third-party components remain subject to their own licenses.
+
+The source code being visible in this public beta repository does not convert TMP-specific proprietary components into open-source software or grant rights beyond the included license terms.
 
 Third-party product and company names may appear only where needed for factual compatibility, protocol, dependency or attribution purposes. Their trademarks belong to their respective owners. No affiliation, sponsorship or certification is implied.
 
