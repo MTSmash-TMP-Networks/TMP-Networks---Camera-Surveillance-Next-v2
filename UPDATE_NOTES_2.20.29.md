@@ -1,5 +1,15 @@
 # TMP Camera Surveillance Next 2.20.29
 
+## Public Beta release
+
+**TMP Camera Surveillance Next 2.20.29 is released as a free public beta.**
+
+This release is intended for testing, evaluation and early deployments. Features, licensing, release channels and update mechanisms may change before the first stable commercial release.
+
+The availability of this beta release on GitHub does not mean that future versions, stable releases or product updates will remain freely or publicly distributed through GitHub. Future stable releases and updates may be delivered through a dedicated TMP Update Service and may require a valid software license, update entitlement or support agreement.
+
+Users may continue to operate an installed beta version subject to the license terms supplied with that version. Access to this public beta does not automatically grant an entitlement to future commercial releases, feature updates or maintenance releases.
+
 ## Complete Kiosk Mode and Update Center localization
 
 - Kiosk Mode is now fully connected to the application i18n system in every supported UI language.
