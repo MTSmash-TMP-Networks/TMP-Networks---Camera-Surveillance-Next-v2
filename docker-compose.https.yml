@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  caddy:
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    environment:
+      HTTPS_SITE_ADDRESS: ${HTTPS_SITE_ADDRESS:-https://camera.local}
+      TZ: ${TZ:-Europe/Berlin}
+    ports:
+      - "${HTTPS_PORT:-8443}:443"
+    volumes:
+      - ${PROJECT_HOST_PATH:-.}/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${PROJECT_HOST_PATH:-.}/data/caddy/data:/data
+      - ${PROJECT_HOST_PATH:-.}/data/caddy/config:/config
+    networks:
+      - camera-net
+    security_opt:
+      - no-new-privileges:true

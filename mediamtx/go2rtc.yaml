@@ -1,0 +1,26 @@
+log:
+  format: text
+  level: info
+  output: stdout
+
+api:
+  listen: ":1984"
+  base_path: "/media/go2rtc"
+  origin: "*"
+
+rtsp:
+  listen: ":8554"
+  default_query: "video=h264"
+
+webrtc:
+  listen: ":8555"
+  candidates:
+    - ${GO2RTC_WEBRTC_CANDIDATE:stun:8189}
+
+ffmpeg:
+  bin: ffmpeg
+  timeout: 20
+  h264: "-codec:v libx264 -preset:v ultrafast -tune:v zerolatency -profile:v baseline -pix_fmt yuv420p -vf scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p -bf 0 -g 30 -keyint_min 30 -sc_threshold 0 -x264-params repeat-headers=1:aud=1"
+  aac: "-codec:a aac -ar:a 48000 -ac:a 1 -b:a 96k"
+
+streams: {}

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "updatedAt": null,
+  "source": null,
+  "statistics": {
+    "scannedFiles": 0,
+    "scannedChunks": 0,
+    "familyCount": 0,
+    "pathCount": 0
+  },
+  "ports": [],
+  "families": []
+}

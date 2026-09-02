@@ -1,0 +1,202 @@
+services:
+  updater:
+    image: tmp-camera-surveillance-next-updater:latest
+    build:
+      context: ./updater
+    restart: unless-stopped
+    user: "0:0"
+    environment:
+      UPDATER_PORT: ${UPDATER_SERVICE_PORT:-3010}
+      UPDATER_SOCKET_PATH: ${UPDATER_SOCKET_PATH:-/data/updates/tmp-camera-updater.sock}
+      UPDATER_BIND_ADDRESS: 0.0.0.0
+      UPDATER_TOKEN: ${UPDATER_TOKEN:-}
+      PROJECT_DIR: /workspace
+      PROJECT_HOST_PATH: ${PROJECT_HOST_PATH:-}
+      DATA_DIR: /data
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      BACKUPS_DIR: /data/backups
+      BACKUPS_FALLBACK_DIR: /data/updates/backups
+      DOCKER_CLI_STATE_DIR: /data/updates/docker-cli
+      HOME: /data/updates/docker-cli/home
+      DOCKER_CONFIG: /data/updates/docker-cli/config
+      BUILDX_CONFIG: /data/updates/docker-cli/buildx
+      COMPOSE_BAKE: ${COMPOSE_BAKE:-false}
+      DOCKER_BUILDKIT: ${DOCKER_BUILDKIT:-0}
+      COMPOSE_DOCKER_CLI_BUILD: ${COMPOSE_DOCKER_CLI_BUILD:-0}
+      FORCE_IMAGE_PULL: ${FORCE_IMAGE_PULL:-false}
+      UPDATER_DOCKER_CACHE_CLEANUP: ${UPDATER_DOCKER_CACHE_CLEANUP:-true}
+      MAX_EXTRACTED_BYTES: ${MAX_EXTRACTED_BYTES:-2147483648}
+      UPDATER_IDEMPOTENCY_TTL_MS: ${UPDATER_IDEMPOTENCY_TTL_MS:-900000}
+      BACKEND_HEALTH_URL: ${BACKEND_HEALTH_URL:-http://backend:3000/health}
+      FRONTEND_HEALTH_URL: ${FRONTEND_HEALTH_URL:-http://frontend:8080/healthz}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-tmp-camera-surveillance-next}
+      ENABLE_NVIDIA_GPU_STATUS: ${ENABLE_NVIDIA_GPU_STATUS:-false}
+      ENABLE_NVIDIA_GPU_COMPOSE: ${ENABLE_NVIDIA_GPU_COMPOSE:-false}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - ${PROJECT_HOST_PATH:-.}:/workspace
+      - ${PROJECT_HOST_PATH:-.}/data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "${UPDATER_SERVICE_PORT:-3010}"
+    networks:
+      camera-net:
+        aliases:
+          - updater
+          - tmp-camera-updater
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+
+  backend:
+    image: tmp-camera-surveillance-next-backend:latest
+    build:
+      context: ./backend
+    restart: unless-stopped
+    env_file:
+      - ${PROJECT_DIR:-.}/.env
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      API_HOST: 0.0.0.0
+      API_PORT: 3000
+      APP_VERSION: "2.20.29"
+      APP_DATA_DIR: /data
+      SYSTEM_PROC_ROOT: ${SYSTEM_PROC_ROOT:-/host/proc}
+      SYSTEM_SYS_ROOT: ${SYSTEM_SYS_ROOT:-/host/sys}
+      SYSTEM_DISK_PATH: ${SYSTEM_DISK_PATH:-/data}
+      SYSTEM_STORAGE_PLAUSIBLE_MAX_BYTES: ${SYSTEM_STORAGE_PLAUSIBLE_MAX_BYTES:-70368744177664}
+      SYSTEM_HOST_DISK_TOTAL_BYTES: ${SYSTEM_HOST_DISK_TOTAL_BYTES:-0}
+      SYSTEM_HOST_DISK_USED_BYTES: ${SYSTEM_HOST_DISK_USED_BYTES:-0}
+      SYSTEM_HOST_DISK_AVAILABLE_BYTES: ${SYSTEM_HOST_DISK_AVAILABLE_BYTES:-0}
+      SYSTEM_HOST_DISK_SOURCE: ${SYSTEM_HOST_DISK_SOURCE:-}
+      SYSTEM_NETWORK_EXCLUDE_INTERFACES: ${SYSTEM_NETWORK_EXCLUDE_INTERFACES:-lo,docker*,br-*,veth*,virbr*,cni*,podman*}
+      SYSTEM_NETWORK_MAX_DEVICES: ${SYSTEM_NETWORK_MAX_DEVICES:-12}
+      SYSTEM_METRICS_CACHE_MS: ${SYSTEM_METRICS_CACHE_MS:-2000}
+      SYSTEM_METRICS_REFRESH_MS: ${SYSTEM_METRICS_REFRESH_MS:-3000}
+      SYSTEM_METRICS_CPU_SAMPLE_MS: ${SYSTEM_METRICS_CPU_SAMPLE_MS:-250}
+      SYSTEM_METRICS_COMMAND_TIMEOUT_MS: ${SYSTEM_METRICS_COMMAND_TIMEOUT_MS:-2500}
+      NVIDIA_SMI_PATH: ${NVIDIA_SMI_PATH:-nvidia-smi}
+      ENABLE_NVIDIA_GPU_STATUS: ${ENABLE_NVIDIA_GPU_STATUS:-false}
+      ENABLE_NVIDIA_GPU_COMPOSE: ${ENABLE_NVIDIA_GPU_COMPOSE:-false}
+      DB_PATH: /data/kamera_server.db
+      RECORDINGS_DIR: /data/recordings
+      RECORDINGS_LOCAL_DIR: /data/recordings
+      NETWORK_RECORDING_CACHE_MAX_BYTES: ${NETWORK_RECORDING_CACHE_MAX_BYTES:-2147483648}
+      NETWORK_RECORDING_UPLOAD_INTERVAL_MS: ${NETWORK_RECORDING_UPLOAD_INTERVAL_MS:-15000}
+      NETWORK_RECORDING_COMMAND_TIMEOUT_MS: ${NETWORK_RECORDING_COMMAND_TIMEOUT_MS:-30000}
+      NETWORK_RECORDING_STALE_PART_MAX_AGE_MS: ${NETWORK_RECORDING_STALE_PART_MAX_AGE_MS:-3600000}
+      UPDATES_DIR: /data/updates
+      UPDATER_URLS: ${UPDATER_URLS:-}
+      UPDATER_URL: ${UPDATER_URL:-}
+      UPDATER_SERVICE_PROTOCOL: ${UPDATER_SERVICE_PROTOCOL:-http}
+      UPDATER_SERVICE_NAME: ${UPDATER_SERVICE_NAME:-updater}
+      UPDATER_SERVICE_PORT: ${UPDATER_SERVICE_PORT:-3010}
+      UPDATER_SERVICE_BASE_PATH: ${UPDATER_SERVICE_BASE_PATH:-}
+      UPDATER_SOCKET_PATH: ${UPDATER_SOCKET_PATH:-/data/updates/tmp-camera-updater.sock}
+      UPDATER_FALLBACK_URLS: ${UPDATER_FALLBACK_URLS:-http://tmp-camera-updater:3010,http://updater:3010}
+      UPDATER_FALLBACK_URL: ${UPDATER_FALLBACK_URL:-}
+      UPDATER_HEALTH_TIMEOUT_MS: ${UPDATER_HEALTH_TIMEOUT_MS:-3500}
+      UPDATER_REQUEST_TIMEOUT_MS: ${UPDATER_REQUEST_TIMEOUT_MS:-15000}
+      UPDATER_HEALTH_RETRIES: ${UPDATER_HEALTH_RETRIES:-1}
+      UPDATER_REQUEST_RETRIES: ${UPDATER_REQUEST_RETRIES:-1}
+      UPDATER_RETRY_DELAY_MS: ${UPDATER_RETRY_DELAY_MS:-250}
+      UPDATER_RESTART_GRACE_MS: ${UPDATER_RESTART_GRACE_MS:-300000}
+      UPDATER_TOKEN: ${UPDATER_TOKEN:-}
+      MAX_UPDATE_BYTES: ${MAX_UPDATE_BYTES:-536870912}
+      STREAM_BROKER: go2rtc
+      # HLS is the default browser transport. WebRTC/WHEP stays available for
+      # explicit troubleshooting by setting STREAM_WEBRTC_ENABLED=true.
+      STREAM_WEBRTC_ENABLED: ${STREAM_WEBRTC_ENABLED:-false}
+      STREAM_BROWSER_HLS_MODE: local-ring
+      STREAM_BROWSER_TRANSPORT_ORDER: local-hls
+      LOCAL_HLS_DIR: /data/live
+      PUBLIC_LOCAL_HLS_BASE: /live-hls
+      GO2RTC_API: http://mediamtx:1984/media/go2rtc
+      GO2RTC_PUBLISH_BASE: rtsp://mediamtx:8554
+      GO2RTC_HLS_INTERNAL: http://mediamtx:1984/media/go2rtc
+      PUBLIC_GO2RTC_BASE: /media/go2rtc
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - ${PROJECT_HOST_PATH:-.}/data:/data
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    networks:
+      camera-net:
+        aliases:
+          - backend
+          - tmp-camera-backend
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+
+  mediamtx:
+    image: alexxit/go2rtc:1.9.14
+    restart: unless-stopped
+    environment:
+      GO2RTC_WEBRTC_CANDIDATE: ${GO2RTC_WEBRTC_CANDIDATE:-stun:8189}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - ${PROJECT_HOST_PATH:-.}/mediamtx:/config:rw
+    ports:
+      - "${WEBRTC_ICE_PORT:-8189}:8555/tcp"
+      - "${WEBRTC_ICE_PORT:-8189}:8555/udp"
+    expose:
+      - "1984"
+      - "8554"
+      - "8555"
+    networks:
+      camera-net:
+        aliases:
+          - mediamtx
+          - go2rtc
+          - tmp-camera-go2rtc
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+
+  frontend:
+    image: tmp-camera-surveillance-next-frontend:latest
+    build:
+      context: ./frontend
+      args:
+        VITE_DEFAULT_LANGUAGE: ${VITE_DEFAULT_LANGUAGE:-auto}
+        VITE_VENDOR_URL: ${VITE_VENDOR_URL:-https://tmp-networks.de}
+        VITE_SUPPORT_URL: ${VITE_SUPPORT_URL:-}
+        VITE_DOCUMENTATION_URL: ${VITE_DOCUMENTATION_URL:-}
+        VITE_STREAM_BROWSER_PREWARM_ENABLED: ${VITE_STREAM_BROWSER_PREWARM_ENABLED:-false}
+        VITE_BROWSER_TRANSCODE_FALLBACK_ENABLED: ${VITE_BROWSER_TRANSCODE_FALLBACK_ENABLED:-false}
+        VITE_STREAM_BROWSER_CACHE_SECONDS: ${VITE_STREAM_BROWSER_CACHE_SECONDS:-120}
+        VITE_HLS_RECOVERY_ESCALATION_SECONDS: ${VITE_HLS_RECOVERY_ESCALATION_SECONDS:-10}
+        VITE_STREAM_PLAYBACK_ORDER: local-hls
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - mediamtx
+    ports:
+      - "${HTTP_PORT:-8080}:8080"
+    volumes:
+      - ${PROJECT_HOST_PATH:-.}/data/live:/data/live:ro
+    networks:
+      camera-net:
+        aliases:
+          - frontend
+          - tmp-camera-frontend
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:size=64m,mode=0755
+      - /var/run:size=16m,mode=0755
+
+networks:
+  camera-net:
+    name: ${COMPOSE_PROJECT_NAME:-tmp-camera-surveillance-next}_camera-net
+    driver: bridge

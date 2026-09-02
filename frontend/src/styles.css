@@ -1,0 +1,20 @@
+
+.sidebar-license-state {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  margin-bottom: .6rem;
+  padding: .65rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: .8rem;
+  text-decoration: none;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+}
+.sidebar-license-state svg { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; }
+.sidebar-license-state span { min-width: 0; display: grid; gap: .1rem; }
+.sidebar-license-state strong { font-size: .8rem; color: var(--text); }
+.sidebar-license-state small { font-size: .68rem; color: var(--muted); }
+.sidebar-license-state.state-active { border-color: color-mix(in srgb, #36b37e 50%, var(--border)); }
+.sidebar-license-state.state-trial,
+.sidebar-license-state.state-grace { border-color: color-mix(in srgb, #f2b84b 55%, var(--border)); }
+.sidebar-license-state.state-restricted { border-color: color-mix(in srgb, #e65b65 60%, var(--border)); }

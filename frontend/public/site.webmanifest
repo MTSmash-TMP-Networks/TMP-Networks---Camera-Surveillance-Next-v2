@@ -1,0 +1,24 @@
+{
+  "name": "TMP Networks Camera Surveillance",
+  "short_name": "TMP Camera",
+  "description": "Self-hosted ONVIF camera surveillance and recording management",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07111b",
+  "theme_color": "#071522",
+  "icons": [
+    {
+      "src": "/icons/tmp-camera-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/tmp-camera-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

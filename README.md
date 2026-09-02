@@ -1,0 +1,99 @@
+# TMP Camera Surveillance Next 2.20.29
+
+TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
+
+## Quick start
+
+1. Extract the complete ZIP into a permanent local directory.
+2. Open a terminal in the extracted application directory.
+3. Start the application:
+
+```bash
+./start.sh
+```
+
+On Linux or NAS systems where Docker requires administrative privileges, use:
+
+```bash
+sudo ./start.sh
+```
+
+4. Wait until the containers are built and started.
+5. Open the URL printed by the startup script. The default address is:
+
+```text
+http://SERVER-IP:8080
+```
+
+The first start creates `.env`, generates secure application secrets, prepares persistent storage and builds the Docker services automatically.
+
+For the complete setup procedure, NAS notes, reverse-proxy guidance, updates, backups and troubleshooting, read `INSTALLATION.md`.
+
+## Main features
+
+- ONVIF camera discovery and authenticated capability detection
+- Visible ONVIF and PTZ verification during camera setup
+- Direct RTSP, RTSPS, HLS, MJPEG, HTTP(S), RTMP, RTMPS and SRT sources
+- Central TMP-Encoder media pipeline
+- Local HLS live and kiosk playback
+- Saved multi-camera kiosk layouts with equal and asymmetric focus grids and per-tile camera assignment
+- PTZ controls and presets
+- Continuous, scheduled, manual and event recording
+- Configurable local or direct SMB/CIFS or SFTP network recording storage
+- Background recording compression before SMB/SFTP transfer, including active multi-camera recording sessions and a default 2500 kbit/s archive video ceiling
+- Motion and event processing with per-camera selectable detection regions
+- Recording archive and evidence export
+- SMTP email notifications and event rules
+- Optional AI event analysis with OpenAI or compatible vision endpoints
+- User roles, audit events and public read-only demo mode
+- System and container status dashboard
+- Integrated update and rollback workflow
+- Local Backend-to-Updater IPC channel that avoids a hard Docker-DNS dependency
+- 24 interface languages with RTL support for Arabic
+
+## Frontend foundation
+
+The administration shell uses the open-source CoreUI CSS framework 5.9.0 (MIT) as a documented layout and navigation foundation. TMP-specific surveillance views such as Live View, camera cards, PTZ, recordings, timeline and kiosk remain purpose-built components. CoreUI is imported before the TMP stylesheet so the product theme and surveillance workflows remain visually distinct. No CoreUI PRO assets are included. See `docs/UI_FOUNDATION.md` and `docs/THIRD_PARTY_NOTICES.md`.
+
+## Persistent data
+
+Do not delete these items during normal updates:
+
+```text
+.env
+data/
+```
+
+They contain the installation identity, credentials, configuration, database, local recordings, update state and other persistent application data. Recording blocks transferred to network storage remain on the configured SMB/CIFS or SFTP target. Network-storage passwords are encrypted in the local database and are never returned to the browser.
+
+## Documentation
+
+- `INSTALLATION.md` - complete installation and maintenance guide
+- `UPDATE_NOTES_2.20.29.md` - current release notes
+- `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
+- `docs/COMPATIBILITY.md` - platform and browser compatibility
+- `docs/NETWORK_STREAMS.md` - direct network-stream sources
+- `docs/DEMO_MODE.md` - public read-only demo mode
+- `docs/PRIVACY_AND_DATA_PROCESSING.md` - privacy and deployment notes
+- `docs/THIRD_PARTY_NOTICES.md` - third-party licenses and notices
+- `LICENSE_AGREEMENT.md` - software license notice
+
+## License and trademarks
+
+This distribution is governed by the license agreement supplied with the software. Third-party components remain subject to their own licenses.
+
+Third-party product and company names may appear only where needed for factual compatibility, protocol, dependency or attribution purposes. Their trademarks belong to their respective owners. No affiliation, sponsorship or certification is implied.
+
+## Support
+
+Support is provided according to the applicable software license or a separate support agreement.
+
+## Storage integrity
+
+Network recording storage uses a verified local-spool workflow. A completed block is compressed locally, uploaded to SMB/SFTP, verified on the remote target, and only then removed from the local spool. Startup reconciliation repairs interrupted upload/cleanup states after container restarts or in-app updates. Use `./scripts/recording-storage-audit.sh` to inspect local spool, cache and pipeline state.
+
+## Automatic Docker cache maintenance
+
+Repeated application updates rebuild Docker images. Version 2.20.22 automatically removes dangling images and unused Docker builder/buildx cache before and after update builds and during host-side startup. Application volumes, containers, tagged images and recording data are never pruned by this maintenance. Set `UPDATER_DOCKER_CACHE_CLEANUP=false` in `.env` to opt out. The maintenance log is `data/updates/docker-cleanup.log`.
+
+System Status storage capacity is read live from the mounted data filesystem in 2.20.23. The `SYSTEM_HOST_DISK_*` values written by `start.sh` are only a filesystem identity/fallback snapshot and are no longer used as live free/used values. This prevents stale disk percentages after Docker cleanup.

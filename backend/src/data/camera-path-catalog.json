@@ -1,0 +1,659 @@
+{
+  "version": 2,
+  "updatedAt": "2026-07-22",
+  "families": [
+    {
+      "id": "hikvision-family",
+      "name": "Hikvision / HiLook / Annke / Ezviz",
+      "manufacturers": [
+        "hikvision",
+        "hilook",
+        "annke",
+        "ezviz",
+        "ltv"
+      ],
+      "modelPatterns": [
+        "^ds-",
+        "^ipc-",
+        "^nvr-"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/Streaming/Channels/101",
+          "label": "Kanal 1 Hauptstream",
+          "role": "main",
+          "confidence": 99
+        },
+        {
+          "kind": "rtsp",
+          "path": "/Streaming/Channels/102",
+          "label": "Kanal 1 Substream",
+          "role": "sub",
+          "confidence": 99
+        },
+        {
+          "kind": "rtsp",
+          "path": "/Streaming/Unicast/channels/101",
+          "label": "Unicast Hauptstream",
+          "role": "main",
+          "confidence": 88
+        },
+        {
+          "kind": "rtsp",
+          "path": "/Streaming/Unicast/channels/102",
+          "label": "Unicast Substream",
+          "role": "sub",
+          "confidence": 88
+        },
+        {
+          "kind": "snapshot",
+          "path": "/ISAPI/Streaming/channels/101/picture",
+          "label": "ISAPI Snapshot",
+          "role": "snapshot",
+          "confidence": 95,
+          "protocol": "http"
+        }
+      ]
+    },
+    {
+      "id": "dahua-family",
+      "name": "Dahua / Amcrest / Imou / Lorex",
+      "manufacturers": [
+        "dahua",
+        "amcrest",
+        "imou",
+        "lorex",
+        "alhua"
+      ],
+      "modelPatterns": [
+        "^ipc-h",
+        "^ipc-d",
+        "^dh-",
+        "^nvr",
+        "^hfw",
+        "^hdw"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/cam/realmonitor?channel=1&subtype=0",
+          "label": "Kanal 1 Hauptstream",
+          "role": "main",
+          "confidence": 99
+        },
+        {
+          "kind": "rtsp",
+          "path": "/cam/realmonitor?channel=1&subtype=1",
+          "label": "Kanal 1 Substream",
+          "role": "sub",
+          "confidence": 99
+        },
+        {
+          "kind": "snapshot",
+          "path": "/cgi-bin/snapshot.cgi?channel=1",
+          "label": "Dahua Snapshot",
+          "role": "snapshot",
+          "confidence": 96,
+          "protocol": "http"
+        }
+      ]
+    },
+    {
+      "id": "axis-family",
+      "name": "Axis",
+      "manufacturers": [
+        "axis",
+        "axis communications"
+      ],
+      "modelPatterns": [
+        "^m[0-9]",
+        "^p[0-9]",
+        "^q[0-9]",
+        "^f[0-9]"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/axis-media/media.amp",
+          "label": "Axis Media",
+          "role": "main",
+          "confidence": 99
+        },
+        {
+          "kind": "rtsp",
+          "path": "/axis-media/media.amp?videocodec=h264",
+          "label": "Axis H.264",
+          "role": "main",
+          "confidence": 96
+        },
+        {
+          "kind": "mjpeg",
+          "path": "/axis-cgi/mjpg/video.cgi",
+          "label": "Axis MJPEG",
+          "role": "sub",
+          "confidence": 94,
+          "protocol": "http"
+        },
+        {
+          "kind": "snapshot",
+          "path": "/axis-cgi/jpg/image.cgi",
+          "label": "Axis Snapshot",
+          "role": "snapshot",
+          "confidence": 94,
+          "protocol": "http"
+        }
+      ]
+    },
+    {
+      "id": "reolink-family",
+      "name": "Reolink",
+      "manufacturers": [
+        "reolink"
+      ],
+      "modelPatterns": [
+        "^rlc-",
+        "^e1",
+        "^duo",
+        "^trackmix",
+        "^argus"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/Preview_01_main",
+          "label": "Hauptstream",
+          "role": "main",
+          "confidence": 99
+        },
+        {
+          "kind": "rtsp",
+          "path": "/Preview_01_sub",
+          "label": "Substream",
+          "role": "sub",
+          "confidence": 99
+        },
+        {
+          "kind": "rtsp",
+          "path": "/h264Preview_01_main",
+          "label": "H.264 Hauptstream",
+          "role": "main",
+          "confidence": 94
+        },
+        {
+          "kind": "rtsp",
+          "path": "/h264Preview_01_sub",
+          "label": "H.264 Substream",
+          "role": "sub",
+          "confidence": 94
+        },
+        {
+          "kind": "rtsp",
+          "path": "/h265Preview_01_main",
+          "label": "H.265 Hauptstream",
+          "role": "main",
+          "confidence": 92
+        }
+      ]
+    },
+    {
+      "id": "tapo-family",
+      "name": "TP-Link Tapo / VIGI",
+      "manufacturers": [
+        "tp-link",
+        "tplink",
+        "tapo",
+        "vigi"
+      ],
+      "modelPatterns": [
+        "^c[0-9]",
+        "^tc[0-9]",
+        "^vigi"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/stream1",
+          "label": "Stream 1",
+          "role": "main",
+          "confidence": 98
+        },
+        {
+          "kind": "rtsp",
+          "path": "/stream2",
+          "label": "Stream 2",
+          "role": "sub",
+          "confidence": 98
+        }
+      ]
+    },
+    {
+      "id": "foscam-family",
+      "name": "Foscam",
+      "manufacturers": [
+        "foscam"
+      ],
+      "modelPatterns": [
+        "^fi",
+        "^r[0-9]",
+        "^c[0-9]"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/videoMain",
+          "label": "Video Main",
+          "role": "main",
+          "confidence": 96
+        },
+        {
+          "kind": "rtsp",
+          "path": "/videoSub",
+          "label": "Video Sub",
+          "role": "sub",
+          "confidence": 96
+        },
+        {
+          "kind": "mjpeg",
+          "path": "/videostream.cgi",
+          "label": "MJPEG",
+          "role": "sub",
+          "confidence": 72,
+          "protocol": "http"
+        }
+      ]
+    },
+    {
+      "id": "vivotek-family",
+      "name": "Vivotek",
+      "manufacturers": [
+        "vivotek"
+      ],
+      "modelPatterns": [
+        "^fd",
+        "^ib",
+        "^ip",
+        "^sd"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/live.sdp",
+          "label": "Live Hauptstream",
+          "role": "main",
+          "confidence": 96
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live2.sdp",
+          "label": "Live Substream",
+          "role": "sub",
+          "confidence": 92
+        }
+      ]
+    },
+    {
+      "id": "hanwha-family",
+      "name": "Hanwha / Samsung Techwin",
+      "manufacturers": [
+        "hanwha",
+        "hanwha vision",
+        "samsung techwin",
+        "wisenet"
+      ],
+      "modelPatterns": [
+        "^x",
+        "^q",
+        "^p",
+        "^s"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/profile1/media.smp",
+          "label": "Profil 1",
+          "role": "main",
+          "confidence": 96
+        },
+        {
+          "kind": "rtsp",
+          "path": "/profile2/media.smp",
+          "label": "Profil 2",
+          "role": "sub",
+          "confidence": 94
+        }
+      ]
+    },
+    {
+      "id": "bosch-family",
+      "name": "Bosch",
+      "manufacturers": [
+        "bosch",
+        "bosch security systems"
+      ],
+      "modelPatterns": [],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/rtsp_tunnel",
+          "label": "RTSP Tunnel",
+          "role": "main",
+          "confidence": 78
+        },
+        {
+          "kind": "rtsp",
+          "path": "/video?inst=1",
+          "label": "Video Instanz 1",
+          "role": "main",
+          "confidence": 72
+        }
+      ]
+    },
+    {
+      "id": "grandstream-family",
+      "name": "Grandstream",
+      "manufacturers": [
+        "grandstream"
+      ],
+      "modelPatterns": [
+        "^gxv"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/0",
+          "label": "Stream 0",
+          "role": "main",
+          "confidence": 92
+        },
+        {
+          "kind": "rtsp",
+          "path": "/1",
+          "label": "Stream 1",
+          "role": "sub",
+          "confidence": 90
+        }
+      ]
+    },
+    {
+      "id": "jovision-family",
+      "name": "Jovision",
+      "manufacturers": [
+        "jovision"
+      ],
+      "modelPatterns": [
+        "^jvs"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/live0.264",
+          "label": "Hauptstream",
+          "role": "main",
+          "confidence": 98
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live1.264",
+          "label": "Substream",
+          "role": "sub",
+          "confidence": 98
+        }
+      ]
+    },
+    {
+      "id": "uniview-family",
+      "name": "Uniview / UNV",
+      "manufacturers": [
+        "uniview",
+        "unv"
+      ],
+      "modelPatterns": [
+        "^ipc",
+        "^nvr"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/media/video1",
+          "label": "Video 1",
+          "role": "main",
+          "confidence": 94
+        },
+        {
+          "kind": "rtsp",
+          "path": "/media/video2",
+          "label": "Video 2",
+          "role": "sub",
+          "confidence": 92
+        }
+      ]
+    },
+    {
+      "id": "ubiquiti-family",
+      "name": "Ubiquiti UniFi Video",
+      "manufacturers": [
+        "ubiquiti",
+        "ubnt",
+        "unifi"
+      ],
+      "modelPatterns": [
+        "^uvc",
+        "^g[0-9]"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/live/ch00_0",
+          "label": "Kanal 0 Hauptstream",
+          "role": "main",
+          "confidence": 84
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live/ch00_1",
+          "label": "Kanal 0 Substream",
+          "role": "sub",
+          "confidence": 82
+        }
+      ]
+    },
+    {
+      "id": "xm-hisilicon-family",
+      "name": "XMEye / HiSilicon / generische OEM-Kamera",
+      "manufacturers": [
+        "xm",
+        "xiongmai",
+        "hisilicon",
+        "hichip",
+        "xmeye",
+        "ipc",
+        "general",
+        "unknown"
+      ],
+      "modelPatterns": [
+        "xm",
+        "hi35",
+        "ipcc",
+        "v380",
+        "yoosee",
+        "c6f0",
+        "c9f0"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/11",
+          "label": "OEM Hauptstream 11",
+          "role": "main",
+          "confidence": 88
+        },
+        {
+          "kind": "rtsp",
+          "path": "/12",
+          "label": "OEM Substream 12",
+          "role": "sub",
+          "confidence": 88
+        },
+        {
+          "kind": "rtsp",
+          "path": "/onvif1",
+          "label": "ONVIF Stream 1",
+          "role": "main",
+          "confidence": 86
+        },
+        {
+          "kind": "rtsp",
+          "path": "/onvif2",
+          "label": "ONVIF Stream 2",
+          "role": "sub",
+          "confidence": 84
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live/ch00_0",
+          "label": "Kanal 0 Hauptstream",
+          "role": "main",
+          "confidence": 80
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live/ch00_1",
+          "label": "Kanal 0 Substream",
+          "role": "sub",
+          "confidence": 80
+        },
+        {
+          "kind": "rtsp",
+          "path": "/av0_0",
+          "label": "AV Hauptstream",
+          "role": "main",
+          "confidence": 76
+        },
+        {
+          "kind": "rtsp",
+          "path": "/av0_1",
+          "label": "AV Substream",
+          "role": "sub",
+          "confidence": 76
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live0.264",
+          "label": "Live H.264 Hauptstream",
+          "role": "main",
+          "confidence": 74
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live1.264",
+          "label": "Live H.264 Substream",
+          "role": "sub",
+          "confidence": 74
+        }
+      ]
+    },
+    {
+      "id": "synology-camera-family",
+      "name": "Synology Camera",
+      "manufacturers": [
+        "synology"
+      ],
+      "modelPatterns": [
+        "^bc[0-9]",
+        "^tc[0-9]",
+        "^cc[0-9]"
+      ],
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/1",
+          "label": "Stream 1",
+          "role": "main",
+          "confidence": 99
+        },
+        {
+          "kind": "rtsp",
+          "path": "/2",
+          "label": "Stream 2",
+          "role": "sub",
+          "confidence": 98
+        },
+        {
+          "kind": "rtsp",
+          "path": "/3",
+          "label": "Stream 3",
+          "role": "sub",
+          "confidence": 75
+        }
+      ]
+    },
+    {
+      "id": "generic-standard",
+      "name": "Generische Standardpfade",
+      "manufacturers": [],
+      "modelPatterns": [],
+      "generic": true,
+      "paths": [
+        {
+          "kind": "rtsp",
+          "path": "/stream1",
+          "label": "Stream 1",
+          "role": "main",
+          "confidence": 40
+        },
+        {
+          "kind": "rtsp",
+          "path": "/stream2",
+          "label": "Stream 2",
+          "role": "sub",
+          "confidence": 40
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live",
+          "label": "Live",
+          "role": "main",
+          "confidence": 35
+        },
+        {
+          "kind": "rtsp",
+          "path": "/live.sdp",
+          "label": "Live SDP",
+          "role": "main",
+          "confidence": 35
+        },
+        {
+          "kind": "rtsp",
+          "path": "/h264/ch1/main/av_stream",
+          "label": "Kanal 1 Hauptstream",
+          "role": "main",
+          "confidence": 45
+        },
+        {
+          "kind": "rtsp",
+          "path": "/h264/ch1/sub/av_stream",
+          "label": "Kanal 1 Substream",
+          "role": "sub",
+          "confidence": 45
+        },
+        {
+          "kind": "snapshot",
+          "path": "/snapshot.jpg",
+          "label": "Snapshot JPEG",
+          "role": "snapshot",
+          "confidence": 30,
+          "protocol": "http"
+        },
+        {
+          "kind": "mjpeg",
+          "path": "/videostream.cgi",
+          "label": "MJPEG CGI",
+          "role": "sub",
+          "confidence": 30,
+          "protocol": "http"
+        }
+      ]
+    }
+  ]
+}

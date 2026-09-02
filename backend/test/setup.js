@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+const dbPath = `/tmp/tmp-camera-vitest-${process.pid}.db`;
+for (const suffix of ['', '-wal', '-shm']) fs.rmSync(`${dbPath}${suffix}`, { force: true });
+process.env.DB_PATH = dbPath;
+process.env.APP_DATA_DIR = '/tmp';
+process.env.ADMIN_USER = 'admin';
+process.env.ADMIN_PASSWORD = 'integration-password';
+process.env.JWT_SECRET = 'test-jwt-secret-abcdefghijklmnopqrstuvwxyz';
+process.env.MEDIA_TOKEN_SECRET = 'test-media-secret-abcdefghijklmnopqrstuvwxyz';
+process.env.CAMERA_CREDENTIAL_KEY = 'test-camera-key-abcdefghijklmnopqrstuvwxyz';
+process.env.LOG_LEVEL = 'silent';

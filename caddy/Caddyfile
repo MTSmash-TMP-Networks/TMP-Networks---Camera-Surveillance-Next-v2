@@ -1,0 +1,4 @@
+{$HTTPS_SITE_ADDRESS:https://camera.local} {
+  encode zstd gzip
+  reverse_proxy frontend:8080
+}
