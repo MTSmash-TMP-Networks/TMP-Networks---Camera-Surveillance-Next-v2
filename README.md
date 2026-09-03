@@ -91,6 +91,10 @@ They contain the installation identity, credentials, configuration, database, lo
 
 ## License and trademarks
 
+**Copyright © 2026 TMP-SYSTEM-SERVICE GmbH. All rights reserved.**
+
+The application-specific source code is made publicly visible in this repository for transparency, evaluation and documentation of the product's development history. Public availability of the source code does not grant permission to copy, redistribute, republish, resell, sublicense or commercially exploit TMP-specific proprietary components unless this is expressly permitted by the applicable license or a separate written agreement with TMP-SYSTEM-SERVICE GmbH.
+
 This distribution is governed by the license agreement supplied with the software. Third-party components remain subject to their own licenses.
 
 The source code being visible in this public beta repository does not convert TMP-specific proprietary components into open-source software or grant rights beyond the included license terms.
