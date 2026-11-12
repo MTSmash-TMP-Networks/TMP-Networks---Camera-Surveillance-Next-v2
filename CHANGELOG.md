@@ -1,3 +1,12 @@
+## 2.20.49 – Live-Ampeln bleiben nach erfolgreichem Stream grün
+
+- Eine bestätigte `ready`-Streamsession korrigiert einen veralteten Kamera-`stream_error` jetzt wieder auf `online`.
+- Auch bereits laufende/recycelte Sessions synchronisieren den Kamera-Status bei `ensure` und Heartbeat zurück auf online.
+- Kamera-API überlagert den persistierten Status mit dem echten Runtime-Zustand, solange eine gesunde Ready-Session existiert.
+- Die Live-Ansicht schreibt einen erfolgreichen Playback-State sofort in den Redux-Kameraeintrag.
+- Zusätzlich aktualisiert die Live-Kameraliste ihren Status alle fünf Sekunden, damit externe Statusänderungen nicht hängen bleiben.
+- `hasReady()` nutzt jetzt die tatsächliche Prozess-/Session-Liveness statt nur einen vorhandenen Prozessverweis.
+
 ## 2.20.48 – Auto wechselt bei fehlenden Medienframes schneller auf Substream
 
 - Auto-Modus wartet bei einem bevorzugten Profil nur noch begrenzt auf die ersten normalisierten Medienframes.

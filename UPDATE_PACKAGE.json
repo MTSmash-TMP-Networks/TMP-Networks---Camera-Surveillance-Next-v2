@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.48",
+  "version": "2.20.49",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.48",
-  "summary": "Auto mode now abandons a frame-less mainstream quickly and falls through to balanced/secondstream/substream instead of retrying encoders on the dead profile.",
-  "createdAt": "2026-11-12T16:50:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.48.md",
+  "title": "TMP Camera Surveillance Next 2.20.49",
+  "summary": "Keep Live View camera traffic lights synchronized with healthy runtime streams instead of falling back to stale red database status after switching cameras.",
+  "createdAt": "2026-11-12T17:10:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.49.md",
   "changes": [
-    "Add an eight-second first-frame timeout for automatic profile selection",
-    "Classify missing normalized media frames as a profile failure rather than an encoder failure",
-    "Skip copy/VAAPI/CPU retries on a frame-less profile and continue immediately with the next weaker profile"
+    "Repair stale camera stream_error to online whenever a healthy ready session is confirmed",
+    "Overlay camera API status with healthy runtime session state",
+    "Persist successful Live playback into Redux and refresh camera status periodically"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.48.md",
+  "changelog": "UPDATE_NOTES_2.20.49.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.48",
-  "packageId": "tmp-camera-surveillance-next-2.20.48",
+  "name": "TMP Camera Surveillance Next v2.20.49",
+  "packageId": "tmp-camera-surveillance-next-2.20.49",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Fast automatic downgrade when the preferred profile produces no normalized media frames.",
+  "description": "Persistent Live View traffic-light status synchronized with actual stream health.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Auto mode falls back to a weaker profile after eight seconds without first normalized media frames.",
-  "fileCount": 450
+  "releaseNotes": "Healthy ready streams now keep their camera traffic light green even after switching to another camera.",
+  "fileCount": 451
 }

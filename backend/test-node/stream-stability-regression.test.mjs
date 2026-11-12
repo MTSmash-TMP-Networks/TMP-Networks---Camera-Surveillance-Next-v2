@@ -188,3 +188,14 @@ test('auto mode downgrades when a preferred profile produces no normalized media
   assert.match(orchestrator, /PROFILE_MEDIA_TIMEOUT_DOWNGRADE/);
   assert.match(orchestrator, /reason: 'no-normalized-media-frames'/);
 });
+
+
+test('ready runtime sessions repair stale red camera status and Live keeps the green state', () => {
+  assert.match(orchestrator, /markCameraOnlineIfReady/);
+  assert.match(orchestrator, /CAMERA_STATUS_READY_SYNC/);
+  assert.match(orchestrator, /markCameraOnlineIfReady\(current, 'heartbeat-ready'\)/);
+  assert.match(orchestrator, /this\.isSessionProcessAlive\(session\)/);
+  assert.match(livePage, /cameraUpserted/);
+  assert.match(livePage, /status: 'online'/);
+  assert.match(livePage, /setInterval\(\(\) => dispatch\(loadCameras\(\)\), 5000\)/);
+});
