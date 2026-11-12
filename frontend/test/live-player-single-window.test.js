@@ -61,3 +61,14 @@ describe('Nahtloser Live-/Kiosk-Stream', () => {
     expect(playerSource).not.toContain('transportMode, viewportWidth, compact, connectDelayMs');
   });
 });
+
+
+describe('Live-Kameraampel', () => {
+  it('merkt sich einen erfolgreichen Playback-Status auch nach dem Kamerawechsel', () => {
+    expect(livePageSource).toContain('cameraUpserted');
+    expect(livePageSource).toContain("state === 'ready' && camera?.status !== 'online'");
+    expect(livePageSource).toContain("dispatch(cameraUpserted({ ...camera, status: 'online', lastError: null }))");
+    expect(livePageSource).toContain('setInterval(() => dispatch(loadCameras()), 5000)');
+    expect(livePageSource).toContain('onStatusChange={handlePlaybackStatus}');
+  });
+});
