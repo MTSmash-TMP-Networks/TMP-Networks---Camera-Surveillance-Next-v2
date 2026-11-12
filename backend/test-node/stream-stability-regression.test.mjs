@@ -159,6 +159,7 @@ test('kiosk never switches into a separate browser transcode fallback path', () 
 test('encoder fallback remains pinned instead of retrying GPU on a timer', () => {
   assert.match(orchestrator, /stickyEncoderFailures/);
   assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
-  assert.doesNotMatch(orchestrator, /failedAt >=/);
+  assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
+  assert.match(orchestrator, /const failedEncoders = this\.brokerEncoderFailures\.get\(failureKey\) \|\| new Map\(\)/);
   assert.match(orchestrator, /brokerEncoderFailures\.set\(failureKey, failedEncoders\)/);
 });
