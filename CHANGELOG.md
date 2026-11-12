@@ -1,3 +1,12 @@
+## 2.20.48 – Auto wechselt bei fehlenden Medienframes schneller auf Substream
+
+- Auto-Modus wartet bei einem bevorzugten Profil nur noch begrenzt auf die ersten normalisierten Medienframes.
+- Liefert ein Mainstream innerhalb von standardmäßig acht Sekunden keine nutzbaren Frames, wird der Versuch als Profilfehler gewertet.
+- Dieser Fehler löst keinen Copy→VAAPI→CPU-Zyklus auf demselben toten Profil mehr aus.
+- Stattdessen wird direkt das nächste schwächere Profil versucht.
+- Manuell gewählte Profile behalten weiterhin den normalen Starttimeout und werden nicht automatisch nach acht Sekunden verworfen.
+- Der erfolgreiche Downgrade bleibt wie seit 2.20.47 sticky für weitere Reconnects.
+
 ## 2.20.47 – Mainstream bevorzugen, aber nicht erzwingen
 
 - Ein fehlschlagendes Mainstream-Profil blockiert das Livebild nicht mehr; die bestehende Reihenfolge `high → balanced → low` wird konsequent bis zu einem funktionierenden Profil durchlaufen.
