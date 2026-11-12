@@ -85,9 +85,10 @@ test('Copy avoids video encoding and is isolated from VAAPI/software paths', () 
   assert.deepEqual(cpu,brokerStreamPaths('cam1',args,source));
 });
 
-test('Only startup/encoder failures trigger per-stream retries', () => {
+test('Only real encoder failures trigger per-stream retries', () => {
   assert.equal(isBrokerEncoderRetryable({code:'STREAM_NOT_READY'}),true);
   assert.equal(isBrokerEncoderRetryable({message:'VAAPI initialization failed'}),true);
+  assert.equal(isBrokerEncoderRetryable({code:'PROFILE_MEDIA_TIMEOUT'}),false);
   assert.equal(isBrokerEncoderRetryable({code:'CAMERA_OFFLINE'}),false);
 });
 
