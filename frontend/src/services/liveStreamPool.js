@@ -212,7 +212,7 @@ async function waitForServerSession(entry, isStale, forceTranscode = false) {
       if (matching.state === 'failed') throw new Error(matching.lastError || matching.phaseMessage || 'Kamerastream konnte nicht gestartet werden');
     }
     poll += 1;
-    if (poll % 20 === 0) session = await api.streamSession(entry.cameraId, { ...input, quality: trackedQuality, wait: false });
+    if (poll % 20 === 0) session = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: false });
   }
   throw new Error('Zeitlimit beim Aufbau des Live-Streams überschritten');
 }
