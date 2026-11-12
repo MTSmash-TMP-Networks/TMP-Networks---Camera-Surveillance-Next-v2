@@ -39,6 +39,7 @@ test('encoder fallback stays sticky for the backend lifetime', () => {
   const orchestrator = read('backend/src/services/media/StreamOrchestrator.js');
   assert.match(orchestrator, /stickyEncoderFailures/);
   assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
-  assert.doesNotMatch(orchestrator, /failedAt >=/);
+  assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
+  assert.match(orchestrator, /const failedEncoders = this\.brokerEncoderFailures\.get\(failureKey\) \|\| new Map\(\)/);
   assert.match(orchestrator, /filter\(\(mode\) => mode === 'software' \|\| !failedEncoders\.has\(mode\)\)/);
 });
