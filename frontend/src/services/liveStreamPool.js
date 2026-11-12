@@ -170,35 +170,42 @@ async function waitForServerSession(entry, isStale, forceTranscode = false) {
     wait: false,
   };
   let session = await api.streamSession(entry.cameraId, input);
+  const requestedQuality = input.quality;
   let trackedQuality = session.quality || input.quality;
   entry.update({ state: session.state === 'failed' ? 'failed' : 'starting', protocol: session.transport?.toUpperCase() || 'ONVIF', message: session.phaseMessage || 'Kamerastream wird vorbereitet …' });
   if (session.state === 'ready') {
-    const ready = await api.streamSession(entry.cameraId, { ...input, quality: trackedQuality, wait: true });
+    const ready = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: true });
     if (forceTranscode && !ready.forceTranscode) throw new Error('Browser-Transcode-Fallback ist serverseitig nicht verfügbar');
     return ready;
   }
   const deadline = Date.now() + 180000;
+  const warmLiveAuto = entry.purpose === 'live' && entry.quality === 'auto' && !entry.profileToken;
   const expectedPurposes = forceTranscode
     ? ['browser-fallback']
     : entry.purpose === 'kiosk'
       ? ['ingest']
-      : entry.purpose === 'live'
-        ? ['mainstream', 'live']
-        : [entry.purpose || 'live'];
+      : warmLiveAuto
+        ? ['ingest', 'mainstream', 'live']
+        : entry.purpose === 'live'
+          ? ['mainstream', 'live']
+          : [entry.purpose || 'live'];
   let poll = 0;
   while (Date.now() < deadline) {
     if (isStale()) throw new DOMException('Verbindungsaufbau abgebrochen', 'AbortError');
     await sleep(700);
     const response = await api.streamStatus(entry.cameraId);
     const matchingSessions = (response.items || []).filter((item) => expectedPurposes.includes(item.purpose || 'live')
-      && ((item.purpose || 'live') === 'mainstream' || !item.consumerPurpose || item.consumerPurpose === (entry.purpose || 'live')));
+      && ((item.purpose || 'live') === 'mainstream'
+        || (item.purpose || 'live') === 'ingest'
+        || !item.consumerPurpose
+        || item.consumerPurpose === (entry.purpose || 'live')));
     const matching = matchingSessions.find((item) => item.quality === trackedQuality
       && (item.requestedProfileToken || '') === (entry.profileToken || '')) || matchingSessions[0];
     if (matching) {
       trackedQuality = matching.quality || trackedQuality;
       entry.update({ state: matching.state === 'failed' ? 'failed' : 'starting', protocol: matching.transport?.toUpperCase() || 'ONVIF', message: matching.phaseMessage || 'Streamstatus wird geprüft …' });
       if (matching.state === 'ready') {
-        const ready = await api.streamSession(entry.cameraId, { ...input, quality: trackedQuality, wait: true });
+        const ready = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: true });
         if (forceTranscode && !ready.forceTranscode) throw new Error('Browser-Transcode-Fallback ist serverseitig nicht verfügbar');
         return ready;
       }
@@ -504,7 +511,8 @@ class LiveStreamPool {
       await waitForPlaying(entry.video, 18000, entry.abort.signal);
       await waitForFrameProgress(entry.video, 10000, entry.abort.signal);
       if (stale()) return true;
-      entry.update({ state: 'ready', protocol: forceLocalHls ? 'Local-HLS' : 'LL-HLS', message: forceTranscode ? `${session.profile?.name || 'Live'} · Browser-Fallback aktiv` : forceLocalHls ? `${session.profile?.name || 'Live'} · lokaler HLS-Ring` : `${session.profile?.name || 'Live'} · stabiler Live-Stream` });
+      const sharedPreview = session.purpose === 'ingest' && entry.purpose === 'live' && entry.quality === 'auto';
+      entry.update({ state: 'ready', protocol: forceLocalHls ? 'Local-HLS' : 'LL-HLS', message: forceTranscode ? `${session.profile?.name || 'Live'} · Browser-Fallback aktiv` : sharedPreview ? `${session.profile?.name || 'Live'} · warmer Vorschau-Stream` : forceLocalHls ? `${session.profile?.name || 'Live'} · lokaler HLS-Ring` : `${session.profile?.name || 'Live'} · stabiler Live-Stream` });
       this.startHeartbeat(entry);
       this.startMonitor(entry);
       this.report(entry, 'info', forceTranscode ? 'HLS_FALLBACK_PLAYING' : forceLocalHls ? 'LOCAL_HLS_PLAYING' : 'HLS_PLAYING', forceTranscode ? 'Browser spielt den bedarfsgesteuerten lokalen HLS-Transcode ab' : forceLocalHls ? 'Browser spielt den lokalen HLS-Ring ab' : 'Browser spielt den HLS-Livestream ab', forceLocalHls ? 'Local-HLS' : 'LL-HLS', { url: hlsSourceUrl, transportMode: entry.transportMode });
