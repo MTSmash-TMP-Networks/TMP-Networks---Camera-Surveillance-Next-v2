@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.49",
+  "version": "2.20.50",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.49",
-  "summary": "Keep Live View camera traffic lights synchronized with healthy runtime streams instead of falling back to stale red database status after switching cameras.",
-  "createdAt": "2026-11-12T17:10:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.49.md",
+  "title": "TMP Camera Surveillance Next 2.20.50",
+  "summary": "Use the permanent warm preview publisher for Live Auto and keep recording on shared mainstream paths.",
+  "createdAt": "2026-11-12T17:30:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.50.md",
   "changes": [
-    "Repair stale camera stream_error to online whenever a healthy ready session is confirmed",
-    "Overlay camera API status with healthy runtime session state",
-    "Persist successful Live playback into Redux and refresh camera status periodically"
+    "Attach Live Auto directly to the permanent warm preview/substream publisher",
+    "Keep quality=auto stable across browser polling so no duplicate low Live session is created",
+    "Keep Recording Auto on High/Mainstream while reusing an existing suitable mainstream publisher when available"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.49.md",
+  "changelog": "UPDATE_NOTES_2.20.50.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.49",
-  "packageId": "tmp-camera-surveillance-next-2.20.49",
+  "name": "TMP Camera Surveillance Next v2.20.50",
+  "packageId": "tmp-camera-surveillance-next-2.20.50",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Persistent Live View traffic-light status synchronized with actual stream health.",
+  "description": "Shared warm stream architecture for fast Live switching and recording reuse.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Healthy ready streams now keep their camera traffic light green even after switching to another camera.",
-  "fileCount": 451
+  "releaseNotes": "Live Auto now reuses the warm permanent preview publisher; recordings still use shared mainstream quality.",
+  "fileCount": 452
 }
