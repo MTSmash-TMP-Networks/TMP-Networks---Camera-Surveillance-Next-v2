@@ -6,7 +6,6 @@ const TARGET_LIVE_DELAY_SECONDS = 8;
 const MAX_LIVE_LATENCY_SECONDS = 20;
 const MAX_NETWORK_RECOVERIES = 3;
 const MAX_MEDIA_RECOVERIES = 2;
-const MAX_SOFT_RECOVERIES = 2;
 
 function cacheBustUrl(url) {
   try {
@@ -24,6 +23,19 @@ function safePlay(video) {
     const result = video.play?.();
     if (result?.catch) result.catch(() => {});
   } catch { /* ignored */ }
+}
+
+function bufferedAhead(video) {
+  try {
+    const current = Number(video.currentTime || 0);
+    const ranges = video.buffered;
+    for (let index = 0; index < (ranges?.length || 0); index += 1) {
+      if (ranges.start(index) <= current + 0.15 && ranges.end(index) >= current) {
+        return Math.max(0, ranges.end(index) - current);
+      }
+    }
+  } catch { /* ignored */ }
+  return 0;
 }
 
 function seekToLiveEdge(hls, video) {
@@ -226,7 +238,9 @@ export function connectHls({ url, tokenRef, video, onState }) {
   const resumeLiveLoad = () => {
     try { hls.stopLoad(); } catch { /* ignored */ }
     hls.startLoad(-1);
-    seekToLiveEdge(hls, video);
+    // Keep already buffered surveillance video playing. Only jump when there
+    // is no usable buffer left after a real fatal network recovery.
+    if (bufferedAhead(video) < 0.25) seekToLiveEdge(hls, video);
     safePlay(video);
   };
   const recoverNetwork = (details) => {
@@ -257,28 +271,30 @@ export function connectHls({ url, tokenRef, video, onState }) {
       safePlay(video);
     });
   };
-  const recoverSoftStall = (reason) => {
-    if (destroyed || recovering) return;
+  const nudgeSoftStall = (_reason) => {
+    if (destroyed) return;
     softRecoveries += 1;
-    if (softRecoveries > MAX_SOFT_RECOVERIES) {
-      failRecovery({ type: 'media', details: reason, reason: 'soft-stall-recovery-exhausted', attempts: softRecoveries });
-      return;
-    }
-    beginRecovery({ type: 'media', details: reason, attempt: softRecoveries, stage: 'live-edge-resync' }, () => {
-      seekToLiveEdge(hls, video);
-      hls.startLoad(-1);
-      safePlay(video);
-    });
+    // hls.js can normally repair non-fatal buffer holes itself. Do not mark
+    // the camera as recovering and do not seek forward, because both actions
+    // make a healthy kiosk stream visibly jump. Keep loading and let the
+    // browser consume its existing buffer; the outer frame watchdog handles
+    // a genuine long-running stall.
+    try { hls.startLoad(-1); } catch { /* ignored */ }
+    safePlay(video);
   };
   const onWaiting = () => {
     if (destroyed || video.paused || waitingTimer) return;
     waitingTimer = setTimeout(() => {
       waitingTimer = null;
-      if (!destroyed && !video.paused && video.readyState < 3) recoverSoftStall('video-waiting');
+      if (!destroyed && !video.paused && video.readyState < 3) nudgeSoftStall('video-waiting');
     }, WAITING_GRACE_MS);
   };
-  const onPlaying = () => markConnected('playing');
+  const onPlaying = () => {
+    softRecoveries = 0;
+    markConnected('playing');
+  };
   const onTimeUpdate = () => {
+    softRecoveries = 0;
     if (recovering && video.readyState >= 2 && !video.paused) markConnected('timeupdate');
   };
 
@@ -294,10 +310,7 @@ export function connectHls({ url, tokenRef, video, onState }) {
     if (!recovering) markConnected('manifest-parsed');
   });
   hls.on(Hls.Events.FRAG_BUFFERED, () => {
-    if (recovering) {
-      seekToLiveEdge(hls, video);
-      safePlay(video);
-    }
+    if (recovering) safePlay(video);
   });
   hls.on(Hls.Events.ERROR, (_event, data) => {
     const details = {
@@ -309,7 +322,7 @@ export function connectHls({ url, tokenRef, video, onState }) {
       url: data.context?.url || null,
     };
     if (!data.fatal) {
-      if (/bufferStalledError|bufferNudgeOnStall|bufferSeekOverHole/i.test(String(data.details || ''))) recoverSoftStall(data.details);
+      if (/bufferStalledError|bufferNudgeOnStall|bufferSeekOverHole/i.test(String(data.details || ''))) nudgeSoftStall(data.details);
       return;
     }
     if (data.type === Hls.ErrorTypes.NETWORK_ERROR) recoverNetwork(details);
