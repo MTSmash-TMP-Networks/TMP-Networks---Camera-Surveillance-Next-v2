@@ -23,13 +23,17 @@ function appendOptions(source, options) {
   return suffix ? `${clean}#${suffix}` : clean;
 }
 
-export function brokerStreamPaths(cameraId, profile = {}, candidate = {}) {
-  const identity = [
+export function brokerStreamPaths(cameraId, profile = {}, candidate = {}, encoder = 'software') {
+  const parts = [
     String(cameraId || ''),
     String(profile?.token || profile?.name || ''),
     String(candidate?.sourceId || ''),
     stripCredentials(candidate?.uri || ''),
-  ].join('|');
+  ];
+  // The historical software path stays stable. Copy/VAAPI get independent
+  // broker paths so a retry never alters another active stream's producer.
+  if (encoder === 'copy' || encoder === 'vaapi') parts.push(encoder);
+  const identity = parts.join('|');
   const digest = crypto.createHash('sha256').update(identity).digest('hex').slice(0, 14);
   const base = `cam_${safeName(cameraId).slice(0, 20)}_${digest}`;
   return {
@@ -57,14 +61,16 @@ export function normalizedVideoSource(rawStreamName, timeoutSeconds = 20, hardwa
   const name = String(rawStreamName || '').trim();
   if (!name) throw new Error('Raw broker stream name is empty');
   const timeout = Math.max(5, Math.min(120, Math.round(Number(timeoutSeconds) || 20)));
-  return `ffmpeg:${name}#video=h264#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
+  const video = hardware === 'copy' ? 'copy' : 'h264';
+  return `ffmpeg:${name}#video=${video}#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
 }
 
 export function optionalAudioSource(rawStreamName, timeoutSeconds = 20, hardware = 'none') {
   const name = String(rawStreamName || '').trim();
   if (!name) throw new Error('Raw broker stream name is empty');
   const timeout = Math.max(5, Math.min(120, Math.round(Number(timeoutSeconds) || 20)));
-  return `ffmpeg:${name}#video=h264#audio=aac#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
+  const video = hardware === 'copy' ? 'copy' : 'h264';
+  return `ffmpeg:${name}#video=${video}#audio=aac#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
 }
 
 function codecName(profile) {
@@ -96,10 +102,10 @@ export function profileMedia(profile = {}) {
   };
 }
 
-export function normalizedBrokerPolicy(profile = {}) {
+export function normalizedBrokerPolicy(profile = {}, encoder = 'software') {
   return {
-    copyVideo: false,
-    transcodeVideo: true,
+    copyVideo: encoder === 'copy',
+    transcodeVideo: encoder !== 'copy',
     sourceVideoCodec: codecName(profile),
     sourceVideoProfile: lower(profile?.videoProfile) || null,
     sourcePixelFormat: null,
@@ -107,6 +113,27 @@ export function normalizedBrokerPolicy(profile = {}) {
     outputVideoCodec: 'h264',
     transcodeAudio: false,
     outputAudioCodecs: null,
-    reason: 'go2rtc normalisiert den zentralen Raw-Producer in einen getrennten H.264-Video-Pfad.',
+    reason: encoder === 'copy'
+      ? 'H.264-Profil wird ohne erneute Videokodierung weitergegeben.'
+      : encoder === 'vaapi'
+        ? 'Intel VAAPI kodiert den zentralen Broker als H.264.'
+        : 'go2rtc kodiert den Raw-Producer per Software in H.264.',
   };
+}
+
+// A known H.264 profile can be remuxed, while H.265/MJPEG must first be
+// converted to browser-compatible H.264. A failed copy or GPU attempt is
+// retried only for the specific camera/profile/source.
+export function brokerEncoderCandidates(profile = {}, hardware = 'none', copyFirst = true) {
+  const candidates = [];
+  if (copyFirst && codecName(profile) === 'h264') candidates.push('copy');
+  if (hardware === 'vaapi') candidates.push('vaapi');
+  candidates.push('software');
+  return candidates;
+}
+
+export function isBrokerEncoderRetryable(error) {
+  const code = String(error?.code || '');
+  return code === 'STREAM_NOT_READY' || code === 'FFMPEG_EXITED'
+    || /vaapi|renderD128|drm device|hardware encoder/i.test(String(error?.message || ''));
 }

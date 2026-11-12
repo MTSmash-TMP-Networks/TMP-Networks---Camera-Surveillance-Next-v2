@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.39 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next 2.20.40 and the most common maintenance tasks.
 
 ## 1. Requirements
 
@@ -520,9 +520,9 @@ Open **Desktop-Client** from the authenticated application's sidebar and downloa
 
 ## GitHub direct updates
 
-After upgrading to 2.20.39, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
+After upgrading to 2.20.40, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
 
-For the initial repair from older releases, upload the full 2.20.39 ZIP through the existing ZIP upload option.
+For the initial repair from older releases, upload the full 2.20.40 ZIP through the existing ZIP upload option.
 
 
 ### Optional Intel VAAPI video acceleration

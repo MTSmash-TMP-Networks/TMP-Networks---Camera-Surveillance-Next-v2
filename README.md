@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.39
+# TMP Camera Surveillance Next 2.20.40
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -57,6 +57,10 @@ If the Update-Center reports an available GitHub version, choose **Auf GitHub pr
 - Local Backend-to-Updater IPC channel that avoids a hard Docker-DNS dependency
 - 24 interface languages with RTL support for Arabic
 
+## Video-CPU-Optimierung (Intel N97 / go2rtc)
+
+Version 2.20.40 nutzt fuer als H.264 erkannte Kamera-Profile zunaechst go2rtc `#video=copy` und prueft das erste HLS-Segment auf echten H.264-Codec. Erst wenn das fehlschlaegt, wird die Quelle ueber Intel VAAPI (falls aktiviert) oder Software neu kodiert. `GO2RTC_H264_COPY_FIRST=false` in `.env` deaktiviert nur diese Kopieroptimierung. Hardware-Beschleunigung und Kamera-Aufzeichnungen bleiben unabhaengig davon erhalten. Fallbacks anderer Kameras werden nicht global umgeschaltet.
+
 ## Desktop client for Linux workstations
 
 Authenticated users can open **Desktop-Client** in the left navigation and download `TMP-Camera-Desktop-Linux-x64.zip`. It provides a dedicated Electron window connected to the existing Docker server, without opening Firefox or Chrome. After extracting on a Linux x86_64 workstation, run `sh ./install-linux.sh`. The installer automatically downloads and checksum-verifies a local Node.js 24 LTS runtime including npm if needed, then downloads Electron. The Electron postinstall hook is specifically approved for its pinned version and native runtime presence is verified. Missing Electron libraries on Debian/Ubuntu/Linux Mint can be installed with a sudo password prompt. Run the installer as the regular user (not with sudo). TLS certificate validation remains enabled. No extra server or Docker instance is installed. Source and install instructions are in `desktop-client/`.
@@ -79,7 +83,7 @@ They contain the installation identity, credentials, configuration, database, lo
 ## Documentation
 
 - `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.39.md` - current release notes
+- `UPDATE_NOTES_2.20.40.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources

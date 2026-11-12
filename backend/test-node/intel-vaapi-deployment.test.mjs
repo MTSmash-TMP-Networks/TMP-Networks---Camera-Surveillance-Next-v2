@@ -23,3 +23,13 @@ test('both host and update agent retain Intel compose override',()=>{
   assert.match(read('updater/src/server.js'),/scripts\/docker-compose\.intel\.yml/);
   assert.match(read('backend/src/services/media/StreamOrchestrator.js'),/INTEL_VAAPI_CPU_FALLBACK/);
 });
+
+
+test('Intel encoder failures are scoped per source, while H264 copy-first can be disabled', () => {
+  const orchestrator = read('backend/src/services/media/StreamOrchestrator.js');
+  assert.match(orchestrator,/brokerEncoderFailures = new Map\(\)/);
+  assert.doesNotMatch(orchestrator,/intelVaapiRuntimeDisabled/);
+  assert.match(orchestrator,/GO2RTC_H264_COPY_FALLBACK/);
+  assert.match(read('docker-compose.yml'),/GO2RTC_H264_COPY_FIRST/);
+  assert.match(read('backend/src/config.js'),/go2RtcH264CopyFirst/);
+});

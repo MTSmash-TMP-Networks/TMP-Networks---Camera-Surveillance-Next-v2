@@ -7,6 +7,8 @@ import {
   optionalAudioSource,
   profileMedia,
   normalizedBrokerPolicy,
+  brokerEncoderCandidates,
+  isBrokerEncoderRetryable,
 } from '../src/services/media/BrokerPipeline.js';
 
 test('native RTSP broker source keeps all media for downstream broker consumers', () => {
@@ -52,4 +54,34 @@ test('Intel VAAPI is opt-in for broker encoder and has unchanged CPU fallback pa
   assert.equal(optionalAudioSource('cam_1_raw', 20, 'vaapi'), 'ffmpeg:cam_1_raw#video=h264#audio=aac#timeout=20#hardware=vaapi');
   assert.equal(normalizedVideoSource('cam_1_raw', 20, 'none'), normalizedVideoSource('cam_1_raw'));
   assert.doesNotMatch(normalizedVideoSource('cam_1_raw', 20, 'unknown'), /hardware=/);
+});
+
+
+test('H.264 uses copy first, other video codecs use VAAPI if available', () => {
+  assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'H264' }, 'vaapi'), ['copy', 'vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'hevc' }, 'vaapi'), ['vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'mjpeg' }, 'none'), ['software']);
+  assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'H264' }, 'vaapi', false), ['vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({}, 'vaapi'), ['vaapi', 'software']);
+});
+
+test('Copy avoids video encoding and is isolated from VAAPI/software paths', () => {
+  assert.equal(normalizedVideoSource('cam_test', 20, 'copy'), 'ffmpeg:cam_test#video=copy#timeout=20');
+  assert.equal(optionalAudioSource('cam_test', 20, 'copy'), 'ffmpeg:cam_test#video=copy#audio=aac#timeout=20');
+  assert.equal(normalizedBrokerPolicy({videoCodec:'H264'}, 'copy').copyVideo, true);
+  const args={token:'sub',videoCodec:'H264'};
+  const source={uri:'rtsp://user:pass@camera/sub'};
+  const copy=brokerStreamPaths('cam1',args,source,'copy');
+  const gpu=brokerStreamPaths('cam1',args,source,'vaapi');
+  const cpu=brokerStreamPaths('cam1',args,source,'software');
+  assert.notEqual(copy.video,gpu.video);
+  assert.notEqual(copy.raw,cpu.raw);
+  assert.notEqual(cpu.video,gpu.video);
+  assert.deepEqual(cpu,brokerStreamPaths('cam1',args,source));
+});
+
+test('Only startup/encoder failures trigger per-stream retries', () => {
+  assert.equal(isBrokerEncoderRetryable({code:'STREAM_NOT_READY'}),true);
+  assert.equal(isBrokerEncoderRetryable({message:'VAAPI initialization failed'}),true);
+  assert.equal(isBrokerEncoderRetryable({code:'CAMERA_OFFLINE'}),false);
 });

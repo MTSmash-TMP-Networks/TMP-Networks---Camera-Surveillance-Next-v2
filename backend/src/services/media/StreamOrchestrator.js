@@ -1,7 +1,8 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { cameraRepository } from '../cameraRepository.js';
 import { cameraEventLog, sanitizeLogText } from '../CameraEventLog.js';
 import { OnvifClient } from '../onvif/OnvifClient.js';
@@ -19,7 +20,9 @@ import { snapshotService } from './SnapshotService.js';
 import { startSnapshotFramePump } from './SnapshotVideoBridge.js';
 import { createStreamProgressTracker, consumeFfmpegProgress } from './StreamProgressTracker.js';
 import { isBenignFfmpegDiagnostic } from './FfmpegDiagnostics.js';
-import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy } from './BrokerPipeline.js';
+import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable } from './BrokerPipeline.js';
+
+const execFileAsync = promisify(execFile);
 
 
 function sessionSlot(quality, viewportWidth, purpose = 'live') {
@@ -116,7 +119,9 @@ class StreamOrchestrator {
     this.controlResyncTimers = new Map();
     this.cameraStartLocks = new Map();
     this.brokerRefs = new Map();
-    this.intelVaapiRuntimeDisabled = false;
+    // A failure must never disable VAAPI for unrelated cameras.
+    // Keyed by camera/profile/source identity; reset when backend restarts.
+    this.brokerEncoderFailures = new Map();
     this.closed = false;
     this.timer = setInterval(() => this.maintenance().catch((error) => logger.error({ err: error }, 'Stream-Wartung fehlgeschlagen')), 10000);
     this.timer.unref();
@@ -140,7 +145,8 @@ class StreamOrchestrator {
   }
 
   async acquireBroker(session, camera, profile, candidate, sourceUri) {
-    const paths = brokerStreamPaths(camera.id, profile, candidate);
+    const encoder = session.brokerEncoder || 'software';
+    const paths = brokerStreamPaths(camera.id, profile, candidate, encoder);
     const existing = this.brokerRefs.get(paths.video);
     session.paths.raw = paths.raw;
     session.paths.video = paths.video;
@@ -148,8 +154,7 @@ class StreamOrchestrator {
     session.paths.webrtc = paths.video;
     session.paths.hls = paths.video;
     const rawSource = nativeBrokerSource(sourceUri, candidate.transport, 20);
-    const videoHardware = config.go2RtcFfmpegHardware === 'vaapi' && !this.intelVaapiRuntimeDisabled ? 'vaapi' : 'none';
-    const videoSource = normalizedVideoSource(paths.raw, 20, videoHardware);
+    const videoSource = normalizedVideoSource(paths.raw, 20, encoder);
     let inheritedRefs = 0;
     if (existing) {
       const [registeredRaw, registeredVideo] = await Promise.all([
@@ -191,10 +196,11 @@ class StreamOrchestrator {
         raw: paths.raw,
         video: paths.video,
         source: videoSource,
+        encoder,
       });
       let audioConfigured = false;
       if (profile?.audioCodec) {
-        const audioSource = optionalAudioSource(paths.raw, 20, videoHardware);
+        const audioSource = optionalAudioSource(paths.raw, 20, encoder);
         try {
           await go2RtcClient.upsertStream(paths.audio, audioSource);
           await go2RtcClient.waitUntilRegistered(paths.audio);
@@ -389,7 +395,7 @@ class StreamOrchestrator {
       stderr: '', stderrLines: [], progressBuffer: '', progressTracker: createStreamProgressTracker(), createdAt: Date.now(), lastRequestedAt: Date.now(),
       lastProgressAt: null, lastStreamBrokerAliveAt: null, lastProgressSource: null, restartCount: 0, connectedAt: null, startPromise: null, cacheBuster: Date.now(),
       attemptIndex: 0, attemptCount: 0, currentAttempt: null, ffmpegPid: null, startFailure: null,
-      lastLoggedStderrLine: null, lastLoggedStderrAt: 0, recordingRefs: 0, brokerRefKey: null,
+      lastLoggedStderrLine: null, lastLoggedStderrAt: 0, recordingRefs: 0, brokerRefKey: null, brokerEncoder: null,
     };
   }
 
@@ -510,7 +516,7 @@ class StreamOrchestrator {
           });
           const sourceUri = injectCredentials(candidate.uri, camera.username, camera.password);
           const probe = profileMedia(profile);
-          const policy = normalizedBrokerPolicy(profile);
+          let policy = normalizedBrokerPolicy(profile);
           this.log(session, 'info', 'stream', 'BROKER_PROFILE_METADATA', `Profilinformationen für „${profile.name}“ wurden ohne blockierende Kamera-ffprobe übernommen`, {
             profile: profile.name,
             sourceType: candidate.sourceType || 'onvif',
@@ -526,22 +532,30 @@ class StreamOrchestrator {
           this.phase(session, 'publishing', session.permanent
             ? `Zentraler Dauer-Broker für „${profile.name}“ wird aufgebaut`
             : `Zentraler Broker und lokaler HLS-Ring für „${profile.name}“ werden aufgebaut`, { profile: profile.name, transport: candidate.transport, browserVideoMode: 'broker-normalized' });
-          try {
-            session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
-          } catch (primaryError) {
-            // The configured render node/driver can vanish after boot or fail for
-            // a specific camera codec. Do not make video unavailable: recreate the
-            // broker using the original software encoder and retry exactly once.
-            if (config.go2RtcFfmpegHardware !== 'vaapi' || this.intelVaapiRuntimeDisabled ||
-                !['STREAM_NOT_READY', 'FFMPEG_EXITED'].includes(String(primaryError?.code || '')) &&
-                !/vaapi|hardware encoder|renderD128|drm device/i.test(String(primaryError?.message || ''))) throw primaryError;
-            this.intelVaapiRuntimeDisabled = true;
-            this.log(session, 'warn', 'go2rtc', 'INTEL_VAAPI_CPU_FALLBACK', 'Intel-VAAPI lieferte keinen startbereiten Stream; Software-Encoding wird verwendet', {
-              code: primaryError.code, profile: profile.name,
-            });
-            await this.releaseBroker(session);
-            session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
+          const failureKey = brokerStreamPaths(camera.id, profile, candidate).video;
+          const failedEncoders = this.brokerEncoderFailures.get(failureKey) || new Set();
+          const encoders = brokerEncoderCandidates(profile, config.go2RtcFfmpegHardware, config.go2RtcH264CopyFirst)
+            .filter((mode) => mode === 'software' || !failedEncoders.has(mode));
+          for (const [encoderIndex, encoder] of encoders.entries()) {
+            session.brokerEncoder = encoder;
+            try {
+              session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
+              break;
+            } catch (encodeError) {
+              await this.kill(session);
+              if (encoderIndex === encoders.length - 1 || !isBrokerEncoderRetryable(encodeError)) throw encodeError;
+              failedEncoders.add(encoder);
+              this.brokerEncoderFailures.set(failureKey, failedEncoders);
+              const copyFailure = encoder === 'copy';
+              this.log(session, 'warn', 'go2rtc', copyFailure ? 'GO2RTC_H264_COPY_FALLBACK' : 'INTEL_VAAPI_CPU_FALLBACK',
+                copyFailure ? 'H.264-Kopie lieferte keinen startbereiten Stream; dieses Profil wird umkodiert'
+                  : 'Intel-VAAPI schlug fuer dieses Profil fehl; nur dieses Profil wechselt zu Software-Encoding', {
+                  profile: profile.name, failedEncoder: encoder, retryEncoder: encoders[encoderIndex + 1],
+                  code: encodeError.code || null,
+                });
+            }
           }
+          policy = normalizedBrokerPolicy(profile, session.brokerEncoder);
           if (candidate.sourceId) cameraRepository.updateMediaSourceStatus(candidate.sourceId, 'available', null);
           if (session.mode !== 'go2rtc-managed' && (!session.process || session.process.exitCode !== null)) {
             throw new AppError(502, 'FFMPEG_EXITED', 'FFmpeg wurde während der Stream-Aktivierung beendet', sanitize(session.stderr));
@@ -787,6 +801,26 @@ class StreamOrchestrator {
         playlist: this.localHlsPlaylist(session),
         ffmpeg: details,
       });
+    }
+
+    if (session.brokerEncoder === 'copy') {
+      // Camera metadata is not always correct. Ensure that the copied stream
+      // really contains H.264 before serving it to browser-HLS consumers.
+      // A wrong codec or failed inspection follows the normal per-source
+      // fallback (VAAPI -> CPU), not a global GPU disable.
+      try {
+        const segment = fs.readdirSync(outputDir).filter((name) => /^seg_[0-9]+\.ts$/.test(name)).sort()[0];
+        if (!segment) throw new Error('No completed MPEG-TS segment');
+        const { stdout } = await execFileAsync(config.ffprobePath, [
+          '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=codec_name',
+          '-of', 'default=noprint_wrappers=1', path.join(outputDir, segment),
+        ], { timeout: 5000, maxBuffer: 16 * 1024 });
+        if (!/^codec_name=h264\s*$/m.test(stdout)) throw new Error('Copied profile is not H.264');
+      } catch (error) {
+        throw new AppError(502, 'STREAM_NOT_READY', 'H.264-Kopie wurde nicht als H.264 bestaetigt', {
+          reason: String(error?.code || error?.message || 'ffprobe-validation').slice(0, 200),
+        });
+      }
     }
 
     session.paths.recording = ring.brokerName;
@@ -1452,6 +1486,7 @@ class StreamOrchestrator {
       sourceType: session.sourceType || null,
       sourceLabel: session.sourceLabel || null,
       sourcePolicy: session.sourcePolicy || 'auto',
+      videoEncoder: session.brokerEncoder || null,
       outputs: { ...session.outputs },
       connectedAt: session.connectedAt ? new Date(session.connectedAt).toISOString() : null,
       lastProgressAt: session.lastProgressAt ? new Date(session.lastProgressAt).toISOString() : null,

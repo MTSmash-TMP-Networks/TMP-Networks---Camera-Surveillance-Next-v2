@@ -1,3 +1,13 @@
+## 2.20.40 - CPU-Sparmodus fuer H.264-Streams und profilgebundener VAAPI-Fallback
+
+- Bereits H.264-kodierte Kamerastreams werden standardmaessig mit go2rtc `#video=copy` statt erneutem libx264-Encoding weitergegeben.
+- Ein `ffprobe`-Check am ersten fertigen HLS-Segment bestaetigt tatsaechliches H.264 vor der Browserfreigabe.
+- Bei einem nicht startfaehigen H.264-Kopierpfad wird nur das betroffene Kamera-/Profil-/Quellen-Paar mit VAAPI oder Software neu versucht.
+- Ein VAAPI-Fehler deaktiviert die Intel-GPU nicht mehr global fuer alle weiteren Kameras.
+- Separate Broker-Identitaeten fuer Copy/VAAPI/Software erhalten gleichzeitig verwendete Streams bei einem Fallback.
+- `GO2RTC_H264_COPY_FIRST=false` in `.env` erlaubt die sofortige Rueckkehr zum bisherigen Transcoding-Verhalten.
+- Bestehende Videodaten, `.env` und die Intel-Docker-Freigabe bleiben unveraendert.
+
 ## 2.20.39 - Intel VAAPI video pipeline opt-in
 
 - Add a device-scoped, opt-in Intel /dev/dri/renderD128 passthrough for go2rtc and the backend.
