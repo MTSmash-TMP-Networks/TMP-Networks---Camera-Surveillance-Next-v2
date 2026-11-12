@@ -60,11 +60,13 @@ test('permanent ingest is a low-cost preview publisher', () => {
   assert.match(orchestrator, /startPermanentIngestForCamera/);
 });
 
-test('kiosk and motion prefer substream while live and recording prefer mainstream', () => {
+test('Live Auto and kiosk use the warm preview while recording and explicit high use mainstream', () => {
   assert.match(config, /KIOSK_PREFER_SUBSTREAM', true/);
+  assert.match(config, /LIVE_AUTO_USE_PERMANENT_INGEST', true/);
   assert.match(config, /LIVE_PREFER_MAINSTREAM', true/);
   assert.match(config, /RECORDING_PREFER_MAINSTREAM', true/);
   assert.match(config, /MOTION_PREFER_SUBSTREAM', true/);
+  assert.match(orchestrator, /normalizedPurpose === 'live'[\s\S]*config\.liveAutoUsePermanentIngest[\s\S]*quality === 'auto'[\s\S]*!profileToken/);
   assert.match(orchestrator, /purpose === 'kiosk'.*return 'low'/s);
   assert.match(orchestrator, /purpose === 'live'.*return 'high'/s);
   assert.match(orchestrator, /purpose === 'recording'.*return 'high'/s);
@@ -198,4 +200,20 @@ test('ready runtime sessions repair stale red camera status and Live keeps the g
   assert.match(livePage, /cameraUpserted/);
   assert.match(livePage, /status: 'online'/);
   assert.match(livePage, /setInterval\(\(\) => dispatch\(loadCameras\(\)\), 5000\)/);
+});
+
+
+test('shared warm preview keeps Live Auto auto across browser polling', () => {
+  assert.match(player, /const requestedQuality = quality === 'auto' \? \(compact \? automaticQuality : 'auto'\) : quality/);
+  assert.match(livePool, /const requestedQuality = input\.quality/);
+  assert.match(livePool, /warmLiveAuto = entry\.purpose === 'live' && entry\.quality === 'auto' && !entry\.profileToken/);
+  assert.match(livePool, /quality: requestedQuality, wait: false/);
+  assert.doesNotMatch(livePool, /quality: trackedQuality, wait: false/);
+  assert.match(livePool, /sharedPreview = session\.purpose === 'ingest'/);
+});
+
+test('permanent preview publisher is shared and not owned by kiosk or Live', () => {
+  assert.match(orchestrator, /session\.consumerPurpose = null/);
+  assert.match(orchestrator, /consumerPurpose: 'shared-preview'/);
+  assert.match(orchestrator, /shouldUsePermanentIngest\(consumerPurpose, effectiveForceTranscode, quality, profileToken\)/);
 });
