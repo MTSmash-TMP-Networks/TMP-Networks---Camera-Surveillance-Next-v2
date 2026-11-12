@@ -163,3 +163,18 @@ test('encoder fallback remains pinned instead of retrying GPU on a timer', () =>
   assert.match(orchestrator, /const failedEncoders = this\.brokerEncoderFailures\.get\(failureKey\) \|\| new Map\(\)/);
   assert.match(orchestrator, /brokerEncoderFailures\.set\(failureKey, failedEncoders\)/);
 });
+
+
+test('mainstream failure can downgrade to a weaker profile and keep that profile sticky', () => {
+  assert.match(orchestrator, /stableProfileToken/);
+  assert.match(orchestrator, /STREAM_PROFILE_DOWNGRADED/);
+  assert.match(orchestrator, /prioritizeStableProfile\(requestedFirst, session\.stableProfileToken\)/);
+  assert.match(orchestrator, /requestedProfile && requestedProfile\.token !== profile\.token/);
+  assert.match(orchestrator, /session\.quality === 'high' && profile\.role !== 'high'/);
+});
+
+test('failed source memory is isolated per ONVIF profile', () => {
+  assert.match(orchestrator, /function candidateKey\(candidate, profileToken = null\)/);
+  assert.match(orchestrator, /candidateKey\(attempt\.candidate, attempt\.profile\?\.token\)/);
+  assert.match(orchestrator, /candidateKey\(candidate, profile\.token\)/);
+});
