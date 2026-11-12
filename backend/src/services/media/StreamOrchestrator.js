@@ -317,7 +317,7 @@ class StreamOrchestrator {
         session.phaseMessage = error.message;
         session.lastError = error.message;
         session.startFailure = error;
-        cameraRepository.updateStatus(cameraId, 'stream_error', error.message);
+        this.markCameraStreamError(session, error.message);
         this.log(session, 'error', 'stream', 'STREAM_START_FAILED', 'Live-Stream konnte mit keinem ONVIF-Profil gestartet werden', errorDetails(error));
         return null;
       });
@@ -372,7 +372,7 @@ class StreamOrchestrator {
         session.phaseMessage = error.message;
         session.lastError = error.message;
         session.startFailure = error;
-        cameraRepository.updateStatus(cameraId, 'stream_error', error.message);
+        this.markCameraStreamError(session, error.message);
         this.log(session, 'error', 'stream', 'PERMANENT_INGEST_START_FAILED', 'Permanenter Kamera-Publisher konnte nicht gestartet werden', errorDetails(error));
         this.scheduleRestart(session);
         return null;
@@ -759,7 +759,13 @@ class StreamOrchestrator {
       // caused by stale/duplicate Docker DNS targets or an RTSP registry that
       // is not the same runtime instance as the Control API.
       const brokerReadUrl = go2RtcClient.streamTsUrl(brokerName);
-      const args = buildLocalHlsRingArgs({ sourceUri: brokerReadUrl, outputDir, includeAudio });
+      const args = buildLocalHlsRingArgs({
+        sourceUri: brokerReadUrl,
+        outputDir,
+        includeAudio,
+        segmentSeconds: config.localHlsSegmentSeconds,
+        listSize: config.localHlsListSize,
+      });
       const child = spawn(config.ffmpegPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
       child.__tmpExpectedExit = false;
       session.process = child;
@@ -909,6 +915,8 @@ class StreamOrchestrator {
       width,
       height,
       fps: config.snapshotVideoFps,
+      segmentSeconds: config.localHlsSegmentSeconds,
+      listSize: config.localHlsListSize,
     });
     const child = spawn(config.ffmpegPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
     child.__tmpExpectedExit = false;
@@ -1006,6 +1014,29 @@ class StreamOrchestrator {
     }
   }
 
+  cameraHasHealthySession(cameraId, excludeSession = null) {
+    const now = Date.now();
+    return [...this.sessions.values()].some((candidate) => {
+      if (!candidate || candidate === excludeSession || String(candidate.cameraId) !== String(cameraId)) return false;
+      if (!['ready', 'recovering'].includes(candidate.state)) return false;
+      if (['snapshot', 'snapshot-video'].includes(candidate.mode)) return true;
+      if (this.isSessionProcessAlive(candidate)) return true;
+      return Boolean(candidate.lastStreamBrokerAliveAt && now - Number(candidate.lastStreamBrokerAliveAt) <= config.streamStallSeconds * 1000);
+    });
+  }
+
+  markCameraStreamError(session, error) {
+    if (!session) return false;
+    if (this.cameraHasHealthySession(session.cameraId, session)) {
+      this.log(session, 'debug', 'stream', 'CAMERA_STATUS_ERROR_SUPPRESSED', 'Temporärer Streamfehler setzt die Kamera nicht auf Rot, weil ein anderer Stream derselben Kamera weiter gesund ist', {
+        error: String(error || session.lastError || '').slice(0, 1200),
+      });
+      return false;
+    }
+    cameraRepository.updateStatus(session.cameraId, 'stream_error', error || session.lastError || null);
+    return true;
+  }
+
   onExit(session, child, code, signal) {
     if (session.snapshotPump && session.snapshotPumpChild === child) {
       session.snapshotPump.stop();
@@ -1026,7 +1057,7 @@ class StreamOrchestrator {
     session.lastError = details;
     if (session.activeCandidateKey) session.failedCandidates.set(session.activeCandidateKey, Date.now());
     if (session.sourceId) cameraRepository.updateMediaSourceStatus(session.sourceId, 'failed', session.lastError);
-    cameraRepository.updateStatus(session.cameraId, 'stream_error', session.lastError);
+    this.markCameraStreamError(session, session.lastError);
     if (session.permanent || session.recordingRefs > 0 || Date.now() - session.lastRequestedAt < config.streamIdleSeconds * 1000) this.scheduleRestart(session);
   }
 
@@ -1103,7 +1134,7 @@ class StreamOrchestrator {
       session.lastError = session.phaseMessage;
       if (session.activeCandidateKey) session.failedCandidates.set(session.activeCandidateKey, Date.now());
       if (session.sourceId) cameraRepository.updateMediaSourceStatus(session.sourceId, 'failed', session.lastError);
-      cameraRepository.updateStatus(session.cameraId, 'stream_error', session.lastError);
+      this.markCameraStreamError(session, session.lastError);
       this.scheduleRestart(session);
       return true;
     })();
