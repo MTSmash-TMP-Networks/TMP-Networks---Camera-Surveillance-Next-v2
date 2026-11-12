@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Camera, Circle, Download, FileSearch, MonitorPlay, MoreHorizontal, Pencil, RefreshCw, Square, Volume2 } from 'lucide-react';
-import { loadCameras } from '../features/cameras/camerasSlice.js';
+import { cameraUpserted, loadCameras } from '../features/cameras/camerasSlice.js';
 import { SeamlessLivePlayer } from '../components/SeamlessLivePlayer.jsx';
 import { CameraLogPanel } from '../components/CameraLogPanel.jsx';
 import { PtzControls } from '../components/PtzControls.jsx';
@@ -45,6 +45,10 @@ export function LivePage() {
 
   useEffect(() => { if (!cameras.length) dispatch(loadCameras()); }, [dispatch, cameras.length]);
   useEffect(() => {
+    const refresh = setInterval(() => dispatch(loadCameras()), 5000);
+    return () => clearInterval(refresh);
+  }, [dispatch]);
+  useEffect(() => {
     if (!actionsOpen) return undefined;
     const close = (event) => { if (!actionsRef.current?.contains(event.target)) setActionsOpen(false); };
     const escape = (event) => { if (event.key === 'Escape') setActionsOpen(false); };
@@ -61,6 +65,14 @@ export function LivePage() {
     const timer = setInterval(loadRecording, 4000);
     return () => { clearTimeout(resetTimer); clearInterval(timer); };
   }, [camera?.id]);
+
+  function handlePlaybackStatus(next) {
+    const state = next?.state || null;
+    setLivePlaybackState(state);
+    if (state === 'ready' && camera?.status !== 'online') {
+      dispatch(cameraUpserted({ ...camera, status: 'online', lastError: null }));
+    }
+  }
 
   async function downloadSnapshot() {
     const blob = await api.snapshot(camera.id);
@@ -124,7 +136,7 @@ export function LivePage() {
         return <button key={item.id} className={selected ? 'selected' : ''} onClick={() => setParams({ camera: item.id })}><span className={`dot ${railState}`}/><span><strong>{item.name}</strong><small>{item.location || t('overview.locationUnknown')}</small></span></button>;
       })}</aside>
       <div className="live-main">
-        <SeamlessLivePlayer camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)} onStatusChange={(next) => setLivePlaybackState(next?.state || null)}/>
+        <SeamlessLivePlayer camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)} onStatusChange={handlePlaybackStatus}/>
         <div className="stream-info"><span><Volume2/> Livebild: lokaler HLS-Ring über go2rtc-Broker · Audio wird für die stabile Browseransicht deaktiviert</span><span>{t('live.profileLabel')}: {selectedProfileName || t('live.automatic')} · {profileToken ? t('live.manualSelected') : codecPreferenceLabel(details?.camera?.codecPreference)}</span></div>
         <CameraLogPanel key={camera.id} cameraId={camera.id} canClear={allowed} open={diagnosticOpen} onOpenChange={setDiagnosticOpen}/>
       </div>
