@@ -97,7 +97,7 @@ export function LivePage() {
         await api.stopRecording(recording.id);
         setRecording(null);
       } else {
-        const created = await api.startRecording({ cameraId: camera.id, profileToken: profileToken || null, quality: quality === 'auto' ? 'balanced' : quality });
+        const created = await api.startRecording({ cameraId: camera.id, profileToken: profileToken || null, quality: quality === 'auto' ? 'high' : quality });
         setRecording(created);
       }
     } catch (error) { setRecordingError(error.message); }
