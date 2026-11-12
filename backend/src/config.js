@@ -233,6 +233,7 @@ export const config = Object.freeze({
   snapshotRefreshMs: number('SNAPSHOT_REFRESH_MS', 1000),
   probeTimeoutMs: number('PROBE_TIMEOUT_MS', 9000),
   startTimeoutMs: number('STREAM_START_TIMEOUT_MS', 15000),
+  streamAutoProfileFirstFrameTimeoutMs: integer('STREAM_AUTO_PROFILE_FIRST_FRAME_TIMEOUT_MS', 8000, { min: 3000, max: 30000 }),
   maxRestartBackoffMs: number('MAX_RESTART_BACKOFF_MS', 30000),
   cameraConnectTimeoutMs: number('CAMERA_CONNECT_TIMEOUT_MS', 10000),
   // Synology-style clip truncation: independently committed archive blocks.

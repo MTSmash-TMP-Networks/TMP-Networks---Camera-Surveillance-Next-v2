@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.47",
+  "version": "2.20.48",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.47",
-  "summary": "Prefer mainstream, but automatically downgrade and keep the working weaker profile instead of retrying a failing high profile forever.",
-  "createdAt": "2026-11-12T16:40:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.47.md",
+  "title": "TMP Camera Surveillance Next 2.20.48",
+  "summary": "Auto mode now abandons a frame-less mainstream quickly and falls through to balanced/secondstream/substream instead of retrying encoders on the dead profile.",
+  "createdAt": "2026-11-12T16:50:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.48.md",
   "changes": [
-    "Continue from high to balanced and low profiles when the preferred mainstream cannot produce a usable stream",
-    "Pin the first successful downgraded profile for later reconnects in the same backend session",
-    "Scope source failure memory by ONVIF profile so a failed mainstream does not poison the substream"
+    "Add an eight-second first-frame timeout for automatic profile selection",
+    "Classify missing normalized media frames as a profile failure rather than an encoder failure",
+    "Skip copy/VAAPI/CPU retries on a frame-less profile and continue immediately with the next weaker profile"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.47.md",
+  "changelog": "UPDATE_NOTES_2.20.48.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.47",
-  "packageId": "tmp-camera-surveillance-next-2.20.47",
+  "name": "TMP Camera Surveillance Next v2.20.48",
+  "packageId": "tmp-camera-surveillance-next-2.20.48",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Sticky profile downgrade for reliable Live View startup.",
+  "description": "Fast automatic downgrade when the preferred profile produces no normalized media frames.",
   "minVersion": "2.20.32",
-  "releaseNotes": "A failed mainstream now yields to a weaker profile and the working fallback stays preferred for reconnects.",
-  "fileCount": 449
+  "releaseNotes": "Auto mode falls back to a weaker profile after eight seconds without first normalized media frames.",
+  "fileCount": 450
 }

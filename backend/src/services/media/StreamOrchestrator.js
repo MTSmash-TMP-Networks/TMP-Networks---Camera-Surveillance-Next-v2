@@ -634,6 +634,15 @@ class StreamOrchestrator {
           failures.push(summary);
           if (candidate.sourceId) cameraRepository.updateMediaSourceStatus(candidate.sourceId, 'failed', String(error.details || error.message || error).slice(0, 1200));
           session.lastError = error.message;
+          if (error?.code === 'PROFILE_MEDIA_TIMEOUT') {
+            this.log(session, 'warn', 'stream', 'PROFILE_MEDIA_TIMEOUT_DOWNGRADE', `„${profile.name}“ lieferte keine ersten Medienframes; Auto wechselt ohne weitere Encoder-Versuche auf das naechste Profil`, {
+              profile: profile.name,
+              profileToken: profile.token || null,
+              profileRole: profile.role || null,
+              transport: candidate.transport,
+              timeoutMs: error?.details?.firstFrameTimeoutMs || null,
+            });
+          }
           this.log(session, 'warn', 'stream', 'ATTEMPT_FAILED', `Streamvariante ${session.attemptIndex}/${session.attemptCount} ist fehlgeschlagen`, {
             profile: profile.name,
             sourceType: candidate.sourceType || 'onvif',
@@ -818,8 +827,12 @@ class StreamOrchestrator {
         audioRequested: includeAudio,
         brokerInput: 'go2rtc-http-mpegts',
       });
-      const outcome = await this.waitUntilLocalHlsReady(session, { timeoutMs: config.startTimeoutMs, intervalMs: 250 });
-      return { child, outcome, details: sanitize(session.stderr), brokerName, includeAudio };
+      const autoProfileSelection = !session.requestedProfileToken && !session.stableProfileToken;
+      const firstFrameTimeoutMs = autoProfileSelection
+        ? Math.min(config.startTimeoutMs, config.streamAutoProfileFirstFrameTimeoutMs)
+        : config.startTimeoutMs;
+      const outcome = await this.waitUntilLocalHlsReady(session, { timeoutMs: firstFrameTimeoutMs, intervalMs: 250 });
+      return { child, outcome, details: sanitize(session.stderr), brokerName, includeAudio, firstFrameTimeoutMs };
     };
 
     let ring = null;
@@ -842,14 +855,18 @@ class StreamOrchestrator {
     if (!ring.outcome.ready) {
       const details = ring.details;
       await this.kill(session, ring.child);
-      throw new AppError(502, 'STREAM_NOT_READY', 'Der zentrale Brokerpfad lieferte nicht rechtzeitig einen lokalen Browser-HLS-Ring', {
+      throw new AppError(502, 'PROFILE_MEDIA_TIMEOUT', 'Das Profil lieferte nicht rechtzeitig normalisierte Medienframes; das naechste Profil wird versucht', {
         processExited: ring.outcome.processExited,
         mode: 'broker-local-hls',
         profile: profile.name,
+        profileToken: profile.token || null,
+        profileRole: profile.role || null,
         transport: candidate.transport,
         rawBroker: broker.raw,
         normalizedBroker: ring.brokerName,
         audioRequested: ring.includeAudio,
+        firstFrameTimeoutMs: ring.firstFrameTimeoutMs,
+        reason: 'no-normalized-media-frames',
         playlist: this.localHlsPlaylist(session),
         ffmpeg: details,
       });
