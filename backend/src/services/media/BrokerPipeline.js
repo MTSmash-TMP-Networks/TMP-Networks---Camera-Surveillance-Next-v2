@@ -121,15 +121,26 @@ export function normalizedBrokerPolicy(profile = {}, encoder = 'software') {
   };
 }
 
-// A known H.264 profile can be remuxed, while H.265/MJPEG must first be
-// converted to browser-compatible H.264. A failed copy or GPU attempt is
-// retried only for the specific camera/profile/source.
+// H.264 and profiles with missing codec metadata are copied first and then
+// verified against actual video segments; explicit H.265/MJPEG requires
+// conversion. A failed copy/GPU attempt is retried per camera/profile/source.
 export function brokerEncoderCandidates(profile = {}, hardware = 'none', copyFirst = true) {
   const candidates = [];
-  if (copyFirst && codecName(profile) === 'h264') candidates.push('copy');
+  // ONVIF and catalog profiles often omit videoCodec, even for H.264 cameras.
+  // Try a lossless copy for unknown codecs too, but only expose the resulting
+  // stream after ffprobe has verified that the produced segment is H.264.
+  const declared = codecName(profile);
+  if (copyFirst && (declared === 'h264' || declared === null)) candidates.push('copy');
   if (hardware === 'vaapi') candidates.push('vaapi');
   candidates.push('software');
   return candidates;
+}
+
+// Parse the actual video codec returned by ffprobe, never infer it from the
+// camera name. This helper is intentionally side-effect-free and unit-tested.
+export function parseFfprobeVideoCodec(output) {
+  const match = String(output || '').match(/^codec_name=([a-zA-Z0-9_]+)\s*$/m);
+  return match ? match[1].toLowerCase() : null;
 }
 
 export function isBrokerEncoderRetryable(error) {

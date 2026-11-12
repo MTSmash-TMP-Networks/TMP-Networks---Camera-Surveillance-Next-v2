@@ -88,7 +88,14 @@ export const config = Object.freeze({
   systemNetworkExcludeInterfaces: list('SYSTEM_NETWORK_EXCLUDE_INTERFACES').length ? list('SYSTEM_NETWORK_EXCLUDE_INTERFACES') : ['lo', 'docker*', 'br-*', 'veth*', 'virbr*', 'cni*', 'podman*'],
   systemNetworkMaxDevices: integer('SYSTEM_NETWORK_MAX_DEVICES', 12, { min: 1, max: 128 }),
   nvidiaSmiPath: configurableString('NVIDIA_SMI_PATH', 'nvidia-smi'),
-  go2RtcFfmpegHardware: configurableString('GO2RTC_FFMPEG_HARDWARE', 'none').toLowerCase() === 'vaapi' ? 'vaapi' : 'none',
+  // The explicit 'none' setting is respected. 'auto' only uses VAAPI after
+  // scripts/intel-vaapi.sh --enable has opted the host in to the GPU overlay.
+  go2RtcFfmpegHardware: (() => {
+    const selected = configurableString('GO2RTC_FFMPEG_HARDWARE', 'auto').toLowerCase();
+    if (selected === 'vaapi') return 'vaapi';
+    if (selected === 'none') return 'none';
+    return boolean('ENABLE_INTEL_GPU_COMPOSE', false) ? 'vaapi' : 'none';
+  })(),
   go2RtcH264CopyFirst: boolean('GO2RTC_H264_COPY_FIRST', true),
   // HOST_SCAN_RANGES is administrator-owned and persistent. AUTO_HOST_SCAN_RANGES is refreshed by start.sh.
   hostScanRanges: list('HOST_SCAN_RANGES'),

@@ -9,6 +9,7 @@ import {
   normalizedBrokerPolicy,
   brokerEncoderCandidates,
   isBrokerEncoderRetryable,
+  parseFfprobeVideoCodec,
 } from '../src/services/media/BrokerPipeline.js';
 
 test('native RTSP broker source keeps all media for downstream broker consumers', () => {
@@ -62,7 +63,11 @@ test('H.264 uses copy first, other video codecs use VAAPI if available', () => {
   assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'hevc' }, 'vaapi'), ['vaapi', 'software']);
   assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'mjpeg' }, 'none'), ['software']);
   assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'H264' }, 'vaapi', false), ['vaapi', 'software']);
-  assert.deepEqual(brokerEncoderCandidates({}, 'vaapi'), ['vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({}, 'vaapi'), ['copy', 'vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({ name: 'Reolink · H.264 Substream', videoCodec: null }, 'vaapi'), ['copy', 'vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({ name: 'Reolink · H.265 Mainstream', videoCodec: null }, 'vaapi'), ['copy', 'vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({ videoCodec: 'H265' }, 'vaapi'), ['vaapi', 'software']);
+  assert.deepEqual(brokerEncoderCandidates({ videoCodec: null }, 'none', false), ['software']);
 });
 
 test('Copy avoids video encoding and is isolated from VAAPI/software paths', () => {
@@ -84,4 +89,11 @@ test('Only startup/encoder failures trigger per-stream retries', () => {
   assert.equal(isBrokerEncoderRetryable({code:'STREAM_NOT_READY'}),true);
   assert.equal(isBrokerEncoderRetryable({message:'VAAPI initialization failed'}),true);
   assert.equal(isBrokerEncoderRetryable({code:'CAMERA_OFFLINE'}),false);
+});
+
+test('actual TS codec is parsed, not guessed from the Reolink profile name', () => {
+  assert.equal(parseFfprobeVideoCodec('codec_name=h264\n'), 'h264');
+  assert.equal(parseFfprobeVideoCodec('codec_name=hevc\n'), 'hevc');
+  assert.equal(parseFfprobeVideoCodec('codec_name=mjpeg\n'), 'mjpeg');
+  assert.equal(parseFfprobeVideoCodec('invalid codec data'), null);
 });

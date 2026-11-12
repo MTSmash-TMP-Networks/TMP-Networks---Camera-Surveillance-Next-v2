@@ -1,3 +1,10 @@
+## 2.20.42 – Reale Codec-Pruefung und Copy-first fuer unbekannte ONVIF-Profile
+
+- H.264-Kopierpfad wird auch bei leeren ONVIF-Codecangaben geprueft, ohne den Profilnamen als Codec-Beweis zu verwenden.
+- FFprobe prueft das fertige lokale MPEG-TS-Segment; H.265/MJPEG-Kopien bleiben vor Browserfreigabe gesperrt und gehen in VAAPI-/CPU-Fallback.
+- VAAPI-Opt-in ist in der Backend-Compose-Umgebung explizit sichtbar; temporaere Encoderfehler erhalten eine zeitlich begrenzte Quellensperre.
+- Diagnoseskript und Reolink-Regressionstests hinzugefuegt; keine Benutzerdaten werden aktualisiert.
+
 ## 2.20.41 - Versionsuebergreifende Updates ab 2.20.32
 
 - Das GitHub-Quellarchiv enthaelt ausschliesslich Wurzelpfade, die bereits der Updater 2.20.32 erlaubt. Die Desktop-Client-Quellen liegen jetzt unter `frontend/desktop-client/`; der eigentliche herunterladbare Linux-Client bleibt unveraendert unter `frontend/public/downloads/`.

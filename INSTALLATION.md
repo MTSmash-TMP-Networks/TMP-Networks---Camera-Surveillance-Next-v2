@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.41 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next 2.20.42 and the most common maintenance tasks.
 
 ## 1. Requirements
 
@@ -520,9 +520,9 @@ Open **Desktop-Client** from the authenticated application's sidebar and downloa
 
 ## GitHub direct updates
 
-After upgrading to 2.20.41, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
+After upgrading to 2.20.42, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
 
-For the initial repair from older releases, upload the full 2.20.41 ZIP through the existing ZIP upload option.
+For the initial repair from older releases, upload the full 2.20.42 ZIP through the existing ZIP upload option.
 
 
 ### Optional Intel VAAPI video acceleration
@@ -532,4 +532,9 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.41 direkt via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.42 direkt via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+
+
+### Kamera-Encoderdiagnose (ab v2.20.42)
+
+`sudo sh ./scripts/camera-encoder-diagnostics.sh` zeigt opt-in VAAPI-Konfiguration und aktive go2rtc-FFmpeg-Encoder, ohne RTSP-Credentials auszugeben. Unbekannte ONVIF-Codecprofile werden zunächst kopiert und vor Freigabe anhand des tatsächlichen Videosegments geprüft. Bei Nicht-H.264 greift der bewährte VAAPI/CPU-Fallback; ein einmaliger Fehler bleibt nicht lebenslang gesperrt.

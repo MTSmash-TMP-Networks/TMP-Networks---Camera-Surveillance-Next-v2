@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.41",
+  "version": "2.20.42",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.41",
-  "summary": "Direct upgrades from all validated legacy releases v2.20.32+; stable source and ZIP compatibility.",
-  "createdAt": "2026-11-12T12:56:06+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.41.md",
+  "title": "TMP Camera Surveillance Next 2.20.42",
+  "summary": "Verify real H.264 on codec-unknown Reolink streams; Intel VAAPI opt-in diagnostics and per-source retry.",
+  "createdAt": "2026-11-12T13:44:03+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.42.md",
   "changes": [
-    "Direct GitHub/ZIP update support from v2.20.32 and newer without chained intermediate releases",
-    "Move desktop client source inside frontend for old updater path validation",
-    "Prevent future incompatible releases via machine-checked GitHub workflow"
+    "Detect real video codec from HLS media frames for ONVIF profiles without codec metadata",
+    "Copy H264 without re-encoding and transparently fall back on mismatch",
+    "Expose Intel VAAPI opt-in and per-source encoder retry diagnostics"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.41.md",
+  "changelog": "UPDATE_NOTES_2.20.42.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.41",
-  "packageId": "tmp-camera-surveillance-next-2.20.41",
+  "name": "TMP Camera Surveillance Next v2.20.42",
+  "packageId": "tmp-camera-surveillance-next-2.20.42",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Stable cross-version release contract for legacy GitHub and ZIP updates.",
+  "description": "Codec-verified H264 copy-first and reliable Intel VAAPI policy for N97 hosts.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Direct compatibility baseline 2.20.32, legacy path-safe desktop source and release guard.",
-  "fileCount": 440
+  "releaseNotes": "Verified codec detection for unknown ONVIF profiles, bounded per-source encoder fallback, and redacted host diagnostics.",
+  "fileCount": 442
 }

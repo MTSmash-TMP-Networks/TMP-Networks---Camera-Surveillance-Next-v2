@@ -7,6 +7,7 @@ LICENSE_AGREEMENT.md
 MANIFEST.txt
 README.md
 UPDATE_NOTES_2.20.41.md
+UPDATE_NOTES_2.20.42.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -391,6 +392,7 @@ logs.sh
 mediamtx/go2rtc.yaml
 scripts/auto-network-env.sh
 scripts/backup.sh
+scripts/camera-encoder-diagnostics.sh
 scripts/check-update-compatibility.mjs
 scripts/core-smoke-test.mjs
 scripts/demo-mode.sh
