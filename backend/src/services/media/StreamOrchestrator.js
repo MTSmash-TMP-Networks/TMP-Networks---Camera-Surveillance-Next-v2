@@ -99,8 +99,15 @@ function errorDetails(error) {
   };
 }
 
-function candidateKey(candidate) {
-  return `${candidate?.uri || ''}|${candidate?.transport || ''}`;
+function candidateKey(candidate, profileToken = null) {
+  return `${profileToken || ''}|${candidate?.uri || ''}|${candidate?.transport || ''}`;
+}
+
+export function prioritizeStableProfile(attempts, profileToken = null) {
+  if (!profileToken) return attempts;
+  const preferred = attempts.filter((attempt) => String(attempt?.profile?.token || '') === String(profileToken));
+  if (!preferred.length) return attempts;
+  return [...preferred, ...attempts.filter((attempt) => String(attempt?.profile?.token || '') !== String(profileToken))];
 }
 
 const SOURCE_FAILURE_COOLDOWN_MS = 2 * 60 * 1000;
@@ -399,12 +406,13 @@ class StreamOrchestrator {
       lastProgressAt: null, lastStreamBrokerAliveAt: null, lastProgressSource: null, restartCount: 0, connectedAt: null, startPromise: null, cacheBuster: Date.now(),
       attemptIndex: 0, attemptCount: 0, currentAttempt: null, ffmpegPid: null, startFailure: null,
       lastLoggedStderrLine: null, lastLoggedStderrAt: 0, recordingRefs: 0, brokerRefKey: null, brokerEncoder: null,
+      stableProfileToken: null, stableProfileRole: null, stableProfileName: null,
     };
   }
 
   async orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources = []) {
     let selectedProfiles = chooseProfiles(profiles, session.quality, viewportWidth, session.codecPreference);
-    if (session.requestedProfileToken) {
+    if (!session.stableProfileToken && session.requestedProfileToken) {
       const requested = selectedProfiles.find((profile) => profile.token === session.requestedProfileToken);
       if (requested) selectedProfiles = [requested, ...selectedProfiles.filter((profile) => profile.token !== requested.token)];
     }
@@ -428,10 +436,11 @@ class StreamOrchestrator {
       if (now - failedAt >= SOURCE_FAILURE_COOLDOWN_MS) failureMemory.delete(key);
     }
     for (const attempt of attempts) {
-      if (failureMemory.has(candidateKey(attempt.candidate))) attempt.candidate.healthRank = 3;
+      if (failureMemory.has(candidateKey(attempt.candidate, attempt.profile?.token))) attempt.candidate.healthRank = 3;
     }
     const ordered = sortMediaAttempts(attempts, session.sourcePolicy || 'auto');
-    return prioritizeRequestedSource(ordered, session.requestedProfileToken);
+    const requestedFirst = prioritizeRequestedSource(ordered, session.requestedProfileToken);
+    return prioritizeStableProfile(requestedFirst, session.stableProfileToken);
   }
 
   async start(session, camera, viewportWidth) {
@@ -587,8 +596,28 @@ class StreamOrchestrator {
           session.sourceId = candidate.sourceId || null;
           session.sourceType = candidate.sourceType || 'onvif';
           session.sourceLabel = candidate.sourceLabel || profile.name;
-          session.activeCandidateKey = candidateKey(candidate);
+          session.activeCandidateKey = candidateKey(candidate, profile.token);
           session.failedCandidates.delete(session.activeCandidateKey);
+          const previousStableProfile = session.stableProfileToken;
+          session.stableProfileToken = profile.token || null;
+          session.stableProfileRole = profile.role || null;
+          session.stableProfileName = profile.name || null;
+          if (previousStableProfile !== session.stableProfileToken) {
+            const requestedProfile = session.requestedProfileToken
+              ? profiles.find((item) => item.token === session.requestedProfileToken)
+              : null;
+            const downgraded = Boolean(requestedProfile && requestedProfile.token !== profile.token)
+              || (!requestedProfile && session.quality === 'high' && profile.role !== 'high');
+            this.log(session, downgraded ? 'warn' : 'info', 'stream', downgraded ? 'STREAM_PROFILE_DOWNGRADED' : 'STREAM_PROFILE_PINNED',
+              downgraded
+                ? `Gewünschtes Mainstream-Profil war nicht stabil; „${profile.name}“ wird für diese Sitzung als funktionierender Fallback beibehalten`
+                : `„${profile.name}“ wird als stabiles Profil für weitere Reconnects beibehalten`, {
+                requestedProfile: requestedProfile?.name || session.requestedProfileToken || null,
+                requestedQuality: session.quality,
+                activeProfile: profile.name,
+                activeRole: profile.role || null,
+              });
+          }
           session.connectedAt = Date.now();
           session.cacheBuster = session.connectedAt;
           session.lastProgressAt = Date.now();
@@ -600,7 +629,7 @@ class StreamOrchestrator {
           this.log(session, 'info', 'stream', 'STREAM_READY', 'Live-Stream ist bereit', { profile: profile.name, sourceType: session.sourceType, sourceLabel: session.sourceLabel, videoCodec: profile.videoCodec, videoProfile: profile.videoProfile, quality: session.quality, codecPreference: session.codecPreference, sourcePolicy: session.sourcePolicy, transport: candidate.transport, copyVideo: policy.copyVideo, videoEncoder: session.brokerEncoder, observedVideoCodec: session.observedVideoCodec || null, sourceAudio: probe.audio?.codec || null, outputs: session.outputs });
           return;
         } catch (error) {
-          session.failedCandidates.set(candidateKey(candidate), Date.now());
+          session.failedCandidates.set(candidateKey(candidate, profile.token), Date.now());
           const summary = `${profile.name}/${candidate.transport}: ${error.message}`;
           failures.push(summary);
           if (candidate.sourceId) cameraRepository.updateMediaSourceStatus(candidate.sourceId, 'failed', String(error.details || error.message || error).slice(0, 1200));
