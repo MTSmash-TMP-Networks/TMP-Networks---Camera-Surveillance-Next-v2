@@ -81,9 +81,9 @@ test('Updater kennzeichnet jede JSON-Antwort eindeutig als eigenen Dienst', () =
   assert.match(server, /const responseBody = \{ \.\.\.body, service: 'tmp-camera-updater', version: currentVersion\(\) \}/);
 });
 
-test('Update-Center zeigt einen initialen Backendfehler mit Wiederholungsaktion', () => {
-  assert.match(page, /Update-Center nicht erreichbar/);
-  assert.match(page, /Erneut versuchen/);
+test('Update-Center zeigt einen lokalisierten initialen Backendfehler mit Wiederholungsaktion', () => {
+  assert.match(page, /t\('update\.load\.unreachable'\)/);
+  assert.match(page, /t\('update\.load\.retry'\)/);
 });
 
 
@@ -297,4 +297,14 @@ test('Backend maskiert einen ausgefallenen Updater nach dem Update nicht mehr al
   assert.doesNotMatch(updateService, /updaterRestartGraceActive/);
   assert.doesNotMatch(updateService, /UPDATER_RESTARTING/);
   assert.match(updateService, /const publicUpdaterHealth = health/);
+});
+
+test('Updater beendet nach Neustart verwaiste Build- und Installationsphasen statt bei 42 Prozent zu haengen', () => {
+  assert.match(server, /interruptedPhases/);
+  assert.match(server, /'installing'/);
+  assert.match(server, /'building'/);
+  assert.match(server, /phase:\s*'interrupted'/);
+  assert.match(server, /state:\s*'failed'/);
+  assert.match(server, /Verwaister Update-Status/);
+  assert.match(server, /status:\s*'interrupted'/);
 });

@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.29 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next 2.20.32 and the most common maintenance tasks.
 
 ## 1. Requirements
 
@@ -28,8 +28,8 @@ Example on Linux:
 
 ```bash
 mkdir -p /opt/tmp-camera
-unzip TMP_Networks_Camera_Surveillance_Next_v2.20.29.zip -d /opt/tmp-camera
-cd /opt/tmp-camera/TMP_Networks_Camera_Surveillance_Next_v2.20.29
+unzip TMP_Networks_Camera_Surveillance_Next_v2.20.32.zip -d /opt/tmp-camera
+cd /opt/tmp-camera/TMP_Networks_Camera_Surveillance_Next_v2.20.32
 ```
 
 If the archive tool removed executable permissions, restore them with:
@@ -253,7 +253,7 @@ Important behavior:
 For a normal Linux Docker host:
 
 ```bash
-cd /path/to/TMP_Networks_Camera_Surveillance_Next_v2.20.29
+cd /path/to/TMP_Networks_Camera_Surveillance_Next_v2.20.32
 ./start.sh
 ```
 

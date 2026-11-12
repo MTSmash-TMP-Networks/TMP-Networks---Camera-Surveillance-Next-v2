@@ -1,17 +1,6 @@
-<img width="1055" height="1491" alt="TMP Camera Surveillance" src="https://github.com/user-attachments/assets/a5649a42-eaa2-4430-9994-4d0ca9712060" />
-# TMP Camera Surveillance Next 2.20.29
+# TMP Camera Surveillance Next 2.20.32
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
-
-## Public Beta
-
-**TMP Camera Surveillance Next 2.20.29 is currently provided as a free public beta.**
-
-This release is intended for testing, evaluation and early deployments. Features, licensing, release channels and update mechanisms may change before the first stable commercial release.
-
-The availability of this beta release on GitHub does not mean that future versions, stable releases or product updates will remain freely or publicly distributed through GitHub. Future stable releases and updates may be delivered through a dedicated TMP Update Service and may require a valid software license, update entitlement or support agreement.
-
-Users may continue to operate an installed beta version subject to the license terms supplied with that version. Access to a public beta does not automatically grant an entitlement to future commercial releases, feature updates or maintenance releases.
 
 ## Quick start
 
@@ -80,7 +69,7 @@ They contain the installation identity, credentials, configuration, database, lo
 ## Documentation
 
 - `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.29.md` - current release notes
+- `UPDATE_NOTES_2.20.32.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources
@@ -91,13 +80,7 @@ They contain the installation identity, credentials, configuration, database, lo
 
 ## License and trademarks
 
-**Copyright © 2026 TMP-SYSTEM-SERVICE GmbH. All rights reserved.**
-
-The application-specific source code is made publicly visible in this repository for transparency, evaluation and documentation of the product's development history. Public availability of the source code does not grant permission to copy, redistribute, republish, resell, sublicense or commercially exploit TMP-specific proprietary components unless this is expressly permitted by the applicable license or a separate written agreement with TMP-SYSTEM-SERVICE GmbH.
-
 This distribution is governed by the license agreement supplied with the software. Third-party components remain subject to their own licenses.
-
-The source code being visible in this public beta repository does not convert TMP-specific proprietary components into open-source software or grant rights beyond the included license terms.
 
 Third-party product and company names may appear only where needed for factual compatibility, protocol, dependency or attribution purposes. Their trademarks belong to their respective owners. No affiliation, sponsorship or certification is implied.
 

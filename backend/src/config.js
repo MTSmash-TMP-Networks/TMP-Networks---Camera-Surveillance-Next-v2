@@ -72,7 +72,7 @@ export const config = Object.freeze({
   recordingsDir: path.resolve(env.RECORDINGS_DIR || path.join(env.APP_DATA_DIR || '/data', 'recordings')),
   recordingsLocalDir: path.resolve(env.RECORDINGS_LOCAL_DIR || path.join(env.APP_DATA_DIR || '/data', 'recordings')),
   updatesDir: path.resolve(env.UPDATES_DIR || path.join(env.APP_DATA_DIR || '/data', 'updates')),
-  appVersion: env.APP_VERSION || '2.20.29',
+  appVersion: env.APP_VERSION || '2.20.32',
   systemMetricsCacheMs: integer('SYSTEM_METRICS_CACHE_MS', 2000, { min: 250, max: 60_000 }),
   systemMetricsRefreshMs: integer('SYSTEM_METRICS_REFRESH_MS', 3000, { min: 1000, max: 60_000 }),
   systemMetricsCpuSampleMs: integer('SYSTEM_METRICS_CPU_SAMPLE_MS', 250, { min: 100, max: 2000 }),

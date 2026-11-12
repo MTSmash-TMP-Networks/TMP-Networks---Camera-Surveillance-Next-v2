@@ -1,7 +1,7 @@
 # TMP Networks Camera Surveillance - Software License Notice
 
 **Product:** TMP Networks Camera Surveillance  
-**Version:** 2.20.29  
+**Version:** 2.20.32  
 **Publisher:** TMP-SYSTEM-SERVICE GmbH
 
 ## Applicable license

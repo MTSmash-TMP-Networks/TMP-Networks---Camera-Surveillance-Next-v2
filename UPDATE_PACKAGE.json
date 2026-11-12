@@ -1,18 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.29",
-  "minimumVersion": "2.20.24",
-  "title": "TMP Camera Surveillance Next 2.20.29",
-  "summary": "Completes Kiosk Mode and Update Center localization across all 24 supported UI languages.",
-  "createdAt": "2026-09-03T00:58:30+02:00",
-  "changelogFile": "UPDATE_NOTES_2.20.29.md",
+  "version": "2.20.32",
+  "minimumVersion": "2.20.31",
+  "title": "TMP Camera Surveillance Next 2.20.32",
+  "summary": "Fixes stale Update Center progress after the updater service restarts during an update.",
+  "createdAt": "2026-10-03T03:00:00+02:00",
+  "changelogFile": "UPDATE_NOTES_2.20.32.md",
   "changes": [
-    "Complete Kiosk Mode localization across all 24 supported UI languages",
-    "Complete Update Center localization for updater health, diagnostics, package workflow, progress, backups, history and security UI",
-    "Translate all update progress phases and updater issue states without German or English UI fallback",
-    "Use locale-aware date and number formatting throughout the Update Center",
-    "Add regression coverage for locale parity, interpolation placeholders and hard-coded German UI strings",
-    "Preserve v2.20.28 per-camera motion regions, v2.20.27 sidebar collapse behavior and existing updater compatibility"
+    "Recover stale running update states after updater/container restarts",
+    "Mark interrupted build/install jobs explicitly instead of leaving progress stuck at 42%",
+    "Keep backup information available for manual rollback after an interrupted update",
+    "Record interrupted update transactions in update history",
+    "Preserve all v2.20.31 recording timeline and continuous playback behavior"
   ],
   "preserve": [
     ".env",
@@ -32,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.29.md",
+  "changelog": "UPDATE_NOTES_2.20.32.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.29",
-  "packageId": "tmp-camera-surveillance-next-2.20.29",
-  "fromVersion": "2.20.24",
-  "compatibleFrom": "2.20.24",
-  "description": "Completes native localization of Kiosk Mode and Update Center for every supported UI language.",
-  "minVersion": "2.20.24",
-  "releaseNotes": "Version 2.20.29 completes Kiosk Mode and Update Center localization across all 24 supported UI languages.",
-  "fileCount": 417
+  "name": "TMP Camera Surveillance Next v2.20.32",
+  "packageId": "tmp-camera-surveillance-next-2.20.32",
+  "fromVersion": "2.20.31",
+  "compatibleFrom": "2.20.31",
+  "description": "Recovers interrupted updater transactions on service startup instead of leaving the Update Center stuck at an intermediate progress value such as 42%.",
+  "minVersion": "2.20.31",
+  "releaseNotes": "Version 2.20.32 fixes interrupted updater recovery and preserves the v2.20.31 recording playback changes.",
+  "fileCount": 418
 }

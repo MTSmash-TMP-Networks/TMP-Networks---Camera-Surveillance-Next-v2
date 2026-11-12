@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.20.32 - 2026-10-03
+
+- Fixed the Update Center remaining permanently at 42% (or another intermediate value) when the updater process/container restarts during an update.
+- Added startup recovery for interrupted validating, preflight, installing, building, cleanup and rollback phases.
+- Interrupted jobs are now closed explicitly with a diagnostic error and preserved backup reference instead of being shown as still running.
+- Added update-history evidence for interrupted transactions.
+- Removed the one-shot 60-second stale-status window so fast updater restarts are recovered reliably.
+- Preserved all v2.20.31 timeline playback behavior unchanged.
+
+## 2.20.32 - 2026-09-03
+
+- Added click-to-time playback on the 24-hour recording timeline so playback starts at the selected point instead of always at the beginning of the recording.
+- Added automatic sequential playback through every later recording for the same camera until the final recording of the selected day finishes.
+- Added gap-aware handoff: clicks inside condensed gaps start at the next available block and gaps between recordings are skipped automatically.
+- Added block-to-media offset metadata to the recording timeline API for accurate seeking across block archives and discontinuities.
+- Added a compact current/total sequence indicator to the recording player while continuous timeline playback is active.
+- Preserved double-click evidence-export selection and unchanged single-recording playback from the detailed archive list.
+
+## 2.20.30 - 2026-09-03
+
+- Reworked the recording archive into a compact 24-hour timeline per camera instead of printing every interval as an additional text/chip list.
+- Removed overlapping start-time labels from short recording segments so dense event-recording days remain readable.
+- Kept every available recording interval directly clickable on the timeline; hover/focus still exposes the exact time range and block count.
+- Preserved double-click transfer of a timeline range to the evidence export and added click/double-click disambiguation so playback does not open accidentally during export selection.
+- Reduced the minimum visual width of very short recording ranges to avoid artificial overlap while keeping one- and two-minute recordings visible.
+- Kept the existing block-based archive, recording data, storage pipeline, motion regions, kiosk layouts and updater compatibility unchanged.
+
 ## 2.20.29 - 2026-09-03
 
 - Completed Kiosk Mode localization across all 24 supported UI languages, including the layout editor, saved views, grid templates, camera assignment, quality controls, fullscreen actions, status labels, empty states and accessibility text.

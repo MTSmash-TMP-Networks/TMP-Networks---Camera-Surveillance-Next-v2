@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import { useI18n } from '../i18n/index.js';
 
-export function RecordingArchivePlayer({ source }) {
+export function RecordingArchivePlayer({ source, onEnded }) {
   const { t } = useI18n();
   const videoRef = useRef(null);
   const [error, setError] = useState('');
@@ -13,12 +13,27 @@ export function RecordingArchivePlayer({ source }) {
     setError('');
     let hls = null;
     let cancelled = false;
+    let startApplied = false;
+    const requestedStart = Math.max(0, Number(source?.startOffsetSeconds || 0));
+
+    const startPlayback = () => {
+      if (cancelled) return;
+      if (!startApplied && requestedStart > 0 && video.readyState >= 1) {
+        const maxSeek = Number.isFinite(video.duration) && video.duration > 0 ? Math.max(0, video.duration - 0.05) : requestedStart;
+        try { video.currentTime = Math.min(requestedStart, maxSeek); } catch { /* Browser will retry once metadata is available. */ }
+        startApplied = true;
+      }
+      video.play().catch(() => {});
+    };
+    const handleLoadedMetadata = () => startPlayback();
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     if (source.format !== 'hls') {
       video.src = source.url;
       video.load();
-      video.play().catch(() => {});
+      if (video.readyState >= 1) startPlayback();
       return () => {
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata);
         video.pause();
         video.removeAttribute('src');
         video.load();
@@ -28,7 +43,7 @@ export function RecordingArchivePlayer({ source }) {
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = source.url;
       video.load();
-      video.play().catch(() => {});
+      if (video.readyState >= 1) startPlayback();
     } else if (Hls.isSupported()) {
       hls = new Hls({
         enableWorker: true,
@@ -53,22 +68,23 @@ export function RecordingArchivePlayer({ source }) {
       });
       hls.loadSource(source.url);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+      hls.on(Hls.Events.MANIFEST_PARSED, () => startPlayback());
     } else {
       setError(t('recordings.player.unsupported'));
     }
 
     return () => {
       cancelled = true;
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       hls?.destroy();
       video.pause();
       video.removeAttribute('src');
       video.load();
     };
-  }, [source?.url, source?.format, t]);
+  }, [source?.url, source?.format, source?.startOffsetSeconds, t]);
 
   return <div className="recording-archive-player">
-    <video ref={videoRef} controls autoPlay playsInline/>
+    <video ref={videoRef} controls autoPlay playsInline onEnded={onEnded}/>
     {error && <div className="inline-warning">{error}</div>}
   </div>;
 }

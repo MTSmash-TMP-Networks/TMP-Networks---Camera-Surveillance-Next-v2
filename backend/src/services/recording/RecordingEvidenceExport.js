@@ -196,24 +196,37 @@ class RecordingEvidenceExportService {
       for (const recording of recordings) {
         if (!READY_STATUSES.has(recording.status)) continue;
         const segments = recordingRepository.segmentsInternal(recording.id)
-          .filter((segment) => PLAYABLE_SEGMENT_STATUSES.has(segment.status) && safeNumber(segment.size_bytes) > 0 && segmentStorageAvailable(segment))
+          .filter((segment) => PLAYABLE_SEGMENT_STATUSES.has(segment.status) && safeNumber(segment.size_bytes) > 0)
           .sort((left, right) => Number(left.segment_index) - Number(right.segment_index));
         cursorMs = Math.max(Date.parse(recording.startedAt || recording.started_at || '') || window.startDate.getTime(), window.startDate.getTime());
+        let mediaCursorSeconds = 0;
         for (const segment of segments) {
           const dates = segmentDates(recording, segment, cursorMs);
+          const segmentDurationSeconds = Math.max(0, safeNumber(segment.duration_seconds));
+          const wallDurationMs = Math.max(1, dates.endMs - dates.startMs);
           cursorMs = Math.max(dates.endMs + safeNumber(segment.gap_seconds) * 1000, cursorMs);
-          if (!overlaps(dates.startMs, dates.endMs, window.startDate.getTime(), window.endDate.getTime())) continue;
+          if (!segmentStorageAvailable(segment) || !overlaps(dates.startMs, dates.endMs, window.startDate.getTime(), window.endDate.getTime())) {
+            mediaCursorSeconds += segmentDurationSeconds;
+            continue;
+          }
+          const clippedStartMs = Math.max(dates.startMs, window.startDate.getTime());
+          const clippedEndMs = Math.min(dates.endMs, window.endDate.getTime());
+          const mediaStartSeconds = mediaCursorSeconds + (((clippedStartMs - dates.startMs) / wallDurationMs) * segmentDurationSeconds);
+          const mediaEndSeconds = mediaCursorSeconds + (((clippedEndMs - dates.startMs) / wallDurationMs) * segmentDurationSeconds);
           rawBlocks.push({
             recordingId: recording.id,
-            startMs: Math.max(dates.startMs, window.startDate.getTime()),
-            endMs: Math.min(dates.endMs, window.endDate.getTime()),
+            startMs: clippedStartMs,
+            endMs: clippedEndMs,
+            mediaStartSeconds,
+            mediaEndSeconds,
             blockCount: 1,
             fileSizeBytes: safeNumber(segment.size_bytes),
-            mediaDurationSeconds: safeNumber(segment.duration_seconds),
+            mediaDurationSeconds: segmentDurationSeconds,
             gapSeconds: safeNumber(segment.gap_seconds),
             interruptions: Number(recording.interruptions || 0),
             status: recording.status,
           });
+          mediaCursorSeconds += segmentDurationSeconds;
         }
       }
       rawBlocks.sort((left, right) => left.startMs - right.startMs || left.endMs - right.endMs);
@@ -246,6 +259,13 @@ class RecordingEvidenceExportService {
       return {
         camera: { id: camera.id, name: camera.name, ip: camera.onvif?.ip || null },
         empty: intervals.length === 0,
+        playbackBlocks: rawBlocks.map((block) => ({
+          recordingId: block.recordingId,
+          startIso: new Date(block.startMs).toISOString(),
+          endIso: new Date(block.endMs).toISOString(),
+          mediaStartSeconds: Number(block.mediaStartSeconds.toFixed(3)),
+          mediaEndSeconds: Number(block.mediaEndSeconds.toFixed(3)),
+        })),
         intervals: intervals.map((interval) => ({
           startIso: new Date(interval.startMs).toISOString(),
           endIso: new Date(interval.endMs).toISOString(),

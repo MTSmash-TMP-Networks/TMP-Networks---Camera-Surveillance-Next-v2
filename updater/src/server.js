@@ -1435,20 +1435,62 @@ async function recoverAfterSelfRestart() {
 
 async function recoverStaleFinishingStatus() {
   if (status.state !== 'running') return;
+
+  // A freshly started updater has no in-memory update job. Therefore every
+  // persisted `running` state belongs to a process that no longer exists.
+  // Finishing phases are safe to close as completed because the application
+  // services have already been replaced at that point. Earlier phases must
+  // never be reported as successful: mark them as interrupted so the UI does
+  // not remain stuck at 5/14/28/42 percent forever after an updater restart,
+  // OOM kill, Docker daemon restart or host reboot.
   const finishingPhases = new Set(['restarting', 'verifying', 'regular_restart', 'regular_restart_done', 'updater_restarting']);
-  if (!finishingPhases.has(status.phase)) return;
-  const updatedAt = Date.parse(status.updatedAt || '');
-  const ageMs = Number.isFinite(updatedAt) ? Date.now() - updatedAt : Number.POSITIVE_INFINITY;
-  if (ageMs < 60_000) return;
-  const version = status.installedVersion || currentVersion();
+  const interruptedPhases = new Set(['validating', 'preparing', 'preflight', 'cleanup', 'installing', 'building', 'failed', 'rollback']);
+
+  if (finishingPhases.has(status.phase)) {
+    const version = status.installedVersion || currentVersion();
+    await updateStatus({
+      state: 'completed',
+      phase: 'completed',
+      progress: 100,
+      message: `Update auf Version ${version} vollständig abgeschlossen`,
+      installedVersion: version,
+      completedAt: new Date().toISOString(),
+    }, 'Hängender Abschlussstatus wurde beim Updater-Start automatisch bereinigt');
+    return;
+  }
+
+  if (!interruptedPhases.has(status.phase)) return;
+
+  const interruptedPhase = status.phase || 'unknown';
+  const diagnosticId = status.diagnosticId || crypto.randomUUID();
+  const backupHint = status.backupId
+    ? ` Sicherung ${status.backupId} ist für einen manuellen Rollback verfügbar.`
+    : '';
+  const message = `Der Updatevorgang wurde während der Phase ${interruptedPhase} durch einen Neustart des Update-Dienstes unterbrochen.${backupHint}`;
+
   await updateStatus({
-    state: 'completed',
-    phase: 'completed',
+    state: 'failed',
+    phase: 'interrupted',
     progress: 100,
-    message: `Update auf Version ${version} vollständig abgeschlossen`,
-    installedVersion: version,
+    message: 'Update wurde durch einen Neustart des Update-Dienstes unterbrochen',
+    error: message,
+    diagnosticId,
     completedAt: new Date().toISOString(),
-  }, 'Hängender Abschlussstatus wurde beim Updater-Start automatisch bereinigt');
+  }, `Verwaister Update-Status ${interruptedPhase} wurde beim Updater-Start automatisch bereinigt`);
+
+  await appendHistory({
+    id: crypto.randomUUID(),
+    packageId: status.packageId || null,
+    fromVersion: status.installedVersion || currentVersion(),
+    toVersion: status.targetVersion || null,
+    status: 'interrupted',
+    backupId: status.backupId || null,
+    startedAt: status.startedAt || null,
+    completedAt: new Date().toISOString(),
+    error: message,
+    diagnosticId,
+    installedBy: null,
+  });
 }
 
 function purgeAcceptedRequests() {

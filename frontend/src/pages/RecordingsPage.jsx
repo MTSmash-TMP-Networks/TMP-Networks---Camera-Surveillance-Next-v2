@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { CalendarClock, CalendarDays, Camera, ChevronDown, ChevronRight, Clapperboard, Clock, Download, FileArchive, HardDrive, Play, RefreshCw, Save, Sparkles, Square, Trash2, X, Zap } from 'lucide-react';
 import { api } from '../services/api.js';
@@ -132,7 +132,7 @@ function timelineWidth(startIso, endIso) {
   const start = minuteOfDay(startIso);
   const end = minuteOfDay(endIso);
   const width = ((Math.max(end, start + 1) - start) / 1440) * 100;
-  return clamp(width, 0.35, 100);
+  return clamp(width, 0.18, 100);
 }
 function timelineMarkers() {
   return Array.from({ length: 13 }, (_, index) => ({ hour: index * 2, left: (index / 12) * 100 }));
@@ -142,6 +142,25 @@ function intervalSummary(interval, locale, t) {
   if (interval.isRecording) parts.push(t('recordings.timeline.running'));
   if (interval.hasGaps) parts.push(t('recordings.timeline.withGaps'));
   return parts.join(' · ');
+}
+function timelineClickIso(event, interval) {
+  const startMs = Date.parse(interval?.startIso || '');
+  const endMs = Date.parse(interval?.endIso || '');
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) return interval?.startIso || null;
+  const rect = event?.currentTarget?.getBoundingClientRect?.();
+  if (!rect?.width) return interval.startIso;
+  const ratio = clamp((Number(event.clientX) - rect.left) / rect.width, 0, 1);
+  return new Date(startMs + ((endMs - startMs) * ratio)).toISOString();
+}
+function mediaOffsetForBlock(block, clickedMs) {
+  const startMs = Date.parse(block?.startIso || '');
+  const endMs = Date.parse(block?.endIso || '');
+  const mediaStart = Math.max(0, Number(block?.mediaStartSeconds || 0));
+  const mediaEnd = Math.max(mediaStart, Number(block?.mediaEndSeconds ?? mediaStart));
+  if (!Number.isFinite(clickedMs) || !Number.isFinite(startMs) || clickedMs <= startMs) return mediaStart;
+  if (!Number.isFinite(endMs) || endMs <= startMs) return mediaStart;
+  const ratio = clamp((Math.min(clickedMs, endMs) - startMs) / (endMs - startMs), 0, 1);
+  return mediaStart + ((mediaEnd - mediaStart) * ratio);
 }
 
 export function RecordingsPage() {
@@ -168,6 +187,8 @@ export function RecordingsPage() {
   const [archiveDate, setArchiveDate] = useState(defaultDate());
   const [archiveTimeline, setArchiveTimeline] = useState(null);
   const [timelineHint, setTimelineHint] = useState('');
+  const timelineOpenTimer = useRef(null);
+  const playbackAdvanceRef = useRef(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -212,24 +233,105 @@ export function RecordingsPage() {
     return loadExportTimeline();
   }
 
-  async function openTimelineInterval(entry, interval) {
+  async function openTimelineInterval(entry, interval, clickedAtIso = interval?.startIso) {
     setError('');
     setTimelineHint('');
     if (entry?.camera?.id) setCameraId(entry.camera.id);
-    const ids = Array.isArray(interval?.recordingIds) ? interval.recordingIds : [];
-    const localRecording = [...active, ...items].find((item) => ids.includes(item.id));
-    const targetId = localRecording?.id || ids[0];
+    const clickedMs = Date.parse(clickedAtIso || interval?.startIso || '');
+    const playbackBlocks = Array.isArray(entry?.playbackBlocks)
+      ? [...entry.playbackBlocks]
+        .filter((block) => Number.isFinite(Date.parse(block?.startIso || '')) && Number.isFinite(Date.parse(block?.endIso || '')))
+        .sort((left, right) => Date.parse(left.startIso) - Date.parse(right.startIso))
+      : [];
+    const futureBlocks = playbackBlocks.filter((block) => Date.parse(block.endIso) > clickedMs);
+    const firstBlock = futureBlocks[0] || null;
+    const queue = [];
+    const seen = new Set();
+    for (const block of futureBlocks) {
+      const key = String(block.recordingId);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      queue.push({ id: block.recordingId, startedAt: block.startIso });
+    }
+    if (!queue.length) {
+      const intervalIndex = Math.max(0, (entry?.intervals || []).findIndex((candidate) => candidate === interval || candidate.startIso === interval?.startIso));
+      for (const candidate of (entry?.intervals || []).slice(intervalIndex)) {
+        for (const id of (Array.isArray(candidate?.recordingIds) ? candidate.recordingIds : [])) {
+          const key = String(id);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          queue.push({ id, startedAt: candidate.startIso });
+        }
+      }
+    }
+    const targetId = queue[0]?.id;
     if (!targetId) {
       setTimelineHint(t('recordings.timeline.noPlayableRange'));
       return;
     }
+    const localRecording = [...active, ...items].find((item) => String(item.id) === String(targetId));
+    const startOffsetSeconds = firstBlock ? mediaOffsetForBlock(firstBlock, clickedMs) : 0;
     try {
       const token = await api.recordingToken(targetId);
-      setPlaying({ ...(localRecording || {}), id: targetId, cameraId: entry.camera.id, startedAt: interval.startIso, endedAt: interval.endIso, url: token.url, format: token.format || 'file' });
+      setPlaying({
+        ...(localRecording || {}),
+        id: targetId,
+        cameraId: entry.camera.id,
+        startedAt: clickedAtIso || firstBlock?.startIso || interval.startIso,
+        endedAt: interval.endIso,
+        url: token.url,
+        format: token.format || 'file',
+        startOffsetSeconds,
+        playbackQueue: queue,
+        playbackIndex: 0,
+        playbackSessionId: `${Date.now()}-${Math.random()}`,
+      });
     } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
   }
 
+  function queueTimelineOpen(entry, interval, clickedAtIso) {
+    if (timelineOpenTimer.current) clearTimeout(timelineOpenTimer.current);
+    timelineOpenTimer.current = setTimeout(() => {
+      timelineOpenTimer.current = null;
+      openTimelineInterval(entry, interval, clickedAtIso);
+    }, 220);
+  }
+
+  async function advanceTimelinePlayback() {
+    if (playbackAdvanceRef.current || !playing?.playbackQueue?.length) return;
+    const nextIndex = Number(playing.playbackIndex || 0) + 1;
+    const nextItem = playing.playbackQueue[nextIndex];
+    if (!nextItem) return;
+    const sessionId = playing.playbackSessionId;
+    playbackAdvanceRef.current = true;
+    try {
+      const token = await api.recordingToken(nextItem.id);
+      const localRecording = [...active, ...items].find((item) => String(item.id) === String(nextItem.id));
+      setPlaying((current) => {
+        if (!current || current.playbackSessionId !== sessionId) return current;
+        return {
+          ...(localRecording || {}),
+          id: nextItem.id,
+          cameraId: current.cameraId,
+          startedAt: nextItem.startedAt || localRecording?.startedAt || current.startedAt,
+          url: token.url,
+          format: token.format || 'file',
+          startOffsetSeconds: 0,
+          playbackQueue: current.playbackQueue,
+          playbackIndex: nextIndex,
+          playbackSessionId: current.playbackSessionId,
+        };
+      });
+    } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
+    finally { playbackAdvanceRef.current = false; }
+  }
+
   function selectTimelineForExport(entry, interval) {
+    if (timelineOpenTimer.current) {
+      clearTimeout(timelineOpenTimer.current);
+      timelineOpenTimer.current = null;
+    }
+    setPlaying(null);
     updateExportForm({ cameraId: entry.camera.id, date: archiveDate, startTime: interval.startTime, endTime: interval.endTime });
     setTab('export');
   }
@@ -259,6 +361,7 @@ export function RecordingsPage() {
     } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
   }
 
+  useEffect(() => () => { if (timelineOpenTimer.current) clearTimeout(timelineOpenTimer.current); }, []);
   useEffect(() => { dispatch(loadCameras()); }, [dispatch]);
   useEffect(() => {
     if (!cameras.length) return;
@@ -392,7 +495,40 @@ export function RecordingsPage() {
 
     {tab === 'archive' && <>
       <section className="recording-workflow-cards"><article><Clapperboard/><span><strong>{t('recordings.workflow.archive.title')}</strong><small>{t('recordings.workflow.archive.description')}</small></span></article><article><CalendarClock/><span><strong>{t('recordings.workflow.planning.title')}</strong><small>{t('recordings.workflow.planning.description')}</small></span></article><article><FileArchive/><span><strong>{t('recordings.workflow.export.title')}</strong><small>{t('recordings.workflow.export.description')}</small></span></article></section>
-      <section className="recording-day-timeline"><header><div><strong>{t('recordings.timeline.title')}</strong><small>{t('recordings.timeline.description')}</small></div><label>{t('recordings.timeline.date')}<input type="date" value={archiveDate} onChange={(event) => setArchiveDate(event.target.value)}/></label></header>{timelineHint && <p className="timeline-hint">{timelineHint}</p>}<div className="timeline-hour-scale">{timelineMarkers().map((marker) => <span key={marker.hour} style={{ left: `${marker.left}%` }}>{String(marker.hour).padStart(2, '0')}:00</span>)}</div><div className="timeline-camera-list">{archiveTimeline?.cameras?.filter((entry) => !entry.empty).map((entry) => <article key={entry.camera.id} className={entry.camera.id === cameraId ? 'selected' : ''}><header><button type="button" onClick={() => setCameraId(entry.camera.id)}><Camera/> <span>{entry.camera.name}</span></button><small>{t('recordings.timeline.rangeBlockMeta', { ranges: entry.intervals.length, blocks: entry.intervals.reduce((sum, interval) => sum + Number(interval.blockCount || 0), 0) })}</small></header><div className="timeline-track" aria-label={t('recordings.timeline.aria', { camera: entry.camera.name })}>{timelineMarkers().slice(0, -1).map((marker) => <i key={marker.hour} style={{ left: `${marker.left}%` }}/>) }{entry.intervals.map((interval) => <button key={`${entry.camera.id}-${interval.startIso}`} type="button" className={`timeline-segment ${interval.hasGaps ? 'has-gaps' : ''} ${interval.isRecording ? 'is-recording' : ''}`} style={{ left: `${timelineLeft(interval.startIso)}%`, width: `${timelineWidth(interval.startIso, interval.endIso)}%` }} onClick={() => openTimelineInterval(entry, interval)} title={`${entry.camera.name}: ${intervalSummary(interval, locale, t)}`}><span>{timeOnly(interval.startIso, locale, t)}</span></button>)}</div><footer>{entry.intervals.map((interval) => <button key={`${entry.camera.id}-${interval.startIso}-label`} type="button" onClick={() => openTimelineInterval(entry, interval)} onDoubleClick={() => selectTimelineForExport(entry, interval)}><strong>{timeOnly(interval.startIso, locale, t)} – {timeOnly(interval.endIso, locale, t)}</strong><small>{t('recordings.timeline.blocksCount', { count: interval.blockCount })}{interval.isRecording ? ` · ${t('recordings.timeline.running')}` : ''}{interval.hasGaps ? ` · ${t('recordings.timeline.gaps')}` : ''}</small></button>)}</footer></article>)}{archiveTimeline && !archiveTimeline.totalIntervals && <div className="empty-panel"><Clock/><h2>{t('recordings.timeline.emptyTitle')}</h2><p>{t('recordings.timeline.emptyDescription')}</p></div>}</div><p className="timeline-help">{t('recordings.timeline.help')}</p></section>
+      <section className="recording-day-timeline">
+        <header>
+          <div><strong>{t('recordings.timeline.title')}</strong><small>{t('recordings.timeline.description')}</small></div>
+          <label>{t('recordings.timeline.date')}<input type="date" value={archiveDate} onChange={(event) => setArchiveDate(event.target.value)}/></label>
+        </header>
+        {timelineHint && <p className="timeline-hint">{timelineHint}</p>}
+        <div className="timeline-hour-scale">{timelineMarkers().map((marker) => <span key={marker.hour} style={{ left: `${marker.left}%` }}>{String(marker.hour).padStart(2, '0')}:00</span>)}</div>
+        <div className="timeline-camera-list">
+          {archiveTimeline?.cameras?.filter((entry) => !entry.empty).map((entry) => <article key={entry.camera.id} className={entry.camera.id === cameraId ? 'selected' : ''}>
+            <header>
+              <button type="button" onClick={() => setCameraId(entry.camera.id)}><Camera/> <span>{entry.camera.name}</span></button>
+              <small>{t('recordings.timeline.rangeBlockMeta', { ranges: entry.intervals.length, blocks: entry.intervals.reduce((sum, interval) => sum + Number(interval.blockCount || 0), 0) })}</small>
+            </header>
+            <div className="timeline-track" aria-label={t('recordings.timeline.aria', { camera: entry.camera.name })}>
+              {timelineMarkers().slice(0, -1).map((marker) => <i key={marker.hour} style={{ left: `${marker.left}%` }}/>) }
+              {entry.intervals.map((interval) => {
+                const summary = `${entry.camera.name}: ${intervalSummary(interval, locale, t)}`;
+                return <button
+                  key={`${entry.camera.id}-${interval.startIso}`}
+                  type="button"
+                  className={`timeline-segment ${interval.hasGaps ? 'has-gaps' : ''} ${interval.isRecording ? 'is-recording' : ''}`}
+                  style={{ left: `${timelineLeft(interval.startIso)}%`, width: `${timelineWidth(interval.startIso, interval.endIso)}%` }}
+                  onClick={(event) => queueTimelineOpen(entry, interval, timelineClickIso(event, interval))}
+                  onDoubleClick={() => selectTimelineForExport(entry, interval)}
+                  title={summary}
+                  aria-label={summary}
+                />;
+              })}
+            </div>
+          </article>)}
+          {archiveTimeline && !archiveTimeline.totalIntervals && <div className="empty-panel"><Clock/><h2>{t('recordings.timeline.emptyTitle')}</h2><p>{t('recordings.timeline.emptyDescription')}</p></div>}
+        </div>
+        <p className="timeline-help">{t('recordings.timeline.help')}</p>
+      </section>
       {active.length > 0 && <section className="active-recordings"><h2>{t('recordings.active.title')}</h2>{active.map((recording) => <article key={recording.id}><span className="recording-pulse"/><div><strong>{cameraNames[recording.cameraId] || recording.cameraId}</strong><small>{recording.triggerType === 'manual' ? t('recordings.trigger.manual') : t('recordings.active.automaticTrigger', { trigger: triggerLabel(recording.triggerType, t) })} · {duration(recording.elapsedSeconds)}{playableBlockCount(recording) ? ` · ${t('recordings.active.playableBlocks', { count: playableBlockCount(recording) })}` : ` · ${t('recordings.active.waitingFirstBlock')}`}{recording.recovering ? ` · ${t('recordings.active.reconnecting')}` : ''}{recording.interruptions ? ` · ${t('recordings.active.interruptions', { count: recording.interruptions })}` : ''}</small><RecordingAiAnalysis analysis={recording.metadata?.aiAnalysis} t={t}/></div><div className="recording-actions active-actions">{playableBlockCount(recording) > 0 && <><button onClick={() => open(recording)} title={t('recordings.active.playPartial')}><Play/></button><button onClick={() => open(recording, true)} title={t('recordings.active.downloadPartial')}><Download/></button></>}{allowed && <button className="stop-button" onClick={() => stop(recording)} disabled={busy}><Square/> {t('live.stopRecording')}</button>}</div></article>)}</section>}
       {archivedItems.length > 0 && <section className={`recording-archive-stack ${archiveExpanded ? 'expanded' : 'collapsed'}`}>
         <button className="recording-archive-toggle" type="button" aria-expanded={archiveExpanded} aria-controls="recording-archive-list" onClick={() => setArchiveExpanded((value) => !value)}>
@@ -439,6 +575,6 @@ export function RecordingsPage() {
 
     {tab === 'storage' && <RecordingStorageSettings canConfigure={user?.role === 'admin'}/>}
 
-    {playing && <div className="video-modal" role="dialog" aria-modal="true"><div className="video-modal-card"><header><div><strong>{cameraNames[playing.cameraId] || t('live.recording')}</strong><small>{dateTime(playing.startedAt, locale, t)}</small></div><button onClick={() => setPlaying(null)} aria-label={t('recordings.modal.close')}><X/></button></header><RecordingArchivePlayer source={playing}/></div></div>}
+    {playing && <div className="video-modal" role="dialog" aria-modal="true"><div className="video-modal-card"><header><div><strong>{cameraNames[playing.cameraId] || t('live.recording')}</strong><small>{dateTime(playing.startedAt, locale, t)}{playing.playbackQueue?.length > 1 ? ` · ${Number(playing.playbackIndex || 0) + 1}/${playing.playbackQueue.length}` : ''}</small></div><button onClick={() => setPlaying(null)} aria-label={t('recordings.modal.close')}><X/></button></header><RecordingArchivePlayer source={playing} onEnded={advanceTimelinePlayback}/></div></div>}
   </div>;
 }
