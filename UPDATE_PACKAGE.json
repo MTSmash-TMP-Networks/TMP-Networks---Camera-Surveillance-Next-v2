@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.50",
+  "version": "2.20.51",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.50",
-  "summary": "Use the permanent warm preview publisher for Live Auto and keep recording on shared mainstream paths.",
-  "createdAt": "2026-11-12T17:30:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.50.md",
+  "title": "TMP Camera Surveillance Next 2.20.51",
+  "summary": "Harden the direct-update contract so releases remain backward compatible to TMP Camera Surveillance Next 2.20.32.",
+  "createdAt": "2026-11-12T17:50:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.51.md",
   "changes": [
-    "Attach Live Auto directly to the permanent warm preview/substream publisher",
-    "Keep quality=auto stable across browser polling so no duplicate low Live session is created",
-    "Keep Recording Auto on High/Mainstream while reusing an existing suitable mainstream publisher when available"
+    "Pin all compatibility fields to 2.20.32",
+    "Validate preserved runtime paths .env, data and .git in the release guard",
+    "Keep legacy root-path, manifest, checksum and package-version validation active"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.50.md",
+  "changelog": "UPDATE_NOTES_2.20.51.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.50",
-  "packageId": "tmp-camera-surveillance-next-2.20.50",
+  "name": "TMP Camera Surveillance Next v2.20.51",
+  "packageId": "tmp-camera-surveillance-next-2.20.51",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Shared warm stream architecture for fast Live switching and recording reuse.",
+  "description": "Backward-compatible release contract hardened for direct upgrades from v2.20.32.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Live Auto now reuses the warm permanent preview publisher; recordings still use shared mainstream quality.",
-  "fileCount": 452
+  "releaseNotes": "Direct upgrades from TMP Camera Surveillance Next 2.20.32 remain explicitly supported and guarded.",
+  "fileCount": 453
 }

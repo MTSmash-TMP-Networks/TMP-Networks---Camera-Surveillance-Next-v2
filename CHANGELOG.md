@@ -1,3 +1,11 @@
+## 2.20.51 – Abwärtskompatibler Update-Vertrag bis 2.20.32
+
+- Direkte Update-Basis bleibt ausdrücklich `2.20.32`.
+- `minimumVersion`, `minVersion`, `compatibleFrom` und `fromVersion` müssen weiterhin exakt `2.20.32` enthalten.
+- `.env`, `data` und `.git` werden als geschützte Laufzeitpfade im Update-Vertrag fest geprüft.
+- Der Legacy-Updater-Guard prüft weiterhin Root-Pfade, Manifest, Prüfsummen und Paketversionen gegen die v2.20.32-Kompatibilitätsbasis.
+- Keine Funktionsänderung an Shared Warm Streams, Recording oder HLS; 2.20.51 härtet ausschließlich den Update-Vertrag.
+
 ## 2.20.50 – Shared Warm Stream Architecture für Live und Recording
 
 - Live `Auto` hängt sich jetzt direkt an den bereits beim Backend-Start aufgebauten permanenten Preview/Substream-Publisher.
