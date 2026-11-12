@@ -5,27 +5,29 @@ const source = readFileSync(new URL('../src/services/liveStreamPool.js', import.
 const hlsSource = readFileSync(new URL('../src/services/hlsPlayer.js', import.meta.url), 'utf8');
 
 describe('Stable Live/Kiosk playback concept', () => {
-  it('uses LL-HLS as deterministic default instead of WebRTC-first', () => {
-    expect(source).toContain("VITE_STREAM_PREFERRED_PROTOCOL || 'hls'");
-    expect(source).toContain('const preferWebRtc = STREAM_PROTOCOL === \'webrtc\'');
-    expect(source).toContain('await tryHls(preferWebRtc ?');
+  it('uses Local-HLS as the explicit kiosk/live transport when requested', () => {
+    expect(source).toContain("function wantsLocalHls(entry)");
+    expect(source).toContain("session.mode === 'local-hls-ring'");
+    expect(source).toContain("forceLocalHls ? [tryHls]");
+    expect(source).toContain("protocol: forceLocalHls ? 'Local-HLS' : 'LL-HLS'");
   });
 
   it('does not declare HLS ready before real browser frames arrive', () => {
-    expect(source).toContain('LL-HLS-Playlist empfangen – warte auf erste Videodaten');
-    expect(source).toContain('await waitForPlaying(entry.video, HLS_START_TIMEOUT_MS');
-    expect(source).toContain('Browser spielt den LL-HLS-Stream ab');
+    expect(source).toContain('await waitForPlaying(entry.video, 18000');
+    expect(source).toContain('await waitForFrameProgress(entry.video, 10000');
+    expect(source).toContain("entry.update({ state: 'ready', protocol: forceLocalHls ? 'Local-HLS'");
   });
 
-  it('keeps Live/Kiosk visible through snapshot fallback instead of failing hard', () => {
-    expect(source).toContain('SNAPSHOT_LIVE_FALLBACK');
+  it('keeps snapshot mode as an explicit emergency path', () => {
+    expect(source).toContain("session.mode === 'snapshot'");
     expect(source).toContain('snapshotMode: true');
-    expect(source).toContain('Stabiler Snapshot-Livemodus');
+    expect(source).toContain('Snapshot-Livemodus');
   });
 
-  it('logs HLS browser failures with response details', () => {
-    expect(hlsSource).toContain('hlsErrorDetails');
+  it('keeps HLS request diagnostics available for fatal recovery', () => {
     expect(hlsSource).toContain('responseCode');
-    expect(hlsSource).toContain('responseText');
+    expect(hlsSource).toContain('data.context?.url');
+    expect(hlsSource).toContain('recoverNetwork');
+    expect(hlsSource).toContain('recoverMedia');
   });
 });
