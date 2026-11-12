@@ -13,6 +13,8 @@ test('local HLS video path consumes go2rtc HTTP MPEG-TS and publishes atomic seg
   assert.match(value, /-c:v copy/);
   assert.match(value, /-an/);
   assert.match(value, /-hls_segment_type mpegts/);
+  assert.match(value, /-hls_time 1/);
+  assert.match(value, /-hls_list_size 30/);
   assert.match(value, /temp_file/);
   assert.match(value, /\/data\/live\/cam\/index\.m3u8/);
 });
@@ -38,5 +40,6 @@ test('snapshot emergency path creates the same local HLS contract', () => {
   assert.match(value, /-f image2pipe/);
   assert.match(value, /-c:v libx264/);
   assert.match(value, /-f hls/);
+  assert.match(value, /-hls_list_size 30/);
   assert.match(value, /\/data\/live\/snapshot\/index\.m3u8/);
 });

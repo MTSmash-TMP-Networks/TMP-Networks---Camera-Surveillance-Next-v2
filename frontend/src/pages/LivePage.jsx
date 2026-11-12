@@ -10,6 +10,17 @@ import { api } from '../services/api.js';
 import { codecFamily, codecLabel, codecPreferenceLabel } from '../utils/codec.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 
+export function cameraRailState(cameraStatus, playbackState = null, selected = false) {
+  if (selected) {
+    if (playbackState === 'ready') return 'online';
+    if (['starting', 'connecting', 'recovering'].includes(playbackState)) return 'stream_error';
+    if (playbackState === 'failed') return cameraStatus === 'offline' ? 'offline' : 'stream_error';
+  }
+  if (cameraStatus === 'online') return 'online';
+  if (cameraStatus === 'stream_error') return 'stream_error';
+  return 'offline';
+}
+
 export function LivePage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -27,6 +38,7 @@ export function LivePage() {
   const [recordingBusy, setRecordingBusy] = useState(false);
   const [recordingError, setRecordingError] = useState('');
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [livePlaybackState, setLivePlaybackState] = useState(null);
   const actionsRef = useRef(null);
   const profileToken = camera ? (profileSelections[camera.id] || '') : '';
   const ptzProfileToken = profileToken.startsWith('source:') ? (details?.camera?.preferredProfile || '') : profileToken;
@@ -42,7 +54,7 @@ export function LivePage() {
   }, [actionsOpen]);
   useEffect(() => {
     if (!camera) return undefined;
-    const resetTimer = setTimeout(() => { setDetails(null); setDiagnosticOpen(false); setRecording(null); setRecordingError(''); setActionsOpen(false); }, 0);
+    const resetTimer = setTimeout(() => { setDetails(null); setDiagnosticOpen(false); setRecording(null); setRecordingError(''); setActionsOpen(false); setLivePlaybackState(null); }, 0);
     api.camera(camera.id).then(setDetails).catch(() => setDetails(null));
     const loadRecording = () => api.recordings(camera.id).then((result) => setRecording((result.active || [])[0] || null)).catch(() => {});
     loadRecording();
@@ -106,9 +118,13 @@ export function LivePage() {
     </header>
     {recordingError && <div className="form-error">{recordingError}</div>}
     <div className="live-layout">
-      <aside className="camera-list"><h3>{t('live.cameraRail')}</h3>{cameras.map((item) => <button key={item.id} className={item.id === camera.id ? 'selected' : ''} onClick={() => setParams({ camera: item.id })}><span className={`dot ${item.status}`}/><span><strong>{item.name}</strong><small>{item.location || t('overview.locationUnknown')}</small></span></button>)}</aside>
+      <aside className="camera-list"><h3>{t('live.cameraRail')}</h3>{cameras.map((item) => {
+        const selected = item.id === camera.id;
+        const railState = cameraRailState(item.status, selected ? livePlaybackState : null, selected);
+        return <button key={item.id} className={selected ? 'selected' : ''} onClick={() => setParams({ camera: item.id })}><span className={`dot ${railState}`}/><span><strong>{item.name}</strong><small>{item.location || t('overview.locationUnknown')}</small></span></button>;
+      })}</aside>
       <div className="live-main">
-        <SeamlessLivePlayer camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)}/>
+        <SeamlessLivePlayer camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)} onStatusChange={(next) => setLivePlaybackState(next?.state || null)}/>
         <div className="stream-info"><span><Volume2/> Livebild: lokaler HLS-Ring über go2rtc-Broker · Audio wird für die stabile Browseransicht deaktiviert</span><span>{t('live.profileLabel')}: {selectedProfileName || t('live.automatic')} · {profileToken ? t('live.manualSelected') : codecPreferenceLabel(details?.camera?.codecPreference)}</span></div>
         <CameraLogPanel key={camera.id} cameraId={camera.id} canClear={allowed} open={diagnosticOpen} onOpenChange={setDiagnosticOpen}/>
       </div>

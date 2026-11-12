@@ -14,6 +14,8 @@ const ptzFrontend = readFileSync(resolve(root, 'frontend/src/components/PtzContr
 const livePool = readFileSync(resolve(root, 'frontend/src/services/liveStreamPool.js'), 'utf8');
 const player = readFileSync(resolve(root, 'frontend/src/components/SeamlessLivePlayer.jsx'), 'utf8');
 const ffmpegCommand = readFileSync(resolve(root, 'backend/src/services/media/FfmpegCommand.js'), 'utf8');
+const hlsPlayer = readFileSync(resolve(root, 'frontend/src/services/hlsPlayer.js'), 'utf8');
+const livePage = readFileSync(resolve(root, 'frontend/src/pages/LivePage.jsx'), 'utf8');
 
 test('compression backfill cannot bypass the configured startup delay', () => {
   assert.match(compression, /this\.backfill\(\{ schedule: false \}\)/);
@@ -123,3 +125,27 @@ test('local HLS bridge consumes the verified go2rtc HTTP MPEG-TS endpoint', () =
   assert.match(ffmpegCommand, /isRtspInput \? \['-rtsp_transport', 'tcp'\] : \[\]/);
 });
 
+
+
+test('local HLS keeps a deep ring and browser playback stays behind the live edge', () => {
+  assert.match(config, /LOCAL_HLS_LIST_SIZE', 30/);
+  assert.match(config, /LOCAL_HLS_SEGMENT_SECONDS', 1/);
+  assert.match(orchestrator, /listSize: config\.localHlsListSize/);
+  assert.match(orchestrator, /segmentSeconds: config\.localHlsSegmentSeconds/);
+  assert.match(ffmpegCommand, /listSize = 30/);
+  assert.match(ffmpegCommand, /Math\.min\(120/);
+  assert.match(hlsPlayer, /TARGET_LIVE_DELAY_SECONDS = 8/);
+  assert.match(hlsPlayer, /MAX_LIVE_LATENCY_SECONDS = 20/);
+  assert.match(hlsPlayer, /maxBufferLength: 30/);
+  assert.match(hlsPlayer, /backBufferLength: 15/);
+  assert.match(hlsPlayer, /lowLatencyMode: false/);
+});
+
+test('camera status suppresses false red indicators while another stream is healthy', () => {
+  assert.match(orchestrator, /cameraHasHealthySession/);
+  assert.match(orchestrator, /CAMERA_STATUS_ERROR_SUPPRESSED/);
+  assert.match(orchestrator, /markCameraStreamError/);
+  assert.match(livePage, /cameraRailState/);
+  assert.match(livePage, /playbackState === 'ready'/);
+  assert.match(livePage, /cameraStatus === 'stream_error'/);
+});

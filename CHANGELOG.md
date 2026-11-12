@@ -1,3 +1,12 @@
+## 2.20.44 – Stabilerer Local-HLS-Puffer und zuverlässige Live-Ampeln
+
+- Lokaler HLS-Ring von rund 8 auf standardmäßig 30 Ein-Sekunden-Segmente vergrößert; Größe und Segmentdauer sind über `LOCAL_HLS_LIST_SIZE` und `LOCAL_HLS_SEGMENT_SECONDS` einstellbar.
+- Browserwiedergabe läuft bewusst rund 8 Sekunden hinter der Live-Kante, hält bis zu 30 Sekunden Vorwärtspuffer und 15 Sekunden Rückpuffer und toleriert kurze Netzstörungen länger vor einem Neuaufbau.
+- HLS-Recovery erhält mehr Zeit und zusätzliche Segment-/Playlist-Wiederholungen, wodurch kurze WLAN-/LAN-Aussetzer seltener zu sichtbarem Flippern führen.
+- Kamera-Status wird bei einem einzelnen fehlerhaften Hintergrund-/Profilstream nicht mehr auf `stream_error` gesetzt, solange ein anderer Stream derselben Kamera nachweislich gesund ist.
+- Live-Ansicht bewertet die Ampel der aktuell ausgewählten Kamera zusätzlich anhand der tatsächlichen Browserwiedergabe: Grün bei laufenden Frames, Gelb bei Aufbau/Recovery, Rot nur bei echtem Offline-Zustand.
+- Regressionsprüfungen für Local-HLS-Ring, Browserpuffer und Statusunterdrückung ergänzt.
+
 ## 2.20.43 – Reolink ONVIF-Port 8000
 
 - ONVIF-HTTP-Erkennung auf TCP 8000 fuer neue Reolink-Modelle.

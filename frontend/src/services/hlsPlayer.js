@@ -1,7 +1,9 @@
 import Hls from 'hls.js';
 
-const RECOVERY_WATCHDOG_MS = 8000;
-const WAITING_GRACE_MS = 3000;
+const RECOVERY_WATCHDOG_MS = 15000;
+const WAITING_GRACE_MS = 5000;
+const TARGET_LIVE_DELAY_SECONDS = 8;
+const MAX_LIVE_LATENCY_SECONDS = 20;
 const MAX_NETWORK_RECOVERIES = 3;
 const MAX_MEDIA_RECOVERIES = 2;
 const MAX_SOFT_RECOVERIES = 2;
@@ -34,7 +36,7 @@ function seekToLiveEdge(hls, video) {
     const ranges = video.seekable;
     if (ranges?.length) {
       const end = ranges.end(ranges.length - 1);
-      if (Number.isFinite(end) && end - Number(video.currentTime || 0) > 4) video.currentTime = Math.max(0, end - 1);
+      if (Number.isFinite(end) && end - Number(video.currentTime || 0) > TARGET_LIVE_DELAY_SECONDS + 2) video.currentTime = Math.max(0, end - TARGET_LIVE_DELAY_SECONDS);
     }
   } catch { /* ignored */ }
 }
@@ -139,24 +141,25 @@ export function connectHls({ url, tokenRef, video, onState }) {
   let activeSourceUrl = cacheBustUrl(url);
 
   const hls = new Hls({
-    lowLatencyMode: true,
-    liveSyncDurationCount: 2,
-    liveMaxLatencyDurationCount: 6,
-    maxLiveSyncPlaybackRate: 1.15,
-    backBufferLength: 6,
-    maxBufferLength: 12,
-    maxBufferHole: 0.7,
+    lowLatencyMode: false,
+    liveSyncDuration: TARGET_LIVE_DELAY_SECONDS,
+    liveMaxLatencyDuration: MAX_LIVE_LATENCY_SECONDS,
+    maxLiveSyncPlaybackRate: 1.05,
+    backBufferLength: 15,
+    maxBufferLength: 30,
+    maxMaxBufferLength: 60,
+    maxBufferHole: 1,
     manifestLoadingTimeOut: 10000,
-    manifestLoadingMaxRetry: 3,
-    manifestLoadingRetryDelay: 500,
-    manifestLoadingMaxRetryTimeout: 4000,
+    manifestLoadingMaxRetry: 4,
+    manifestLoadingRetryDelay: 750,
+    manifestLoadingMaxRetryTimeout: 6000,
     levelLoadingTimeOut: 10000,
-    levelLoadingMaxRetry: 4,
-    levelLoadingRetryDelay: 500,
+    levelLoadingMaxRetry: 5,
+    levelLoadingRetryDelay: 750,
     fragLoadingTimeOut: 20000,
-    fragLoadingMaxRetry: 4,
-    fragLoadingRetryDelay: 500,
-    fragLoadingMaxRetryTimeout: 5000,
+    fragLoadingMaxRetry: 6,
+    fragLoadingRetryDelay: 750,
+    fragLoadingMaxRetryTimeout: 8000,
     enableWorker: true,
     xhrSetup: (xhr) => {
       if (tokenRef.current) xhr.setRequestHeader('Authorization', `Bearer ${tokenRef.current}`);

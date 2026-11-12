@@ -82,12 +82,12 @@ export function buildSnapshotVideoArgs({ webrtcOutput, hlsOutput, width = 1280, 
   ];
 }
 
-export function buildSnapshotLocalHlsArgs({ outputDir, width = 1280, height = 720, fps = 5, segmentSeconds = 1, listSize = 8 }) {
+export function buildSnapshotLocalHlsArgs({ outputDir, width = 1280, height = 720, fps = 5, segmentSeconds = 1, listSize = 30 }) {
   const safeFps = Math.max(1, Math.min(12, Math.round(Number(fps) || 5)));
   const safeWidth = Math.max(320, Math.min(1920, Math.round(Number(width) || 1280)));
   const safeHeight = Math.max(180, Math.min(1080, Math.round(Number(height) || 720)));
   const safeSegmentSeconds = Math.max(1, Math.min(6, Math.round(Number(segmentSeconds) || 1)));
-  const safeListSize = Math.max(4, Math.min(20, Math.round(Number(listSize) || 8)));
+  const safeListSize = Math.max(8, Math.min(120, Math.round(Number(listSize) || 30)));
   const directory = outputDir.replace(/\/$/, '');
   const filter = `scale=${safeWidth}:${safeHeight}:force_original_aspect_ratio=decrease,pad=${safeWidth}:${safeHeight}:(ow-iw)/2:(oh-ih)/2,format=yuv420p,fps=${safeFps}`;
   return [
@@ -109,9 +109,9 @@ export function buildSnapshotLocalHlsArgs({ outputDir, width = 1280, height = 72
   ];
 }
 
-export function buildLocalHlsRingArgs({ sourceUri, outputDir, includeAudio = false, segmentSeconds = 1, listSize = 8 }) {
+export function buildLocalHlsRingArgs({ sourceUri, outputDir, includeAudio = false, segmentSeconds = 1, listSize = 30 }) {
   const safeSegmentSeconds = Math.max(1, Math.min(6, Math.round(Number(segmentSeconds) || 1)));
-  const safeListSize = Math.max(4, Math.min(20, Math.round(Number(listSize) || 8)));
+  const safeListSize = Math.max(8, Math.min(120, Math.round(Number(listSize) || 30)));
   const directory = outputDir.replace(/\/$/, '');
   const isRtspInput = /^rtsps?:\/\//i.test(String(sourceUri || ''));
   return [

@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.43",
+  "version": "2.20.44",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.43",
-  "summary": "Detect ONVIF camera services on Reolink TCP port 8000 and permit manual port entry without changing camera firmware settings.",
-  "createdAt": "2026-11-12T14:36:47+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.43.md",
+  "title": "TMP Camera Surveillance Next 2.20.44",
+  "summary": "Increase the local HLS safety buffer and prevent transient stream failures from falsely turning healthy cameras red in Live View.",
+  "createdAt": "2026-11-12T15:31:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.44.md",
   "changes": [
-    "Probe verified HTTP ONVIF device service on TCP port 8000",
-    "Preserve Hikvision/Uniview SDK classification and reject generic non-camera web services",
-    "Allow optional manual ONVIF port entry and Reolink 8000 fallback"
+    "Expand the default local HLS ring to 30 one-second segments and keep browser playback about eight seconds behind the live edge",
+    "Extend HLS recovery grace and retry budgets to reduce visible stream flapping during short network interruptions",
+    "Suppress camera-wide stream_error while another session for the same camera is healthy and make Live View traffic lights follow real playback state"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.43.md",
+  "changelog": "UPDATE_NOTES_2.20.44.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.43",
-  "packageId": "tmp-camera-surveillance-next-2.20.43",
+  "name": "TMP Camera Surveillance Next v2.20.44",
+  "packageId": "tmp-camera-surveillance-next-2.20.44",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Verified Reolink ONVIF port 8000 discovery and guided add-camera port override.",
+  "description": "Deeper Local-HLS buffering, calmer browser recovery, and false-red Live View status protection.",
   "minVersion": "2.20.32",
-  "releaseNotes": "ONVIF 8000 discovery and onboarding with SOAP verification; no camera configuration changes.",
-  "fileCount": 445
+  "releaseNotes": "30-second Local-HLS ring with an eight-second live delay and playback-aware camera status indicators.",
+  "fileCount": 446
 }
