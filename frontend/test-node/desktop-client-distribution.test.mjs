@@ -34,3 +34,16 @@ test('Linux installer bootstraps Node/npm locally, checks SHA-256, and diagnoses
   const page = read('frontend/src/pages/DesktopClientPage.jsx');
   assert.match(page, /automatisch im Benutzerverzeichnis/);
 });
+
+
+test('Electron postinstall is narrowly approved and installation verifies native binary', () => {
+  const pkg = JSON.parse(read('desktop-client/package.json'));
+  assert.equal(pkg.dependencies.electron, '35.7.5');
+  assert.deepEqual(pkg.allowScripts, { 'electron@35.7.5': true });
+  const script = read('desktop-client/install-linux.sh');
+  assert.match(script, /npm rebuild electron/);
+  assert.match(script, /ELECTRON_MARKER=/);
+  assert.match(script, /INSTALLED_ELECTRON_VERSION=/);
+  assert.match(script, /Installation nicht abgeschlossen/);
+  assert.doesNotMatch(script.split('\n').filter(line => !line.trim().startsWith('#')).join('\n'), /dangerously-allow-all-scripts/);
+});

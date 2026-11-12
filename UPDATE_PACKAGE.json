@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.37",
-  "minimumVersion": "2.20.36",
-  "title": "TMP Camera Surveillance Next 2.20.37",
-  "summary": "Linux desktop installer now automatically prepares missing Node.js/npm and Electron runtime libraries.",
-  "createdAt": "2026-11-12T11:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.37.md",
+  "version": "2.20.38",
+  "minimumVersion": "2.20.37",
+  "title": "TMP Camera Surveillance Next 2.20.38",
+  "summary": "Pin Electron install-script approval and verify the installed native runtime.",
+  "createdAt": "2026-11-12T12:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.38.md",
   "changes": [
-    "Missing Node.js and npm installed locally for the desktop user with verified official SHA-256 manifest",
-    "Electron native library preflight and Debian/Ubuntu/Linux Mint apt repair",
-    "Updated Linux-client ZIP download and installation guidance"
+    "Allow Electron 35.7.5 native installation script with npm 11+ allowScripts",
+    "Recover missing Electron native binary from previously skipped postinstall",
+    "Check Electron binary, marker and exact version before installation success"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.37.md",
+  "changelog": "UPDATE_NOTES_2.20.38.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.37",
-  "packageId": "tmp-camera-surveillance-next-2.20.37",
-  "fromVersion": "2.20.36",
-  "compatibleFrom": "2.20.36",
-  "description": "Fix Linux desktop client install when Node.js/npm are missing.",
-  "minVersion": "2.20.36",
-  "releaseNotes": "Automatic local Node.js/npm bootstrap and Electron Linux dependency preflight.",
+  "name": "TMP Camera Surveillance Next v2.20.38",
+  "packageId": "tmp-camera-surveillance-next-2.20.38",
+  "fromVersion": "2.20.37",
+  "compatibleFrom": "2.20.37",
+  "description": "Fix npm 11+ blocked Electron postinstall during Linux desktop setup.",
+  "minVersion": "2.20.37",
+  "releaseNotes": "Electron postinstall explicitly approved for pinned package version; install integrity checks.",
   "fileCount": 433
 }

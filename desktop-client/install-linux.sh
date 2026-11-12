@@ -99,9 +99,22 @@ cd "$DEST"
 say 'Installiere den Electron-Client ...'
 # Electron downloads its pinned native runtime through its npm install hook.
 # Do not suppress install scripts, and do not install it globally.
-npm install --omit=dev --no-audit --no-fund || fail 'Electron konnte nicht installiert werden. Internetzugang und npm-Protokoll pruefen.'
+# Modern npm blocks dependency install hooks unless allowScripts explicitly
+# approves the exact package version. Only electron@35.7.5 is approved in
+# package.json; never use --dangerously-allow-all-scripts.
+npm install --omit=dev --no-audit --no-fund --ignore-scripts=false || fail 'Electron konnte nicht installiert werden. Internetzugang und npm-Protokoll pruefen.'
 ELECTRON="$DEST/node_modules/electron/dist/electron"
-[ -x "$ELECTRON" ] || fail 'Electron-Programm fehlt nach npm install.'
+ELECTRON_MARKER="$DEST/node_modules/electron/path.txt"
+# If a prior npm run skipped the native download, reinstall the approved
+# Electron binary without deleting user settings or unrelated packages.
+if [ ! -x "$ELECTRON" ] || [ ! -s "$ELECTRON_MARKER" ]; then
+  say 'Electron-Laufzeit ist unvollstaendig. Fuehre das freigegebene Electron-Installationsskript erneut aus ...'
+  npm rebuild electron --ignore-scripts=false --no-audit --no-fund || fail 'Electron-Laufzeit konnte nicht nachinstalliert werden.'
+fi
+[ -x "$ELECTRON" ] && [ -s "$ELECTRON_MARKER" ] || fail 'Electron ist nicht startbereit. Bitte npm/Electron-Protokoll pruefen; Installation nicht abgeschlossen.'
+# Prevent a stale unpacked Electron from appearing as a successful install.
+INSTALLED_ELECTRON_VERSION=$(node -p 'require("./node_modules/electron/package.json").version' 2>/dev/null || true)
+[ "$INSTALLED_ELECTRON_VERSION" = '35.7.5' ] || fail "Falsche Electron-Version: ${INSTALLED_ELECTRON_VERSION:-nicht gefunden}; erwartet 35.7.5."
 
 missing_libraries() {
   command -v ldd >/dev/null 2>&1 || return 0

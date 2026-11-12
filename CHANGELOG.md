@@ -1,3 +1,9 @@
+## 2.20.38 - Electron install-script approval and runtime verification
+
+- Approves only pinned `electron@35.7.5` install script for npm 11+ script trust policy.
+- Rebuilds incomplete Electron installs and verifies native executable, marker, and exact installed package version before declaring success.
+- Updates embedded Desktop-Client ZIP and installation regression tests.
+
 ## 2.20.37 - Linux Desktop Client dependency bootstrap
 
 - Desktop installer fetches and SHA-256-verifies Node.js 24 LTS with bundled npm in the user directory when not present.
