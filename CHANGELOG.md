@@ -1,3 +1,8 @@
+## 2.20.36 - Camera setup and GitHub update fixes
+
+- Camera input metadata handling and detailed field validation feedback.
+- Align GitHub source archive with the signed file manifest and improve GitHub diagnostics.
+
 ## 2.20.35 – Linux Desktop Client
 
 - Add downloadable Linux x86_64 Electron desktop client source installer in the authenticated interface.

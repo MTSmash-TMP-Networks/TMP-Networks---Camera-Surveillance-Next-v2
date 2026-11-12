@@ -1,16 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.35",
-  "minimumVersion": "2.20.34",
-  "title": "TMP Camera Surveillance Next 2.20.35",
-  "summary": "Adds downloadable Linux desktop client in the interface.",
+  "version": "2.20.36",
+  "minimumVersion": "2.20.35",
+  "title": "TMP Camera Surveillance Next 2.20.36",
+  "summary": "Fix camera setup validation and GitHub update package integrity.",
   "createdAt": "2026-11-12T09:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.35.md",
+  "changelogFile": "UPDATE_NOTES_2.20.36.md",
   "changes": [
-    "Dedicated client download page for authenticated users",
-    "Linux desktop client installer uses existing server accounts",
-    "Electron sandbox, restricted navigation and TLS validation",
-    "Preserves existing update mechanism"
+    "Camera wizard normalizes passive discovery/ONVIF metadata before saving; exact field validation feedback",
+    "GitHub source archive exactly matches checksummed ZIP manifest",
+    "GitHub diagnostics identify missing manifests, DNS/TLS/API failures"
   ],
   "preserve": [
     ".env",
@@ -32,12 +31,12 @@
   "allowReinstall": true,
   "changelog": "UPDATE_NOTES_2.20.35.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.35",
-  "packageId": "tmp-camera-surveillance-next-2.20.35",
-  "fromVersion": "2.20.34",
-  "compatibleFrom": "2.20.34",
-  "description": "Electron Linux desktop client with per-user install and secure origin restrictions.",
-  "minVersion": "2.20.34",
-  "releaseNotes": "Downloadable Linux Desktop Client.",
-  "fileCount": 430
+  "name": "TMP Camera Surveillance Next v2.20.36",
+  "packageId": "tmp-camera-surveillance-next-2.20.36",
+  "fromVersion": "2.20.35",
+  "compatibleFrom": "2.20.35",
+  "description": "Camera-add and GitHub update reliability fixes.",
+  "minVersion": "2.20.35",
+  "releaseNotes": "Camera validation and GitHub archive integrity.",
+  "fileCount": 433
 }

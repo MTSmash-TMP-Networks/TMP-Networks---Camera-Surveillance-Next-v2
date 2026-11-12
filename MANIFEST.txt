@@ -5,7 +5,7 @@ INSTALLATION.md
 LICENSE_AGREEMENT.md
 MANIFEST.txt
 README.md
-UPDATE_NOTES_2.20.35.md
+UPDATE_NOTES_2.20.36.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -145,6 +145,7 @@ backend/test-node/direct-network-stream-ui-regression.test.mjs
 backend/test-node/domain-event-bus.test.mjs
 backend/test-node/email-notification-source-regression.test.mjs
 backend/test-node/ffmpeg-diagnostics.test.mjs
+backend/test-node/github-archive-integrity-regression.test.mjs
 backend/test-node/github-update-regression.test.mjs
 backend/test-node/go2rtc-control-api.test.mjs
 backend/test-node/local-hls-command.test.mjs
@@ -358,10 +359,12 @@ frontend/src/utils/asyncCleanup.js
 frontend/src/utils/asyncCleanup.test.js
 frontend/src/utils/cameraCapabilities.js
 frontend/src/utils/cameraSetup.js
+frontend/src/utils/cameraValidation.js
 frontend/src/utils/codec.js
 frontend/src/utils/codec.test.js
 frontend/src/utils/smbLocation.js
 frontend/src/utils/smbLocation.test.mjs
+frontend/test-node/camera-add-validation-regression.test.mjs
 frontend/test-node/container-status-branding.test.mjs
 frontend/test-node/coreui-shell-foundation.test.mjs
 frontend/test-node/desktop-client-distribution.test.mjs

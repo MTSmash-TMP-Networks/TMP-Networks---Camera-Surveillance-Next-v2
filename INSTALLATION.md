@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.35 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next 2.20.36 and the most common maintenance tasks.
 
 ## 1. Requirements
 
@@ -517,3 +517,9 @@ Repeated application updates rebuild Docker images. Version 2.20.22 automaticall
 ## Desktop client (Linux workstation)
 
 Open **Desktop-Client** from the authenticated application's sidebar and download the Linux x86_64 ZIP. Extract it on the workstation, install Node.js 20+ and npm, then run `sh ./install-linux.sh`. Internet is required for the first Electron download. The client uses the configured server address and the existing login. The recording server remains headless; no desktop packages need to be installed on it.
+
+## GitHub direct updates
+
+After upgrading to 2.20.36, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
+
+For the initial repair from older releases, upload the full 2.20.36 ZIP through the existing ZIP upload option.

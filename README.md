@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.35
+# TMP Camera Surveillance Next 2.20.36
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -30,6 +30,10 @@ On Ubuntu, Debian, Linux Mint and Fedora with systemd, the first start can also 
 The first start creates `.env`, generates secure application secrets, prepares persistent storage and builds the Docker services automatically.
 
 For the complete setup procedure, NAS notes, reverse-proxy guidance, updates, backups and troubleshooting, read `INSTALLATION.md`.
+
+## Installation and GitHub updates
+
+If the Update-Center reports an available GitHub version, choose **Auf GitHub prüfen → Herunterladen & prüfen → Installieren**. The version is installed through the same checksum-verified ZIP route with backup and rollback as a manual upload. Direct `git pull` inside a running installation is not required.
 
 ## Main features
 
@@ -75,7 +79,7 @@ They contain the installation identity, credentials, configuration, database, lo
 ## Documentation
 
 - `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.35.md` - current release notes
+- `UPDATE_NOTES_2.20.36.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources

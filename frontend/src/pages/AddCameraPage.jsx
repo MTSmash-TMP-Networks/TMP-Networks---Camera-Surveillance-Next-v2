@@ -5,6 +5,7 @@ import { Camera, CheckCircle2, ChevronDown, Globe2, Link2, Network, Radar, Searc
 import { api } from '../services/api.js';
 import { codecLabel } from '../utils/codec.js';
 import { connectionModeForDiscoveredCamera } from '../utils/cameraSetup.js';
+import { cameraSavePayload, cameraSetupError } from '../utils/cameraValidation.js';
 import { cameraUpserted } from '../features/cameras/camerasSlice.js';
 import { liveStreamPool } from '../services/liveStreamPool.js';
 import { cameraSetupAvailability, isDiscoveryRunning, mergeDiscoveredDevices } from '../services/cameraDiscoveryState.js';
@@ -74,7 +75,7 @@ function profileRoleLabel(role, t) {
 }
 
 export function AddCameraPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const pollRefs = useRef(new Map());
@@ -261,7 +262,7 @@ export function AddCameraPage() {
       deviceUid: device.deviceUid || device.uuid || device.urn || '',
       xaddr: device.xaddr || device.onvifXaddr || '',
       openPorts: device.openPorts || [],
-      discoveryEvidence: (device.evidences || [device.evidence]).filter(Boolean).join(' · '),
+      discoveryEvidence: (device.evidences || [device.evidence]).filter(Boolean).join(' · ').slice(0, 4000),
       connectionMode: connectionModeForDiscoveredCamera(device),
     }));
     setStep(2);
@@ -325,10 +326,10 @@ export function AddCameraPage() {
         mediaSources: result.mediaSources || [],
         port: Number(result.connection?.port || result.device?.webPort || current.port || 0),
         openPorts: result.connection?.openPorts || current.openPorts || [],
-        discoveryEvidence: result.connection?.discoveryEvidence || current.discoveryEvidence,
+        discoveryEvidence: String(result.connection?.discoveryEvidence || current.discoveryEvidence || '').slice(0, 4000),
       }));
       setStep(3);
-    } catch (e) { setError(e.message); }
+    } catch (e) { setError(cameraSetupError(e, locale)); }
     finally { setActionBusy(false); }
   }
 
@@ -340,10 +341,10 @@ export function AddCameraPage() {
   async function save() {
     setActionBusy(true); setError('');
     try {
-      const payload = isDirectStream ? {
-        ...form, name: effectiveCameraName(), ip: '', port: 0, connectionMode: 'stream', sourcePolicy: 'manual-first',
-        mediaSources: form.mediaSources?.length ? form.mediaSources : [{ label: effectiveCameraName(), kind: form.streamKind || 'auto', url: form.streamUrl, priority: 10, enabled: true, origin: 'manual' }],
-      } : { ...form, name: effectiveCameraName(), port: Number(form.port || 0) };
+      const payload = cameraSavePayload(form, effectiveCameraName(), isDirectStream);
+      if (isDirectStream) {
+        payload.mediaSources = form.mediaSources?.length ? form.mediaSources : [{ label: effectiveCameraName(), kind: form.streamKind || 'auto', url: form.streamUrl, priority: 10, enabled: true, origin: 'manual' }];
+      }
       const result = await api.addCamera(payload);
       dispatch(cameraUpserted(result.camera));
       // Start the muted stream before route navigation. The same video node and
@@ -355,7 +356,7 @@ export function AddCameraPage() {
         viewportWidth: 1280,
       });
       navigate(`/live?camera=${result.camera.id}`);
-    } catch (e) { setError(e.message); }
+    } catch (e) { setError(cameraSetupError(e, locale)); }
     finally { setActionBusy(false); }
   }
 

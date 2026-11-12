@@ -1,0 +1,26 @@
+# Runtime secrets and persistent data
+.env
+data/*
+!data/.gitkeep
+!data/recordings/.gitkeep
+!data/backups/.gitkeep
+!data/caddy/
+!data/caddy/data/
+!data/caddy/config/
+!data/caddy/data/.gitkeep
+!data/caddy/config/.gitkeep
+
+# Dependencies and builds
+**/node_modules/
+**/dist/
+coverage/
+*.log
+*.zip
+*.sha256
+.DS_Store
+!data/updates/
+!data/updates/.gitkeep
+!data/updates/packages/
+!data/updates/packages/.gitkeep
+!data/updates/staging/
+!data/updates/staging/.gitkeep

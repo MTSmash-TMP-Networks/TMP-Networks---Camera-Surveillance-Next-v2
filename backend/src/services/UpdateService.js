@@ -220,8 +220,16 @@ async function githubRequest(url, { timeoutMs = 12000, redirects = 0, archive = 
       redirect: 'manual', signal: AbortSignal.timeout(timeoutMs),
       headers: { 'User-Agent': 'TMP-Camera-Update-Center', Accept: archive ? 'application/zip' : 'application/json, text/plain' },
     });
-  } catch {
-    throw new AppError(502, 'GITHUB_UNREACHABLE', 'GitHub konnte nicht erreicht werden');
+  } catch (cause) {
+    const code = String(cause?.cause?.code || cause?.code || '');
+    const explanation = code === 'ENOTFOUND' || code === 'EAI_AGAIN'
+      ? 'DNS-Auflösung ist fehlgeschlagen; bitte DNS und Internetzugriff des Backend-Containers prüfen'
+      : code === 'ETIMEDOUT' || cause?.name === 'TimeoutError'
+        ? 'Zeitüberschreitung bei der GitHub-Verbindung'
+        : code.includes('CERT') || code.includes('TLS')
+          ? 'TLS-Zertifikat konnte nicht geprüft werden; Systemzeit und Zertifikatskette prüfen'
+          : 'GitHub konnte nicht erreicht werden; bitte Netzwerk/Firewall des Backend-Containers prüfen';
+    throw new AppError(502, 'GITHUB_UNREACHABLE', explanation);
   }
   if (archive && [301, 302, 303, 307, 308].includes(response.status)) {
     if (redirects >= GITHUB_MAX_REDIRECTS) throw new AppError(502, 'GITHUB_REDIRECT_FAILED', 'Zu viele Weiterleitungen bei GitHub');
@@ -232,7 +240,7 @@ async function githubRequest(url, { timeoutMs = 12000, redirects = 0, archive = 
   }
   if (!response.ok) {
     await response.body?.cancel();
-    throw new AppError(502, 'GITHUB_RESPONSE_FAILED', `GitHub antwortete mit HTTP ${response.status}`);
+    throw new AppError(502, 'GITHUB_RESPONSE_FAILED', response.status === 403 || response.status === 429 ? 'GitHub-API-Limit erreicht oder Zugriff gesperrt; später erneut prüfen' : `GitHub antwortete mit HTTP ${response.status}`);
   }
   return response;
 }
@@ -267,11 +275,19 @@ async function prepareGithubPackage(expectedSha, uploadedBy) {
     await ensureDirectories();
     const response = await githubRequest(`https://codeload.github.com/${GITHUB_REPO}/zip/${latest.commit}`, { archive: true, timeoutMs: 30000 });
     if (!response.body) throw new AppError(502, 'GITHUB_DOWNLOAD_EMPTY', 'GitHub lieferte kein Archiv');
-    const item = await updateService.upload(
-      // Node fetch supplies a web stream; convert it to a Node stream for the existing guarded ZIP pipeline.
-      Readable.fromWeb(response.body), `GitHub-${latest.latestVersion}-${latest.commit.slice(0, 12)}.zip`, uploadedBy,
-      response.headers.get('content-length') || null,
-    );
+    let item;
+    try {
+      item = await updateService.upload(
+        // Node fetch supplies a web stream; convert it to a Node stream for the existing guarded ZIP pipeline.
+        Readable.fromWeb(response.body), `GitHub-${latest.latestVersion}-${latest.commit.slice(0, 12)}.zip`, uploadedBy,
+        response.headers.get('content-length') || null,
+      );
+    } catch (error) {
+      if (/FILE[S]?\.sha256|Prüfsumme|Datei fehlt|nicht vorhandene Datei|Unbekannter oberster Paketpfad/i.test(String(error?.message || ''))) {
+        throw new AppError(422, 'GITHUB_MANIFEST_INCONSISTENT', 'Das GitHub-Archiv stimmt nicht mit dem Dateimanifest überein. Bitte die Release-Dateiliste auf GitHub korrigieren.');
+      }
+      throw error;
+    }
     if (item.inspection.version !== latest.latestVersion) {
       await updateService.remove(item.id);
       throw new AppError(502, 'GITHUB_PACKAGE_VERSION_MISMATCH', 'GitHub-Versionsdatei und geprüftes ZIP stimmen nicht überein');

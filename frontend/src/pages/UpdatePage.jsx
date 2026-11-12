@@ -33,7 +33,7 @@ function readableError(error, t) {
   const key = code ? `update.errorCode.${code}` : '';
   const message = key ? translatedOrFallback(t, key, 'update.error.generic') : t('update.error.generic');
   const diagnosticId = error?.details?.diagnosticId || error?.details?.diagnosisId || error?.diagnosticId;
-  const githubError = code.startsWith('GITHUB_') ? (error?.message || message) : message;
+  const githubError = code.startsWith('GITHUB_') || code === 'VALIDATION_ERROR' ? (error?.message || message) : message;
   return diagnosticId ? `${githubError} ${t('update.diagnostics.id')}: ${diagnosticId}` : githubError;
 }
 
