@@ -1,3 +1,12 @@
+## 2.20.46 – Sticky Kiosk-Encoder und keine Fallback-Oszillation
+
+- Kiosk darf keinen separaten Browser-Transcode-Fallback mehr öffnen.
+- Server verwirft `forceTranscode` für `purpose=kiosk` auch dann, wenn der globale Browser-Fallback aktiviert ist.
+- Encoderfehler bleiben pro Kamera/Profil/Quelle bis zum Backend-Neustart gespeichert.
+- Ein einmaliger Wechsel von VAAPI auf Software/CPU wird dadurch nicht mehr nach zehn Minuten automatisch zurückprobiert.
+- Copy-/GPU-/CPU-Pfade bleiben für eine laufende Backend-Sitzung deterministisch und können nicht zyklisch hin- und herspringen.
+- Der bestehende Local-HLS-Ring und die Kiosk-Lifecycle-Fixes aus 2.20.44/2.20.45 bleiben unverändert bestehen.
+
 ## 2.20.45 – Stabiler Kiosk-Stream ohne unnötige HLS-Recovery
 
 - Kiosk-Player bindet einen laufenden Stream nicht mehr bei bloßen ResizeObserver-/Layoutänderungen neu an.
