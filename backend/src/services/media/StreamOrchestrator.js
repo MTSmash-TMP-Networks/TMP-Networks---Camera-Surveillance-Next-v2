@@ -329,9 +329,13 @@ class StreamOrchestrator {
         return null;
       });
     }
-    if (!wait) return this.publicSession(session, true);
+    if (!wait) {
+      this.markCameraOnlineIfReady(session, 'ensure-no-wait');
+      return this.publicSession(session, true);
+    }
     await session.startPromise;
     if (session.state === 'failed') throw session.startFailure || new AppError(502, 'STREAM_START_FAILED', session.lastError || 'Live-Stream konnte nicht gestartet werden');
+    this.markCameraOnlineIfReady(session, 'ensure-ready');
     return this.publicSession(session, true);
   }
 
@@ -385,9 +389,13 @@ class StreamOrchestrator {
         return null;
       });
     }
-    if (!wait) return this.publicSession(session, true);
+    if (!wait) {
+      this.markCameraOnlineIfReady(session, 'permanent-ingest-no-wait');
+      return this.publicSession(session, true);
+    }
     await session.startPromise;
     if (session.state === 'failed') throw session.startFailure || new AppError(502, 'STREAM_START_FAILED', session.lastError || 'Permanenter Kamera-Publisher konnte nicht gestartet werden');
+    this.markCameraOnlineIfReady(session, 'permanent-ingest-ready');
     return this.publicSession(session, true);
   }
 
@@ -1079,6 +1087,18 @@ class StreamOrchestrator {
     return true;
   }
 
+  markCameraOnlineIfReady(session, reason = 'ready-confirmed') {
+    if (!session || session.state !== 'ready') return false;
+    const current = cameraRepository.get(session.cameraId);
+    if (!current || current.status === 'online') return false;
+    cameraRepository.updateStatus(session.cameraId, 'online', null);
+    this.log(session, 'debug', 'stream', 'CAMERA_STATUS_READY_SYNC', 'Bereite Stream-Sitzung korrigiert einen veralteten Kamera-Fehlerstatus auf online', {
+      reason,
+      previousStatus: current.status || null,
+    });
+    return true;
+  }
+
   onExit(session, child, code, signal) {
     if (session.snapshotPump && session.snapshotPumpChild === child) {
       session.snapshotPump.stop();
@@ -1388,6 +1408,7 @@ class StreamOrchestrator {
     // still receive frames even when FFmpeg progress output is temporarily quiet,
     // so hard recovery is left to the backend watchdog after go2rtc checks.
     const current = this.findSession(cameraId, quality, viewportWidth, profileToken, purpose, forceTranscode) || session;
+    this.markCameraOnlineIfReady(current, 'heartbeat-ready');
     return {
       serverTime: new Date().toISOString(),
       session: current ? this.publicSession(current, true) : null,
@@ -1645,7 +1666,9 @@ class StreamOrchestrator {
   }
 
   hasReady(cameraId) {
-    return [...this.sessions.values()].some((session) => session.cameraId === cameraId && session.state === 'ready' && (session.process || ['snapshot', 'snapshot-video', 'go2rtc-managed'].includes(session.mode)));
+    return [...this.sessions.values()].some((session) => String(session.cameraId) === String(cameraId)
+      && session.state === 'ready'
+      && (this.isSessionProcessAlive(session) || ['snapshot', 'snapshot-video'].includes(session.mode)));
   }
 
   async maintenance() {
