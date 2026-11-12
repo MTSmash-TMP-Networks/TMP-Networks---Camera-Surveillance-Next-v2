@@ -101,7 +101,13 @@ const discoverySchema = z.object({
   scanRanges: Array.isArray(input.scanRanges) ? input.scanRanges : input.scanRanges.split(/[\s,;]+/).filter(Boolean),
 }));
 
-camerasRouter.get('/', (_req, res) => res.json({ items: cameraRepository.list() }));
+function withRuntimeCameraStatus(camera) {
+  if (!camera) return camera;
+  if (!streamOrchestrator.hasReady(camera.id)) return camera;
+  return { ...camera, status: 'online', lastError: null };
+}
+
+camerasRouter.get('/', (_req, res) => res.json({ items: cameraRepository.list().map(withRuntimeCameraStatus) }));
 
 camerasRouter.get('/next-name', authorize('admin'), (_req, res) => res.json({ name: cameraRepository.nextDefaultName() }));
 
@@ -169,7 +175,7 @@ camerasRouter.get('/:id', (req, res) => {
   const camera = cameraRepository.get(req.params.id);
   if (!camera) throw new AppError(404, 'CAMERA_NOT_FOUND', 'Kamera nicht gefunden');
   res.json({
-    camera,
+    camera: withRuntimeCameraStatus(camera),
     profiles: cameraRepository.profiles(req.params.id),
     mediaSources: cameraRepository.mediaSources(req.params.id),
     streams: streamOrchestrator.status(req.params.id),
