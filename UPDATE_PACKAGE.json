@@ -1,17 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.32",
-  "minimumVersion": "2.20.31",
-  "title": "TMP Camera Surveillance Next 2.20.32",
-  "summary": "Fixes stale Update Center progress after the updater service restarts during an update.",
-  "createdAt": "2026-10-03T03:00:00+02:00",
-  "changelogFile": "UPDATE_NOTES_2.20.32.md",
+  "version": "2.20.33",
+  "minimumVersion": "2.20.32",
+  "title": "TMP Camera Surveillance Next 2.20.33",
+  "summary": "Adds safe Docker Engine and Compose first-start installation for supported Linux hosts.",
+  "createdAt": "2026-11-12T09:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.33.md",
   "changes": [
-    "Recover stale running update states after updater/container restarts",
-    "Mark interrupted build/install jobs explicitly instead of leaving progress stuck at 42%",
-    "Keep backup information available for manual rollback after an interrupted update",
-    "Record interrupted update transactions in update history",
-    "Preserve all v2.20.31 recording timeline and continuous playback behavior"
+    "Automatic Docker Engine and Compose installation only when Docker CLI is absent on supported systemd Linux hosts",
+    "Official Docker package repositories and local privilege confirmation",
+    "Fail-safe handling for existing Docker installations and NAS systems",
+    "Startup regression checks; preserves recording and updater recovery behavior"
   ],
   "preserve": [
     ".env",
@@ -31,14 +30,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.32.md",
+  "changelog": "UPDATE_NOTES_2.20.33.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.32",
-  "packageId": "tmp-camera-surveillance-next-2.20.32",
-  "fromVersion": "2.20.31",
-  "compatibleFrom": "2.20.31",
-  "description": "Recovers interrupted updater transactions on service startup instead of leaving the Update Center stuck at an intermediate progress value such as 42%.",
-  "minVersion": "2.20.31",
-  "releaseNotes": "Version 2.20.32 fixes interrupted updater recovery and preserves the v2.20.31 recording playback changes.",
-  "fileCount": 418
+  "name": "TMP Camera Surveillance Next v2.20.33",
+  "packageId": "tmp-camera-surveillance-next-2.20.33",
+  "fromVersion": "2.20.32",
+  "compatibleFrom": "2.20.32",
+  "description": "Installs missing Docker Engine and Compose safely on supported Linux hosts without modifying existing Docker environments.",
+  "minVersion": "2.20.32",
+  "releaseNotes": "Docker bootstrap for Ubuntu, Debian, Linux Mint and Fedora on first start.",
+  "fileCount": 420
 }

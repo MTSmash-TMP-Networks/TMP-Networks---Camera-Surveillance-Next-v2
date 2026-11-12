@@ -1,12 +1,12 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.32 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next 2.20.33 and the most common maintenance tasks.
 
 ## 1. Requirements
 
 You need:
 
-- Docker Engine with Docker Compose v2, or a compatible `docker-compose` v1 installation
+- Docker Engine with Docker Compose v2, or a compatible `docker-compose` v1 installation. **If Docker is fully missing on a supported Linux/systemd host, the startup script can install Docker Engine and Compose automatically.**
 - A Linux host, a Docker-capable NAS, macOS with Docker Desktop, or Windows with Docker Desktop and WSL2
 - Local disk space for the application database and recording spool; optional SMB/CIFS or SFTP storage can be configured directly in the web interface
 - Network connectivity from the Docker host to the cameras
@@ -28,8 +28,8 @@ Example on Linux:
 
 ```bash
 mkdir -p /opt/tmp-camera
-unzip TMP_Networks_Camera_Surveillance_Next_v2.20.32.zip -d /opt/tmp-camera
-cd /opt/tmp-camera/TMP_Networks_Camera_Surveillance_Next_v2.20.32
+unzip TMP_Networks_Camera_Surveillance_Next_v2.20.33.zip -d /opt/tmp-camera
+cd /opt/tmp-camera/TMP_Networks_Camera_Surveillance_Next_v2.20.33
 ```
 
 If the archive tool removed executable permissions, restore them with:
@@ -57,6 +57,10 @@ If Docker requires root privileges:
 ```bash
 sudo ./start.sh
 ```
+
+The startup script first checks Docker Engine and Docker Compose. If both are missing on Ubuntu, Debian, Linux Mint (Ubuntu base) or Fedora with systemd, it installs the official Docker packages using the distribution package manager, then starts and enables Docker. This requires administrator rights and access to `download.docker.com`. Existing Docker packages are **never** removed or overwritten automatically.
+
+Disable automatic host installation with `DOCKER_AUTO_INSTALL=0 ./start.sh`. To only check prerequisites, run `sh scripts/install-docker.sh --check`; to prepare Docker separately, run `sh scripts/install-docker.sh --ensure`. A supported host without Docker can then use `./start.sh` directly (sudo may request a password).
 
 The startup script automatically:
 
@@ -115,6 +119,19 @@ A `502 Bad Gateway` means the frontend proxy cannot reach the backend. In that c
 ```bash
 sudo ./scripts/docker-compose.sh logs --tail=200 backend
 ```
+
+### Docker installation policy and failure recovery
+
+- **Ubuntu, Debian, Linux Mint (Ubuntu-based), Fedora:** supported for automatic Docker installation when no Docker CLI exists and systemd is available. Package install is non-interactive except for local sudo authentication.
+- **Synology/QNAP/other NAS:** the launcher deliberately does **not** install host packages. Use Docker or Container Manager provided by the device vendor.
+- **macOS/Windows:** install and start Docker Desktop. The Linux bootstrap does not run on these platforms.
+- **Docker installed but Compose missing or daemon inaccessible:** the installer stops with diagnostics instead of changing an existing installation. Check `docker info`, `docker compose version`, service status and socket permissions.
+- **Conflicting distro Docker/Podman packages:** no automatic package removal. Resolve manually before opting into the official Docker repo.
+- **Security:** adding a user to the `docker` group is deliberately not done because it grants root-equivalent privileges. Use `sudo ./start.sh` if needed.
+- **Proxy/air gap:** installation needs access to the distro mirrors and `download.docker.com`. On offline networks install Docker and supply the application images beforehand.
+- **Rootless Docker:** not automatically configured or reconfigured.
+
+Official platform instructions: https://docs.docker.com/engine/install/
 
 ## 5. Synology NAS installation
 
@@ -253,7 +270,7 @@ Important behavior:
 For a normal Linux Docker host:
 
 ```bash
-cd /path/to/TMP_Networks_Camera_Surveillance_Next_v2.20.32
+cd /path/to/TMP_Networks_Camera_Surveillance_Next_v2.20.33
 ./start.sh
 ```
 

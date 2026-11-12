@@ -5,7 +5,7 @@ INSTALLATION.md
 LICENSE_AGREEMENT.md
 MANIFEST.txt
 README.md
-UPDATE_NOTES_2.20.32.md
+UPDATE_NOTES_2.20.33.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -380,6 +380,7 @@ scripts/docker-cache-cleanup.sh
 scripts/docker-compose.sh
 scripts/evidence-export-smoke-test.mjs
 scripts/hls-recovery-smoke-test.mjs
+scripts/install-docker.sh
 scripts/kiosk-layout-smoke-test.mjs
 scripts/load-offline-images.sh
 scripts/navigation-update-smoke-test.mjs
@@ -394,6 +395,7 @@ scripts/reliability-regression-test.mjs
 scripts/repair-compose-project.sh
 scripts/repair-updater.sh
 scripts/repair-webrtc-host.sh
+scripts/test-docker-bootstrap.sh
 start.sh
 stop.sh
 tools/tmp-device-pack/README.md

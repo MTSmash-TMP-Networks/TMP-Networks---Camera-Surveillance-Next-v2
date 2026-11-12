@@ -6,6 +6,14 @@ cd "$(dirname "$0")"
 # Nested scripts are invoked through `sh` as well, but restore the bits for normal CLI use.
 chmod 755 ./start.sh ./stop.sh ./update.sh ./logs.sh ./scripts/*.sh 2>/dev/null || true
 
+# Before generating secrets or touching project data, make sure Docker works.
+# Supports auto-bootstrap on Ubuntu, Debian, Linux Mint and Fedora only.
+# Existing Docker/Compose installations and NAS runtimes are never replaced.
+if ! sh ./scripts/install-docker.sh --ensure; then
+  printf '%s\n' 'Docker-Setup fehlgeschlagen. Details: INSTALLATION.md (Docker Engine & Compose).' >&2
+  exit 1
+fi
+
 random_secret() { head -c 48 /dev/urandom | base64 | tr -d '\n'; }
 ensure_env_key() {
   key="$1"

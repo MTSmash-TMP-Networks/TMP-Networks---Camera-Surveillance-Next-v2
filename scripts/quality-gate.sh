@@ -3,6 +3,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+echo "[0/7] Docker Bootstrap"
+sh scripts/test-docker-bootstrap.sh
+
 echo "[1/7] Backend-Syntax"
 (cd backend && node scripts/check-syntax.js)
 
