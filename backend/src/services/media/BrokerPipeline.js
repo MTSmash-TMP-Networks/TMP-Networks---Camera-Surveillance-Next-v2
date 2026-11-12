@@ -145,6 +145,10 @@ export function parseFfprobeVideoCodec(output) {
 
 export function isBrokerEncoderRetryable(error) {
   const code = String(error?.code || '');
+  // No normalized media frames means the selected camera profile/source is not
+  // delivering usable media. Retrying copy -> VAAPI -> CPU on that same dead
+  // profile only delays the real profile fallback, so move to the next profile.
+  if (code === 'PROFILE_MEDIA_TIMEOUT') return false;
   return code === 'STREAM_NOT_READY' || code === 'FFMPEG_EXITED'
     || /vaapi|renderD128|drm device|hardware encoder/i.test(String(error?.message || ''));
 }
