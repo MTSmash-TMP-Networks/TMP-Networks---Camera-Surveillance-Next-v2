@@ -1,3 +1,11 @@
+## 2.20.47 – Mainstream bevorzugen, aber nicht erzwingen
+
+- Ein fehlschlagendes Mainstream-Profil blockiert das Livebild nicht mehr; die bestehende Reihenfolge `high → balanced → low` wird konsequent bis zu einem funktionierenden Profil durchlaufen.
+- Sobald ein schwächeres Profil erfolgreich läuft, wird dieses Profil für weitere Reconnects derselben Session bevorzugt.
+- Ein manuell gewähltes Mainstream-Profil bleibt Wunschprofil, wird nach erfolgreichem Downgrade aber nicht bei jedem Recovery erneut aggressiv ganz nach vorne gedrückt.
+- Fehler-Memory für Streamquellen ist jetzt profilbezogen, damit ein Fehler des Mainstreams den Substream nicht mit abstraft.
+- Der Sticky-Encoder aus 2.20.46 und der stabile Local-HLS-Kioskpfad bleiben unverändert bestehen.
+
 ## 2.20.46 – Sticky Kiosk-Encoder und keine Fallback-Oszillation
 
 - Kiosk darf keinen separaten Browser-Transcode-Fallback mehr öffnen.
