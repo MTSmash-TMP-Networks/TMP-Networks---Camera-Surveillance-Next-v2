@@ -176,6 +176,7 @@ export const config = Object.freeze({
   permanentIngestVideoMode: configurableString('PERMANENT_CAMERA_INGEST_VIDEO_MODE', 'force-copy').toLowerCase(),
   permanentIngestStartupStaggerMs: integer('PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS', 1500, { min: 0, max: 120_000 }),
   kioskPreferSubstream: boolean('KIOSK_PREFER_SUBSTREAM', true),
+  liveAutoUsePermanentIngest: boolean('LIVE_AUTO_USE_PERMANENT_INGEST', true),
   livePreferMainstream: boolean('LIVE_PREFER_MAINSTREAM', true),
   recordingPreferMainstream: boolean('RECORDING_PREFER_MAINSTREAM', true),
   motionPreferSubstream: boolean('MOTION_PREFER_SUBSTREAM', true),
