@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.34
+# TMP Camera Surveillance Next 2.20.35
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -53,6 +53,10 @@ For the complete setup procedure, NAS notes, reverse-proxy guidance, updates, ba
 - Local Backend-to-Updater IPC channel that avoids a hard Docker-DNS dependency
 - 24 interface languages with RTL support for Arabic
 
+## Desktop client for Linux workstations
+
+Authenticated users can open **Desktop-Client** in the left navigation and download `TMP-Camera-Desktop-Linux-x64.zip`. It provides a dedicated Electron window connected to the existing Docker server, without opening Firefox or Chrome. After extracting on a Linux x86_64 workstation, run `sh ./install-linux.sh`. The installer requires Node.js 20+ and npm and downloads Electron on first installation. It installs only in the workstation user's home directory. TLS certificate validation remains enabled. No extra server or Docker instance is installed. Source and install instructions are in `desktop-client/`.
+
 ## Frontend foundation
 
 The administration shell uses the open-source CoreUI CSS framework 5.9.0 (MIT) as a documented layout and navigation foundation. TMP-specific surveillance views such as Live View, camera cards, PTZ, recordings, timeline and kiosk remain purpose-built components. CoreUI is imported before the TMP stylesheet so the product theme and surveillance workflows remain visually distinct. No CoreUI PRO assets are included. See `docs/UI_FOUNDATION.md` and `docs/THIRD_PARTY_NOTICES.md`.
@@ -71,7 +75,7 @@ They contain the installation identity, credentials, configuration, database, lo
 ## Documentation
 
 - `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.34.md` - current release notes
+- `UPDATE_NOTES_2.20.35.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources

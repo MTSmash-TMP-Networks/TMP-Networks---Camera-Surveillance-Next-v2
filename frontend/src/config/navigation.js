@@ -2,6 +2,7 @@ import {
   Activity,
   BellRing,
   Clapperboard,
+  Laptop,
   Grid2X2,
   ListTree,
   MonitorPlay,
@@ -20,6 +21,7 @@ export const NAVIGATION_SECTIONS = Object.freeze([
       { to: '/live', labelKey: 'nav.live', icon: Radio },
       { to: '/kiosk', labelKey: 'nav.kiosk', icon: MonitorPlay },
       { to: '/recordings', labelKey: 'nav.recordings', icon: Clapperboard },
+      { to: '/desktop-client', labelKey: 'nav.desktopClient', icon: Laptop },
     ],
   },
   {

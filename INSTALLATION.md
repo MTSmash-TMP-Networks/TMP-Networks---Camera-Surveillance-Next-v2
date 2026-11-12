@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.34 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next 2.20.35 and the most common maintenance tasks.
 
 ## 1. Requirements
 
@@ -512,3 +512,8 @@ The System Status page reads disk usage live from the data bind mount in 2.20.23
 ## Automatic Docker cache maintenance
 
 Repeated application updates rebuild Docker images. Version 2.20.22 automatically removes dangling images and unused Docker builder/buildx cache before and after update builds and during host-side startup. Application volumes, containers, tagged images and recording data are never pruned by this maintenance. Set `UPDATER_DOCKER_CACHE_CLEANUP=false` in `.env` to opt out. The maintenance log is `data/updates/docker-cleanup.log`.
+
+
+## Desktop client (Linux workstation)
+
+Open **Desktop-Client** from the authenticated application's sidebar and download the Linux x86_64 ZIP. Extract it on the workstation, install Node.js 20+ and npm, then run `sh ./install-linux.sh`. Internet is required for the first Electron download. The client uses the configured server address and the existing login. The recording server remains headless; no desktop packages need to be installed on it.

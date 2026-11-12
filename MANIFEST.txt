@@ -5,7 +5,7 @@ INSTALLATION.md
 LICENSE_AGREEMENT.md
 MANIFEST.txt
 README.md
-UPDATE_NOTES_2.20.33.md
+UPDATE_NOTES_2.20.35.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -145,6 +145,7 @@ backend/test-node/direct-network-stream-ui-regression.test.mjs
 backend/test-node/domain-event-bus.test.mjs
 backend/test-node/email-notification-source-regression.test.mjs
 backend/test-node/ffmpeg-diagnostics.test.mjs
+backend/test-node/github-update-regression.test.mjs
 backend/test-node/go2rtc-control-api.test.mjs
 backend/test-node/local-hls-command.test.mjs
 backend/test-node/local-hls-http-runtime.test.mjs
@@ -209,6 +210,13 @@ backend/test/updater-container.test.js
 backend/test/url-security.test.js
 backend/vitest.config.js
 caddy/Caddyfile
+desktop-client/README.md
+desktop-client/install-linux.sh
+desktop-client/main.cjs
+desktop-client/package.json
+desktop-client/preload.cjs
+desktop-client/setup.html
+desktop-client/setup.js
 docker-compose.gpu.yml
 docker-compose.https.yml
 docker-compose.yml
@@ -229,6 +237,7 @@ frontend/index.html
 frontend/nginx.conf
 frontend/package-lock.json
 frontend/package.json
+frontend/public/downloads/TMP-Camera-Desktop-Linux-x64.zip
 frontend/public/favicon.ico
 frontend/public/icons/tmp-camera-icon-1024.png
 frontend/public/icons/tmp-camera-icon-180.png
@@ -314,6 +323,7 @@ frontend/src/i18n/visualRefinementExtraMessages.js
 frontend/src/i18n/visualRefinementMessages.js
 frontend/src/main.jsx
 frontend/src/pages/AddCameraPage.jsx
+frontend/src/pages/DesktopClientPage.jsx
 frontend/src/pages/EditCameraPage.jsx
 frontend/src/pages/EventsPage.jsx
 frontend/src/pages/KioskPage.jsx
@@ -354,6 +364,7 @@ frontend/src/utils/smbLocation.js
 frontend/src/utils/smbLocation.test.mjs
 frontend/test-node/container-status-branding.test.mjs
 frontend/test-node/coreui-shell-foundation.test.mjs
+frontend/test-node/desktop-client-distribution.test.mjs
 frontend/test-node/motion-zone-editor.test.mjs
 frontend/test-node/ptz-setup-regression.test.mjs
 frontend/test/always-on-streams.test.js

@@ -1,3 +1,11 @@
+## 2.20.35 – Linux Desktop Client
+
+- Add downloadable Linux x86_64 Electron desktop client source installer in the authenticated interface.
+- Add a dedicated Desktop-Client navigation screen and static client archive.
+- Desktop client connects to existing surveillance servers; no extra Docker instance.
+- Enforce origin restrictions, sandboxing, certificate validation and disabled Node integration.
+- Keep ZIP and GitHub application update paths unchanged.
+
 ## 2.20.34 - Docker installation bootstrap (2026-11-12)
 
 - Install Docker Engine and Compose plugin during first start on supported Ubuntu, Debian, Linux Mint and Fedora hosts when Docker is absent.

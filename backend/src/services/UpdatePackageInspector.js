@@ -16,7 +16,7 @@ const ALLOWED_ROOT_FILES = new Set([
   'stop.sh', 'update.sh',
 ]);
 const ALLOWED_ROOT_DIRS = new Set([
-  '.github', 'backend', 'frontend', 'updater', 'mediamtx', 'go2rtc', 'caddy', 'scripts', 'docs', 'documentation', 'tools', 'data',
+  '.github', 'backend', 'frontend', 'desktop-client', 'updater', 'mediamtx', 'go2rtc', 'caddy', 'scripts', 'docs', 'documentation', 'tools', 'data',
 ]);
 
 function semver(value) {

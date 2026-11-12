@@ -7,6 +7,7 @@ import { AppShell } from './components/AppShell.jsx';
 import { BrandIcon } from './components/BrandIcon.jsx';
 import { useI18n } from './i18n/I18nProvider.jsx';
 
+const DesktopClientPage = lazy(() => import('./pages/DesktopClientPage.jsx').then((module) => ({ default: module.DesktopClientPage })));
 const LoginPage = lazy(() => import('./pages/LoginPage.jsx').then((module) => ({ default: module.LoginPage })));
 const LicensePage = lazy(() => import('./pages/LicensePage.jsx').then((module) => ({ default: module.LicensePage })));
 const OverviewPage = lazy(() => import('./pages/OverviewPage.jsx').then((module) => ({ default: module.OverviewPage })));
@@ -58,6 +59,7 @@ export default function App() {
               <Route path="/cameras/add" element={<AddCameraPage />} />
               <Route path="/cameras/:id/edit" element={<EditCameraPage />} />
               <Route path="/recordings" element={<RecordingsPage />} />
+              <Route path="/desktop-client" element={<DesktopClientPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/events" element={<AdminOnly><EventsPage /></AdminOnly>} />
               <Route path="/system/status" element={<AdminOnly><SystemStatusPage /></AdminOnly>} />

@@ -1,0 +1,13 @@
+{
+  "name": "tmp-camera-desktop",
+  "version": "2.20.35",
+  "private": true,
+  "description": "Desktop client for TMP Camera Surveillance Next",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "35.7.5"
+  }
+}

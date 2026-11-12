@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.34",
-  "minimumVersion": "2.20.33",
-  "title": "TMP Camera Surveillance Next 2.20.34",
-  "summary": "GitHub update checks and verified download in the existing update center.",
+  "version": "2.20.35",
+  "minimumVersion": "2.20.34",
+  "title": "TMP Camera Surveillance Next 2.20.35",
+  "summary": "Adds downloadable Linux desktop client in the interface.",
   "createdAt": "2026-11-12T09:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.34.md",
+  "changelogFile": "UPDATE_NOTES_2.20.35.md",
   "changes": [
-    "Check official GitHub main version and pinned commit",
-    "Download pinned ZIP and validate through existing update inspector",
-    "Install through existing backup and rollback service",
-    "Keep manual ZIP uploads and protected application data unchanged"
+    "Dedicated client download page for authenticated users",
+    "Linux desktop client installer uses existing server accounts",
+    "Electron sandbox, restricted navigation and TLS validation",
+    "Preserves existing update mechanism"
   ],
   "preserve": [
     ".env",
@@ -30,14 +30,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.34.md",
+  "changelog": "UPDATE_NOTES_2.20.35.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.34",
-  "packageId": "tmp-camera-surveillance-next-2.20.34",
-  "fromVersion": "2.20.33",
-  "compatibleFrom": "2.20.33",
-  "description": "Official GitHub commit download with existing ZIP verification, backups and rollback.",
-  "minVersion": "2.20.33",
-  "releaseNotes": "GitHub update integration alongside manual ZIP uploads.",
-  "fileCount": 420
+  "name": "TMP Camera Surveillance Next v2.20.35",
+  "packageId": "tmp-camera-surveillance-next-2.20.35",
+  "fromVersion": "2.20.34",
+  "compatibleFrom": "2.20.34",
+  "description": "Electron Linux desktop client with per-user install and secure origin restrictions.",
+  "minVersion": "2.20.34",
+  "releaseNotes": "Downloadable Linux Desktop Client.",
+  "fileCount": 430
 }
