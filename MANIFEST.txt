@@ -8,6 +8,7 @@ MANIFEST.txt
 README.md
 UPDATE_NOTES_2.20.41.md
 UPDATE_NOTES_2.20.42.md
+UPDATE_NOTES_2.20.43.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -94,6 +95,7 @@ backend/src/services/notifications/NotificationSettingsService.js
 backend/src/services/notifications/NotificationTemplates.js
 backend/src/services/notifications/SmtpClient.js
 backend/src/services/onvif/OnvifClient.js
+backend/src/services/onvif/OnvifHttpProbe.js
 backend/src/services/onvif/__tmp_onvif_ptz_evidence.cjs
 backend/src/services/onvif/connectionOptions.js
 backend/src/services/onvif/mediaSoap.js
@@ -163,6 +165,7 @@ backend/test-node/ptz-service-evidence-regression.cjs
 backend/test-node/recording-compression-command.test.mjs
 backend/test-node/recording-recovery-policy.test.mjs
 backend/test-node/recording-storage-integrity-regression.test.mjs
+backend/test-node/reolink-onvif-port-8000.test.mjs
 backend/test-node/runtime-permissions.test.mjs
 backend/test-node/smtp-client.test.mjs
 backend/test-node/standalone-license.test.mjs

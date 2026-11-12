@@ -38,8 +38,11 @@ async function resolveCameraInput(input) {
   }
   return {
     ...normalized,
-    port: Number(detected.onvifPort || detected.port || normalized.port || 80),
-    xaddr: normalized.xaddr || detected.xaddr || null,
+    // An explicitly entered ONVIF port must take priority over a discovered
+    // web/legacy endpoint. Otherwise a user's :8000 selection is silently
+    // replaced with :80 or :8080 during the manual IP inspection.
+    port: Number(normalized.port || detected.onvifPort || detected.port || 80),
+    xaddr: normalized.xaddr || (!normalized.port || Number(detected.onvifPort || 0) === normalized.port ? detected.xaddr : null) || null,
     openPorts: detected.openPorts,
     manufacturer: normalized.manufacturer || detected.manufacturer || null,
     model: normalized.model || detected.model || null,

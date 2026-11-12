@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.42",
+  "version": "2.20.43",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.42",
-  "summary": "Verify real H.264 on codec-unknown Reolink streams; Intel VAAPI opt-in diagnostics and per-source retry.",
-  "createdAt": "2026-11-12T13:44:03+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.42.md",
+  "title": "TMP Camera Surveillance Next 2.20.43",
+  "summary": "Detect ONVIF camera services on Reolink TCP port 8000 and permit manual port entry without changing camera firmware settings.",
+  "createdAt": "2026-11-12T14:36:47+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.43.md",
   "changes": [
-    "Detect real video codec from HLS media frames for ONVIF profiles without codec metadata",
-    "Copy H264 without re-encoding and transparently fall back on mismatch",
-    "Expose Intel VAAPI opt-in and per-source encoder retry diagnostics"
+    "Probe verified HTTP ONVIF device service on TCP port 8000",
+    "Preserve Hikvision/Uniview SDK classification and reject generic non-camera web services",
+    "Allow optional manual ONVIF port entry and Reolink 8000 fallback"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.42.md",
+  "changelog": "UPDATE_NOTES_2.20.43.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.42",
-  "packageId": "tmp-camera-surveillance-next-2.20.42",
+  "name": "TMP Camera Surveillance Next v2.20.43",
+  "packageId": "tmp-camera-surveillance-next-2.20.43",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Codec-verified H264 copy-first and reliable Intel VAAPI policy for N97 hosts.",
+  "description": "Verified Reolink ONVIF port 8000 discovery and guided add-camera port override.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Verified codec detection for unknown ONVIF profiles, bounded per-source encoder fallback, and redacted host diagnostics.",
-  "fileCount": 442
+  "releaseNotes": "ONVIF 8000 discovery and onboarding with SOAP verification; no camera configuration changes.",
+  "fileCount": 445
 }

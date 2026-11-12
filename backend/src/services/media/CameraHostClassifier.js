@@ -196,6 +196,24 @@ function responseMarker(page) {
   return `${page?.headers?.server || ''}\n${page?.headers?.['www-authenticate'] || ''}\n${page?.headers?.location || ''}\n${page?.body || ''}`;
 }
 
+// Only a structured ONVIF/SOAP response or camera-specific auth challenge
+// confirms ONVIF. An open port (including 8000), a generic 401 and a regular
+// web login page must never be accepted as an ONVIF device.
+export function isConfirmedOnvifServicePage(page, nonCameraDevice = false) {
+  const status = Number(page?.statusCode || 0);
+  if (!/\/onvif\/device_service/i.test(page?.url || '') || [0, 404].includes(status)) return false;
+  const contentType = String(page?.headers?.['content-type'] || '');
+  const body = String(page?.body || '');
+  const structuredSoap = /(?:application|text)\/(?:soap\+xml|xml)/i.test(contentType)
+    && /(?:<[^>]*(?:Envelope|Fault|GetDeviceInformation|GetCapabilities|GetServices)|xmlns(?::\w+)?=["'][^"']*onvif|www\.onvif\.org\/ver)/i.test(body);
+  if (structuredSoap) return !nonCameraDevice;
+  if ([401, 403].includes(status)) {
+    const auth = String(page?.headers?.['www-authenticate'] || '');
+    return /(camera|dvr|nvr|reolink|hikvision|dahua|axis|vivotek|foscam|uniview|wisenet|onvif)/i.test(auth) && !nonCameraDevice;
+  }
+  return false;
+}
+
 export function classifyHostFingerprint({ openPorts = [], pages = [], rtspServices = [] } = {}) {
   const ports = [...new Set(openPorts.map(Number))];
   const portSignature = inferCameraPortSignature(ports);
@@ -205,24 +223,7 @@ export function classifyHostFingerprint({ openPorts = [], pages = [], rtspServic
   const nonCameraDevice = NON_CAMERA_DEVICE_PATTERN.test(combined) || managementUi;
   const rawCameraPhrase = hasStrongCameraWebIdentity(combined);
   const cameraPhrase = rawCameraPhrase && !nonCameraDevice;
-  const onvifEvidence = pages.some((page) => {
-    const status = Number(page?.statusCode || 0);
-    if (!/\/onvif\/device_service/i.test(page?.url || '') || [0, 404].includes(status)) return false;
-    const marker = responseMarker(page);
-    const contentType = String(page?.headers?.['content-type'] || '');
-    const body = String(page?.body || '');
-    const structuredSoap = /(?:application|text)\/(?:soap\+xml|xml)/i.test(contentType)
-      && /(?:<[^>]*(?:Envelope|Fault|GetDeviceInformation|GetCapabilities|GetServices)|xmlns(?::\w+)?=["'][^"']*onvif|www\.onvif\.org\/ver)/i.test(body);
-    if (structuredSoap) return true;
-    // Authentication challenges are useful only when the realm/header identifies
-    // a video device. A generic 401/403 from an arbitrary web application is not
-    // enough to call the host an ONVIF camera.
-    if ([401, 403].includes(status)) {
-      const auth = String(page?.headers?.['www-authenticate'] || '');
-      return /(camera|dvr|nvr|hikvision|dahua|axis|vivotek|foscam|uniview|wisenet|onvif)/i.test(auth) && !nonCameraDevice;
-    }
-    return false;
-  });
+  const onvifEvidence = pages.some((page) => isConfirmedOnvifServicePage(page, nonCameraDevice));
   const vendorEndpoint = nonCameraDevice ? null : findVendorEndpointEvidence(pages);
   const vendorEndpointEvidence = Boolean(vendorEndpoint);
   const rtspConfirmed = rtspServices.filter((item) => item?.confirmed);

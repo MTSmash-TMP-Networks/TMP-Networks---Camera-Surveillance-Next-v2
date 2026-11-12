@@ -1,5 +1,7 @@
+import { CAMERA_ONVIF_PROBE_PORTS } from '../media/CameraPortCatalog.js';
+
 const ONVIF_MEDIA_ONLY_PORTS = new Set([554, 8554, 1935, 1936]);
-const ONVIF_PORT_PRIORITY = [80, 8080, 8000, 8899, 2020, 443, 8443, 7681];
+const ONVIF_PORT_PRIORITY = CAMERA_ONVIF_PROBE_PORTS;
 
 export function endpointPort(xaddr) {
   try {
@@ -24,7 +26,11 @@ export function onvifProbeCandidates(input = {}) {
   }
 
   const explicitPort = Number(input.port || 0);
-  const ports = [...new Set([explicitPort, ...(input.openPorts || []).map(Number)])]
+  // Some Reolink models expose ONVIF on TCP 8000 even when the previously
+  // discovered web/RTSP ports do not list it. Test it only for identified
+  // Reolink devices; do not treat every Hikvision SDK port as an ONVIF server.
+  const isReolink = /reolink/i.test(`${input.manufacturer || ''} ${input.model || ''}`);
+  const ports = [...new Set([explicitPort, ...(input.openPorts || []).map(Number), ...(isReolink ? [8000] : [])])]
     .filter((port) => Number.isInteger(port) && port > 0 && port <= 65535 && !ONVIF_MEDIA_ONLY_PORTS.has(port));
   ports.sort((a, b) => {
     if (a === explicitPort && b !== explicitPort) return -1;

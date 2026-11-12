@@ -21,7 +21,7 @@ const PORTS = [
   { port: 7447, service: 'rtsps', label: 'UniFi Protect RTSPS', vendors: ['Ubiquiti'] },
   { port: 7681, service: 'vendor', label: 'Hikvision WebSocket', vendors: ['Hikvision'] },
   { port: 7682, service: 'vendor', label: 'Hikvision WebSocket TLS', vendors: ['Hikvision'] },
-  { port: 8000, service: 'vendor', label: 'Hikvision/Uniview SDK', vendors: ['Hikvision', 'Uniview'] },
+  { port: 8000, service: 'vendor', label: 'Hikvision/Uniview SDK oder Reolink ONVIF', vendors: ['Hikvision', 'Uniview', 'Reolink'] },
   { port: 8080, service: 'http', label: 'Alternativer HTTP-/ONVIF-Port', vendors: [] },
   { port: 8081, service: 'http', label: 'Alternativer HTTP-Port', vendors: [] },
   { port: 8082, service: 'http', label: 'Alternativer HTTP-Port', vendors: [] },
@@ -42,6 +42,11 @@ const PORTS = [
 export const CAMERA_PORT_DEFINITIONS = Object.freeze(PORTS.map((item) => Object.freeze({ ...item })));
 export const DEFAULT_CAMERA_SCAN_PORTS = Object.freeze(PORTS.map((item) => item.port));
 export const CAMERA_WEB_PORTS = Object.freeze(PORTS.filter((item) => item.service === 'http' || item.service === 'https').map((item) => item.port));
+// ONVIF HTTP endpoints can also run on vendor-specific ports (notably Reolink
+// port 8000). Keep 8000 out of general web-port classification: Hikvision uses
+// it for an unrelated SDK, so an open socket alone cannot prove ONVIF.
+export const CAMERA_ONVIF_PROBE_PORTS = Object.freeze([80, 8080, 8000, 8899, 2020, 443, 8443, 7681]);
+export const CAMERA_ONVIF_HTTP_VENDOR_PORTS = Object.freeze([8000]);
 export const CAMERA_TLS_PORTS = Object.freeze(PORTS.filter((item) => ['https', 'rtsps', 'rtmps'].includes(item.service)).map((item) => item.port));
 export const CAMERA_RTSP_PORTS = Object.freeze(PORTS.filter((item) => item.service === 'rtsp' || item.service === 'rtsps').map((item) => item.port));
 export const CAMERA_VENDOR_PORTS = Object.freeze(PORTS.filter((item) => ['vendor', 'onvif'].includes(item.service)).map((item) => item.port));

@@ -10,14 +10,16 @@ import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
 import {
   CAMERA_HTTP_PROBE_PATHS,
+  CAMERA_ONVIF_HTTP_VENDOR_PORTS,
   CAMERA_RTSP_PORTS,
   CAMERA_TLS_PORTS,
   CAMERA_WEB_PORTS,
   DEFAULT_CAMERA_SCAN_PORTS,
 } from './media/CameraPortCatalog.js';
-import { classifyHostFingerprint, extractCameraModelFromPages, hasCameraIdentityText } from './media/CameraHostClassifier.js';
+import { classifyHostFingerprint, extractCameraModelFromPages, hasCameraIdentityText, isConfirmedOnvifServicePage } from './media/CameraHostClassifier.js';
 import { applyFinalCameraDiscoveryPolicy } from './media/CameraDiscoveryPolicy.js';
 import { isSafeSsdpLocation } from './media/DiscoveryUrlSafety.js';
+import { probeOnvifHttpDeviceService } from './onvif/OnvifHttpProbe.js';
 
 export { classifyHostFingerprint } from './media/CameraHostClassifier.js';
 export { isSafeSsdpLocation } from './media/DiscoveryUrlSafety.js';
@@ -444,6 +446,25 @@ async function fingerprintHost(ip, openPorts, discoveryMethod = 'ip-range', { in
       }
     }
   }
+  // TCP 8000 serves ONVIF on newer Reolink models, but is a proprietary
+  // SDK service on many Hikvision devices. Probe only the ONVIF HTTP endpoint
+  // on an already open port, and accept it only with SOAP/camera auth evidence.
+  // Keep the ordinary web-port scan unchanged so this does not confuse the
+  // Hikvision SDK with a web server or incorrectly mark a device as a camera.
+  for (const port of CAMERA_ONVIF_HTTP_VENDOR_PORTS) {
+    if (!openPorts.includes(port)) continue;
+    // ONVIF is a SOAP POST service. GET-only probing can return 405 even when
+    // the device is healthy and accepts authenticated ONVIF requests.
+    const onvifUrl = `http://${ip}:${port}/onvif/device_service`;
+    const soapResponse = await probeOnvifHttpDeviceService(ip, port, 1600);
+    if (soapResponse) pages.push(soapResponse);
+    if (!isConfirmedOnvifServicePage(soapResponse) && (!soapResponse || [404, 405].includes(soapResponse.statusCode))) {
+      // Some vendor firmware does expose a useful GET challenge. Only a
+      // confirmed ONVIF response will be accepted by the classifier.
+      const getResponse = await requestPage(onvifUrl, 800);
+      if (getResponse) pages.push(getResponse);
+    }
+  }
   const plainRtspPorts = openPorts
     .filter((port) => CAMERA_RTSP_PORTS.includes(Number(port)) && !CAMERA_TLS_PORTS.includes(Number(port)))
     .slice(0, 6);
@@ -454,9 +475,12 @@ async function fingerprintHost(ip, openPorts, discoveryMethod = 'ip-range', { in
   // server BMC, router or management appliance after the active scan rejected it.
   if (!classification.candidate && !includeNonCandidate && !classification.nonCameraDevice) return null;
   const model = extractCameraModelFromPages(pages, classification.manufacturer);
-  const onvifPage = classification.onvifEvidence
-    ? pages.find((page) => /\/onvif\/device_service/i.test(page?.url || '') && ![0, 404].includes(Number(page?.statusCode || 0)))
-    : null;
+  const verifiedOnvifPages = pages.filter((page) => isConfirmedOnvifServicePage(page, classification.nonCameraDevice));
+  // Prefer the confirmed Reolink ONVIF endpoint on 8000 if several services
+  // answer. Do not replace a valid WS-Discovery XAddr with a guessed port.
+  const onvifPage = /reolink/i.test(String(classification.manufacturer || ''))
+    ? verifiedOnvifPages.find((page) => { try { return Number(new URL(page.url).port) === 8000; } catch { return false; } }) || verifiedOnvifPages[0]
+    : verifiedOnvifPages[0] || null;
   let onvifPort = null;
   try { onvifPort = onvifPage ? Number(new URL(onvifPage.url).port || (new URL(onvifPage.url).protocol === 'https:' ? 443 : 80)) : null; } catch { onvifPort = null; }
   const preferredWebPort = preferredCameraPort(openPorts, onvifPort);

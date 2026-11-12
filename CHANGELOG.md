@@ -1,3 +1,11 @@
+## 2.20.43 – Reolink ONVIF-Port 8000
+
+- ONVIF-HTTP-Erkennung auf TCP 8000 fuer neue Reolink-Modelle.
+- Verifizierte SOAP-/Auth-Evidenz statt blinder SDK-Portzuordnung; Hikvision-Erkennung unveraendert.
+- ONVIF-Probekandidaten priorisieren 8000 bei bestaetigter XAddr und pruefen den Port bei Reolink als Fallback.
+- Optionales manuelles ONVIF-Portfeld in der Kameraeinrichtung mit automatischem Standard.
+- Automatisierte Regressionstests fuer Port 8000, Nicht-Kamera-Gegenfaelle und kompatible Paketstruktur.
+
 ## 2.20.42 – Reale Codec-Pruefung und Copy-first fuer unbekannte ONVIF-Profile
 
 - H.264-Kopierpfad wird auch bei leeren ONVIF-Codecangaben geprueft, ohne den Profilnamen als Codec-Beweis zu verwenden.

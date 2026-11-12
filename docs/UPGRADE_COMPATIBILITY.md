@@ -2,7 +2,7 @@
 
 ## Stabiler Direktupdate-Pfad
 
-- Unterstuetzter alter Grundstand: **2.20.32** (bekannte Dateistruktur und historische Update-Validatoren); Ziel dieses Releases: **2.20.42**.
+- Unterstuetzter alter Grundstand: **2.20.32** (bekannte Dateistruktur und historische Update-Validatoren); Ziel dieses Releases: **2.20.43**.
 - Alle Voll-Update-Pakete sind selbstenthaltend (Backend, Frontend, Updater, Konfiguration, Migrationen) und werden unveraendert sowohl als herunterladbares ZIP als auch als GitHub-Source-ZIP geprueft.
 - Ab 2.20.32 keine Zwischenrelease-Pflicht: Versionsnummern dienen der Ordnung, nicht als Zwang zum inkrementellen Patchen.
 - Vor v2.20.32 ist eine getestete Legacy-Bridge erforderlich. Es gibt **keine** Zusicherung beliebiger uralter Versionsstaende.
