@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.46",
+  "version": "2.20.47",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.46",
-  "summary": "Keep kiosk playback on one stable Local-HLS/encoder path and prevent automatic VAAPI/CPU fallback oscillation.",
-  "createdAt": "2026-11-12T16:20:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.46.md",
+  "title": "TMP Camera Surveillance Next 2.20.47",
+  "summary": "Prefer mainstream, but automatically downgrade and keep the working weaker profile instead of retrying a failing high profile forever.",
+  "createdAt": "2026-11-12T16:40:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.47.md",
   "changes": [
-    "Disable separate browser transcode fallback for kiosk sessions in both frontend and backend",
-    "Keep failed encoder modes sticky per camera/profile/source until backend restart",
-    "Remove the ten-minute automatic encoder retry that could move stable CPU streams back to VAAPI"
+    "Continue from high to balanced and low profiles when the preferred mainstream cannot produce a usable stream",
+    "Pin the first successful downgraded profile for later reconnects in the same backend session",
+    "Scope source failure memory by ONVIF profile so a failed mainstream does not poison the substream"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.46.md",
+  "changelog": "UPDATE_NOTES_2.20.47.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.46",
-  "packageId": "tmp-camera-surveillance-next-2.20.46",
+  "name": "TMP Camera Surveillance Next v2.20.47",
+  "packageId": "tmp-camera-surveillance-next-2.20.47",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Sticky kiosk Local-HLS encoder selection without fallback oscillation.",
+  "description": "Sticky profile downgrade for reliable Live View startup.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Once a stable kiosk encoder path is selected, it stays pinned until backend restart.",
-  "fileCount": 448
+  "releaseNotes": "A failed mainstream now yields to a weaker profile and the working fallback stays preferred for reconnects.",
+  "fileCount": 449
 }
