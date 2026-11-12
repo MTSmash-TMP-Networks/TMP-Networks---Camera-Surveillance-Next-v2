@@ -62,6 +62,10 @@ export function checkRelease(root) {
   for (const key of ['minimumVersion', 'minVersion', 'compatibleFrom', 'fromVersion']) {
     if (mf[key] !== BASELINE) throw new Error(`${key} muss fuer getestete Direktupdates ${BASELINE} enthalten (Ist: ${mf[key]})`);
   }
+  const preserve = [...new Set(Array.isArray(mf.preserve) ? mf.preserve : [])].sort();
+  if (preserve.join('|') !== ['.env', '.git', 'data'].sort().join('|')) {
+    throw new Error('preserve muss .env, .git und data unveraendert schuetzen');
+  }
   if (compareVersions(version, BASELINE) <= 0) throw new Error('Zielversion muss neuer als Upgrade-Basis sein');
   if (mf.changelogFile !== `UPDATE_NOTES_${version}.md` || !allFiles.includes(mf.changelogFile)) throw new Error('Update-Notes fehlen');
   for (const file of ['backend/package.json', 'frontend/package.json', 'updater/package.json']) {
