@@ -33,3 +33,13 @@ test('Intel encoder failures are scoped per source, while H264 copy-first can be
   assert.match(read('docker-compose.yml'),/GO2RTC_H264_COPY_FIRST/);
   assert.match(read('backend/src/config.js'),/go2RtcH264CopyFirst/);
 });
+
+
+test('encoder fallback stays sticky for the backend lifetime', () => {
+  const orchestrator = read('backend/src/services/media/StreamOrchestrator.js');
+  assert.match(orchestrator, /stickyEncoderFailures/);
+  assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
+  assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
+  assert.match(orchestrator, /const failedEncoders = this\.brokerEncoderFailures\.get\(failureKey\) \|\| new Map\(\)/);
+  assert.match(orchestrator, /filter\(\(mode\) => mode === 'software' \|\| !failedEncoders\.has\(mode\)\)/);
+});

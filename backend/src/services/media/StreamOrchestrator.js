@@ -119,12 +119,12 @@ class StreamOrchestrator {
     this.controlResyncTimers = new Map();
     this.cameraStartLocks = new Map();
     this.brokerRefs = new Map();
-    // A failure must never disable VAAPI for unrelated cameras.
-    // Keyed by camera/profile/source identity; reset when backend restarts.
+    // Encoder fallback is intentionally sticky per camera/profile/source.
+    // Once copy or VAAPI failed and a more conservative encoder took over,
+    // do not probe the failed path again during this backend lifetime.
+    // This prevents kiosk streams from oscillating between GPU and CPU paths.
+    // A backend restart explicitly starts a fresh evaluation.
     this.brokerEncoderFailures = new Map();
-    // An intermittent broker startup failure should not force a camera to use
-    // expensive software encoding until the entire backend is restarted.
-    this.encoderFailureCooldownMs = 10 * 60 * 1000;
     this.closed = false;
     this.timer = setInterval(() => this.maintenance().catch((error) => logger.error({ err: error }, 'Stream-Wartung fehlgeschlagen')), 10000);
     this.timer.unref();
@@ -268,7 +268,7 @@ class StreamOrchestrator {
 
   async ensure(cameraId, { quality = 'auto', viewportWidth = 1280, profileToken = null, purpose = 'live', forceTranscode = false } = {}, { wait = true } = {}) {
     const consumerPurpose = normalizeConsumerPurpose(purpose);
-    const effectiveForceTranscode = Boolean(forceTranscode && config.browserTranscodeFallbackEnabled);
+    const effectiveForceTranscode = Boolean(forceTranscode && config.browserTranscodeFallbackEnabled && consumerPurpose !== 'kiosk');
     if (shouldUsePermanentIngest(consumerPurpose, effectiveForceTranscode)) {
       return this.ensurePermanentIngest(cameraId, { quality, viewportWidth, profileToken, purpose: consumerPurpose }, { wait });
     }
@@ -539,10 +539,6 @@ class StreamOrchestrator {
             : `Zentraler Broker und lokaler HLS-Ring für „${profile.name}“ werden aufgebaut`, { profile: profile.name, transport: candidate.transport, browserVideoMode: 'broker-normalized' });
           const failureKey = brokerStreamPaths(camera.id, profile, candidate).video;
           const failedEncoders = this.brokerEncoderFailures.get(failureKey) || new Map();
-          const now = Date.now();
-          for (const [mode, failedAt] of failedEncoders) {
-            if (now - failedAt >= this.encoderFailureCooldownMs) failedEncoders.delete(mode);
-          }
           const encoders = brokerEncoderCandidates(profile, config.go2RtcFfmpegHardware, config.go2RtcH264CopyFirst)
             .filter((mode) => mode === 'software' || !failedEncoders.has(mode));
           this.log(session, 'info', 'go2rtc', 'BROKER_ENCODER_CANDIDATES', 'Encoder werden fuer das Kameraprofil vorbereitet', {
@@ -551,7 +547,7 @@ class StreamOrchestrator {
             copyFirst: config.go2RtcH264CopyFirst,
             configuredHardware: config.go2RtcFfmpegHardware,
             availableEncoders: encoders,
-            previousFailuresCoolingDown: [...failedEncoders.keys()],
+            stickyEncoderFailures: [...failedEncoders.keys()],
           });
           for (const [encoderIndex, encoder] of encoders.entries()) {
             session.brokerEncoder = encoder;

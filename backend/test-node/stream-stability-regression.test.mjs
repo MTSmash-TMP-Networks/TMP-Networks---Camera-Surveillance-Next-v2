@@ -79,7 +79,7 @@ test('kiosk and motion prefer substream while live and recording prefer mainstre
 test('duplicate browser transcode sessions are disabled by default', () => {
   assert.match(config, /BROWSER_TRANSCODE_FALLBACK_ENABLED', false/);
   assert.match(livePool, /VITE_BROWSER_TRANSCODE_FALLBACK_ENABLED \|\| 'false'/);
-  assert.match(livePool, /const attempts = TRANSCODE_FALLBACK \? \[false, true\] : \[false\]/);
+  assert.match(livePool, /const attempts = TRANSCODE_FALLBACK && entry\.purpose !== 'kiosk' \? \[false, true\] : \[false\]/);
   assert.match(livePool, /await this\.connectSession\(entry, session, stale, forceTranscode\)/);
   assert.match(livePool, /waitForFrameProgress/);
 });
@@ -148,4 +148,18 @@ test('camera status suppresses false red indicators while another stream is heal
   assert.match(livePage, /cameraRailState/);
   assert.match(livePage, /playbackState === 'ready'/);
   assert.match(livePage, /cameraStatus === 'stream_error'/);
+});
+
+
+test('kiosk never switches into a separate browser transcode fallback path', () => {
+  assert.match(orchestrator, /browserTranscodeFallbackEnabled && consumerPurpose !== 'kiosk'/);
+  assert.match(livePool, /TRANSCODE_FALLBACK && entry\.purpose !== 'kiosk'/);
+});
+
+test('encoder fallback remains pinned instead of retrying GPU on a timer', () => {
+  assert.match(orchestrator, /stickyEncoderFailures/);
+  assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
+  assert.doesNotMatch(orchestrator, /encoderFailureCooldownMs/);
+  assert.match(orchestrator, /const failedEncoders = this\.brokerEncoderFailures\.get\(failureKey\) \|\| new Map\(\)/);
+  assert.match(orchestrator, /brokerEncoderFailures\.set\(failureKey, failedEncoders\)/);
 });
