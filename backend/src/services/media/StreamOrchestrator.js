@@ -80,8 +80,14 @@ function permanentQuality() {
   return ['low', 'balanced', 'high'].includes(config.permanentIngestQuality) ? config.permanentIngestQuality : 'low';
 }
 
-function shouldUsePermanentIngest(purpose, forceTranscode = false) {
-  return Boolean(config.permanentIngestEnabled) && !forceTranscode && normalizeConsumerPurpose(purpose) === 'kiosk';
+function shouldUsePermanentIngest(purpose, forceTranscode = false, quality = 'auto', profileToken = null) {
+  if (!config.permanentIngestEnabled || forceTranscode) return false;
+  const normalizedPurpose = normalizeConsumerPurpose(purpose);
+  if (normalizedPurpose === 'kiosk') return true;
+  return normalizedPurpose === 'live'
+    && config.liveAutoUsePermanentIngest
+    && quality === 'auto'
+    && !profileToken;
 }
 
 function permanentProfileToken(camera, explicitToken = null) {
@@ -276,7 +282,7 @@ class StreamOrchestrator {
   async ensure(cameraId, { quality = 'auto', viewportWidth = 1280, profileToken = null, purpose = 'live', forceTranscode = false } = {}, { wait = true } = {}) {
     const consumerPurpose = normalizeConsumerPurpose(purpose);
     const effectiveForceTranscode = Boolean(forceTranscode && config.browserTranscodeFallbackEnabled && consumerPurpose !== 'kiosk');
-    if (shouldUsePermanentIngest(consumerPurpose, effectiveForceTranscode)) {
+    if (shouldUsePermanentIngest(consumerPurpose, effectiveForceTranscode, quality, profileToken)) {
       return this.ensurePermanentIngest(cameraId, { quality, viewportWidth, profileToken, purpose: consumerPurpose }, { wait });
     }
     if (this.closed) throw new AppError(503, 'STREAM_SERVICE_STOPPED', 'Stream-Dienst wird gerade beendet');
@@ -359,19 +365,22 @@ class StreamOrchestrator {
     if (!session) {
       session = this.newSession(key, cameraId, slot, requestedProfile, permanentCodecPreference, camera.sourcePolicy || 'auto', 'ingest');
       session.permanent = true;
-      session.consumerPurpose = purpose || 'live';
+      // Permanent ingest is a shared backend publisher. It must not belong to
+      // whichever browser consumer happened to request it most recently.
+      session.consumerPurpose = null;
       this.sessions.set(key, session);
       this.log(session, 'info', 'stream', 'PERMANENT_INGEST_CREATED', 'Permanenter Kamera-Publisher wurde angelegt', {
         quality: slot,
         requestedProfile: requestedProfile ? 'manuell' : 'automatisch',
         codecPreference: permanentCodecPreference,
         purpose: 'ingest',
-        consumerPurpose: purpose || 'live',
+        consumerPurpose: 'shared-preview',
+        requestedBy: purpose || 'live',
       });
     }
 
     session.permanent = true;
-    session.consumerPurpose = purpose || 'live';
+    session.consumerPurpose = null;
     session.lastRequestedAt = Date.now();
     session.codecPreference = permanentCodecPreference;
     session.sourcePolicy = camera.sourcePolicy || 'auto';
@@ -1356,7 +1365,7 @@ class StreamOrchestrator {
         await this.ensurePermanentIngest(session.cameraId, {
           viewportWidth: widthForQuality(session.quality),
           profileToken: session.requestedProfileToken,
-          purpose: session.consumerPurpose || 'motion',
+          purpose: session.consumerPurpose || 'kiosk',
         }, { wait: true });
       } else {
         await this.ensure(session.cameraId, {
@@ -1374,12 +1383,12 @@ class StreamOrchestrator {
 
   findSession(cameraId, quality = 'auto', viewportWidth = 1280, profileToken = null, purpose = 'live', forceTranscode = false) {
     const consumerPurpose = normalizeConsumerPurpose(purpose);
-    const effectiveForceTranscode = Boolean(forceTranscode && config.browserTranscodeFallbackEnabled);
+    const effectiveForceTranscode = Boolean(forceTranscode && config.browserTranscodeFallbackEnabled && consumerPurpose !== 'kiosk');
     const slot = sessionSlot(quality, viewportWidth, consumerPurpose);
     const requestedProfile = profileToken || null;
     const actualPurpose = effectiveForceTranscode
       ? 'browser-fallback'
-      : shouldUsePermanentIngest(consumerPurpose, false)
+      : shouldUsePermanentIngest(consumerPurpose, false, quality, requestedProfile)
         ? 'ingest'
         : slot === 'high' && ['live', 'recording'].includes(consumerPurpose)
           ? 'mainstream'
