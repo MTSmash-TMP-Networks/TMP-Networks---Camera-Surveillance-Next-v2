@@ -158,6 +158,8 @@ export const config = Object.freeze({
   go2RtcHlsInternal: env.GO2RTC_HLS_INTERNAL || 'http://127.0.0.1:1984',
   publicGo2RtcBase: env.PUBLIC_GO2RTC_BASE || '/media/go2rtc',
   localHlsDir: path.resolve(env.LOCAL_HLS_DIR || path.join(env.APP_DATA_DIR || '/data', 'live')),
+  localHlsSegmentSeconds: integer('LOCAL_HLS_SEGMENT_SECONDS', 1, { min: 1, max: 6 }),
+  localHlsListSize: integer('LOCAL_HLS_LIST_SIZE', 30, { min: 8, max: 120 }),
   publicLocalHlsBase: env.PUBLIC_LOCAL_HLS_BASE || '/live-hls',
   browserHlsMode: configurableString('STREAM_BROWSER_HLS_MODE', 'local-ring').toLowerCase(),
   publicWebRtcBase: env.PUBLIC_GO2RTC_BASE || env.PUBLIC_WEBRTC_BASE || '/media/go2rtc',
