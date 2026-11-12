@@ -19,13 +19,14 @@ function KioskStatusBadges({ status }) {
   </div>;
 }
 
-export function SeamlessLivePlayer({ camera, quality, profileToken, transportMode = 'auto', onQualityChange, onShowDiagnostics, compact = false, reconnectSignal = 0, kioskStatus = null, connectDelayMs = 0, isolateFailure = false }) {
+export function SeamlessLivePlayer({ camera, quality, profileToken, transportMode = 'auto', onQualityChange, onShowDiagnostics, onStatusChange, compact = false, reconnectSignal = 0, kioskStatus = null, connectDelayMs = 0, isolateFailure = false }) {
   const { t } = useI18n();
   const containerRef = useRef(null);
   const mediaHostRef = useRef(null);
   const handleRef = useRef(null);
   const previousRequestRef = useRef(null);
   const reconnectSignalRef = useRef(reconnectSignal);
+  const onStatusChangeRef = useRef(onStatusChange);
   const [viewportWidth, setViewportWidth] = useState(null);
   const [muted, setMuted] = useState(true);
   const [status, setStatus] = useState({ state: 'starting', protocol: null, message: t('live.streamPreparing'), hasAudio: null, snapshotMode: false });
@@ -34,6 +35,8 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const automaticQuality = qualityForWidth(viewportWidth || 1280);
   const effectiveQuality = quality === 'auto' ? automaticQuality : quality;
   const requestedQuality = compact ? effectiveQuality : quality;
+
+  useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
 
   useEffect(() => {
     if (compact) return undefined;
@@ -93,6 +96,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
       }, host, (next) => {
         if (cancelled) return;
         setStatus(next);
+        onStatusChangeRef.current?.(next);
         if (next.state === 'failed') onShowDiagnostics?.();
       });
       handleRef.current = handle;
