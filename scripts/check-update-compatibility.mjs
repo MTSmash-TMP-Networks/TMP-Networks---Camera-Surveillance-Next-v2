@@ -42,6 +42,9 @@ export function checkRelease(root) {
   function walk(dir, prefix = '') {
     for (const name of readdirSync(dir)) {
       const rel = prefix ? `${prefix}/${name}` : name;
+      // GitHub Actions checks out the repository with its own .git metadata.
+      // That metadata is not part of the distributable source archive.
+      if (rel === '.git' || rel.startsWith('.git/')) continue;
       const real = path.join(dir, name), stat = lstatSync(real);
       if (stat.isSymbolicLink()) throw new Error(`Symlinks sind im Update nicht erlaubt: ${rel}`);
       if (stat.isDirectory()) walk(real, rel);

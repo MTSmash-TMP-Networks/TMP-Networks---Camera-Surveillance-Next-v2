@@ -1,6 +1,6 @@
 {
   "name": "tmp-camera-frontend",
-  "version": "2.20.44",
+  "version": "2.20.45",
   "private": true,
   "type": "module",
   "scripts": {

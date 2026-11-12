@@ -1,3 +1,12 @@
+## 2.20.45 – Stabiler Kiosk-Stream ohne unnötige HLS-Recovery
+
+- Kiosk-Player bindet einen laufenden Stream nicht mehr bei bloßen ResizeObserver-/Layoutänderungen neu an.
+- Feste Qualitätsstufen verwenden eine stabile Verbindungsbreite; nur der echte Wechsel der Qualitätsstufe kann noch einen neuen Stream anfordern.
+- Nicht-fatale hls.js-Pufferlöcher lösen keine sichtbare Recovery und keinen Sprung zur Live-Kante mehr aus.
+- Vorhandener HLS-Puffer wird weiter abgespielt; erst ein echter fataler Netzwerk-/Medienfehler oder der langfristige Frame-Watchdog darf neu verbinden.
+- Veraltete Frontend-Regressionstests wurden auf den aktuellen Local-HLS-/PREWARM-Pfad angepasst.
+- Der 30-Sekunden-HLS-Ring aus 2.20.44 bleibt unverändert bestehen.
+
 ## 2.20.44 – Stabilerer Local-HLS-Puffer und zuverlässige Live-Ampeln
 
 - Lokaler HLS-Ring von rund 8 auf standardmäßig 30 Ein-Sekunden-Segmente vergrößert; Größe und Segmentdauer sind über `LOCAL_HLS_LIST_SIZE` und `LOCAL_HLS_SEGMENT_SECONDS` einstellbar.

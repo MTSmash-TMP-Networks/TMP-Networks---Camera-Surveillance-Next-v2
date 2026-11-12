@@ -33,8 +33,9 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const [clock, setClock] = useState(() => new Date());
   const [fullscreen, setFullscreen] = useState(false);
   const automaticQuality = qualityForWidth(viewportWidth || 1280);
-  const effectiveQuality = quality === 'auto' ? automaticQuality : quality;
-  const requestedQuality = compact ? effectiveQuality : quality;
+  const requestedQuality = quality === 'auto' ? automaticQuality : quality;
+  const connectionViewportWidth = requestedQuality === 'low' ? 640 : requestedQuality === 'high' ? 1920 : 1280;
+  const waitingForAdaptiveMeasurement = quality === 'auto' && viewportWidth === null;
 
   useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
 
@@ -76,7 +77,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
 
   useEffect(() => {
     const host = mediaHostRef.current;
-    if (!host || !viewportWidth) return undefined;
+    if (!host || waitingForAdaptiveMeasurement) return undefined;
     let cancelled = false;
     let handle = null;
     const previous = previousRequestRef.current;
@@ -89,7 +90,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
       if (cancelled) return;
       handle = liveStreamPool.acquire({
         ...request,
-        viewportWidth,
+        viewportWidth: connectionViewportWidth,
         muted: compact ? true : muted,
         allowCompatibleReuse,
         isolateFailure,
@@ -111,7 +112,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
       if (handleRef.current === handle) handleRef.current = null;
       handle?.release();
     };
-  }, [camera.id, requestedQuality, profileToken, transportMode, viewportWidth, compact, connectDelayMs, isolateFailure]);
+  }, [camera.id, requestedQuality, profileToken, transportMode, connectionViewportWidth, waitingForAdaptiveMeasurement, compact, connectDelayMs, isolateFailure]);
 
   useEffect(() => {
     handleRef.current?.setMuted(compact ? true : muted);

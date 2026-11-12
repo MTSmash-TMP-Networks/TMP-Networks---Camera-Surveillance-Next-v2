@@ -9,12 +9,12 @@ const shellSource = readFileSync(resolve(here, '../src/components/AppShell.jsx')
 const addSource = readFileSync(resolve(here, '../src/pages/AddCameraPage.jsx'), 'utf8');
 
 describe('Browserstream-Ressourcensteuerung', () => {
-  it('deaktiviert versteckte Always-On-Browserdecoder standardmaessig', () => {
+  it('deaktiviert versteckte Always-On-Browserdecoder und Transcode-Fallback standardmaessig', () => {
     expect(poolSource).toContain("VITE_STREAM_BROWSER_PREWARM_ENABLED || 'false'");
-    expect(poolSource).toContain("VITE_BROWSER_TRANSCODE_FALLBACK_ENABLED || 'true'");
+    expect(poolSource).toContain("VITE_BROWSER_TRANSCODE_FALLBACK_ENABLED || 'false'");
     expect(poolSource).toContain('waitForFrameProgress');
     expect(poolSource).toContain("prewarm(options, reason = 'configured-camera')");
-    expect(poolSource).toContain('if (!ALWAYS_ON || !options?.cameraId) return null');
+    expect(poolSource).toContain('if (!PREWARM_ENABLED || !options?.cameraId) return null');
   });
 
   it('behaelt die optionale zentrale Synchronisierung fuer Altinstallationen', () => {

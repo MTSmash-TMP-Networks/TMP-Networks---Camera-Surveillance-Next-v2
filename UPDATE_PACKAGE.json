@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.44",
+  "version": "2.20.45",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.44",
-  "summary": "Increase the local HLS safety buffer and prevent transient stream failures from falsely turning healthy cameras red in Live View.",
-  "createdAt": "2026-11-12T15:31:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.44.md",
+  "title": "TMP Camera Surveillance Next 2.20.45",
+  "summary": "Stop harmless kiosk resizes and non-fatal HLS buffer stalls from tearing down or visibly resynchronizing healthy camera streams.",
+  "createdAt": "2026-11-12T16:05:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.45.md",
   "changes": [
-    "Expand the default local HLS ring to 30 one-second segments and keep browser playback about eight seconds behind the live edge",
-    "Extend HLS recovery grace and retry budgets to reduce visible stream flapping during short network interruptions",
-    "Suppress camera-wide stream_error while another session for the same camera is healthy and make Live View traffic lights follow real playback state"
+    "Keep fixed-quality kiosk streams attached across harmless ResizeObserver and layout changes",
+    "Let hls.js handle non-fatal buffer stalls without entering visible recovery or seeking to the live edge",
+    "Refresh frontend regression tests to cover the current Local-HLS and disabled-prewarm architecture"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.44.md",
+  "changelog": "UPDATE_NOTES_2.20.45.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.44",
-  "packageId": "tmp-camera-surveillance-next-2.20.44",
+  "name": "TMP Camera Surveillance Next v2.20.45",
+  "packageId": "tmp-camera-surveillance-next-2.20.45",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Deeper Local-HLS buffering, calmer browser recovery, and false-red Live View status protection.",
+  "description": "Kiosk lifecycle and HLS soft-stall stability fixes.",
   "minVersion": "2.20.32",
-  "releaseNotes": "30-second Local-HLS ring with an eight-second live delay and playback-aware camera status indicators.",
-  "fileCount": 446
+  "releaseNotes": "Stable kiosk attachment, silent non-fatal HLS stall handling, and current Local-HLS regression coverage.",
+  "fileCount": 447
 }
