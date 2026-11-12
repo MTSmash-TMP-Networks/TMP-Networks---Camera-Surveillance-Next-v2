@@ -427,8 +427,14 @@ class SystemMetricsService {
   }
 
   async collectGpu(procRoot, sysRoot) {
+    const acceleration = {
+      configured: config.go2RtcFfmpegHardware === 'vaapi',
+      mode: config.go2RtcFfmpegHardware,
+      renderNodeVisible: await fsp.access('/dev/dri/renderD128').then(() => true).catch(() => false),
+      note: 'Beschleunigungseinstellung bedeutet nicht automatisch, dass gerade ein Video enkodiert wird.',
+    };
     const nvidia = await collectNvidiaSmi();
-    if (nvidia.length) return { status: 'available', devices: nvidia, message: null };
+    if (nvidia.length) return { status: 'available', devices: nvidia, message: null, acceleration };
     const drm = await collectDrmGpu(sysRoot);
     if (drm.length) {
       const complete = drm.some((device) => device.utilizationPercent !== null);
@@ -436,6 +442,7 @@ class SystemMetricsService {
         status: complete ? 'available' : 'partial',
         devices: drm,
         message: complete ? null : 'GPU erkannt, aber der Treiber stellt keine Auslastungswerte im Container bereit.',
+        acceleration,
       };
     }
     const nvidiaProc = await collectNvidiaProc(procRoot);
@@ -444,9 +451,10 @@ class SystemMetricsService {
         status: 'partial',
         devices: nvidiaProc,
         message: 'NVIDIA-GPU erkannt. Fuer Live-Auslastung muss der Backend-Container mit NVIDIA Container Toolkit gestartet werden.',
+        acceleration,
       };
     }
-    return { status: 'unavailable', devices: [], message: 'Keine unterstuetzte GPU-Schnittstelle erkannt.' };
+    return { status: 'unavailable', devices: [], message: 'Keine unterstuetzte GPU-Schnittstelle erkannt.', acceleration };
   }
 
   async collect() {

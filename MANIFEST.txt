@@ -5,7 +5,7 @@ INSTALLATION.md
 LICENSE_AGREEMENT.md
 MANIFEST.txt
 README.md
-UPDATE_NOTES_2.20.38.md
+UPDATE_NOTES_2.20.39.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -148,6 +148,7 @@ backend/test-node/ffmpeg-diagnostics.test.mjs
 backend/test-node/github-archive-integrity-regression.test.mjs
 backend/test-node/github-update-regression.test.mjs
 backend/test-node/go2rtc-control-api.test.mjs
+backend/test-node/intel-vaapi-deployment.test.mjs
 backend/test-node/local-hls-command.test.mjs
 backend/test-node/local-hls-http-runtime.test.mjs
 backend/test-node/network-recording-storage-regression.test.mjs
@@ -391,10 +392,12 @@ scripts/core-smoke-test.mjs
 scripts/demo-mode.sh
 scripts/diagnose.sh
 scripts/docker-cache-cleanup.sh
+scripts/docker-compose.intel.yml
 scripts/docker-compose.sh
 scripts/evidence-export-smoke-test.mjs
 scripts/hls-recovery-smoke-test.mjs
 scripts/install-docker.sh
+scripts/intel-vaapi.sh
 scripts/kiosk-layout-smoke-test.mjs
 scripts/load-offline-images.sh
 scripts/navigation-update-smoke-test.mjs

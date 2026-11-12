@@ -33,6 +33,9 @@ services:
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-tmp-camera-surveillance-next}
       ENABLE_NVIDIA_GPU_STATUS: ${ENABLE_NVIDIA_GPU_STATUS:-false}
       ENABLE_NVIDIA_GPU_COMPOSE: ${ENABLE_NVIDIA_GPU_COMPOSE:-false}
+      ENABLE_INTEL_GPU_COMPOSE: ${ENABLE_INTEL_GPU_COMPOSE:-false}
+      INTEL_RENDER_DEVICE: ${INTEL_RENDER_DEVICE:-/dev/dri/renderD128}
+      INTEL_RENDER_GID: ${INTEL_RENDER_GID:-109}
       TZ: ${TZ:-Europe/Berlin}
     volumes:
       - ${PROJECT_HOST_PATH:-.}:/workspace
@@ -63,7 +66,7 @@ services:
       PGID: ${PGID:-1000}
       API_HOST: 0.0.0.0
       API_PORT: 3000
-      APP_VERSION: "2.20.38"
+      APP_VERSION: "2.20.39"
       APP_DATA_DIR: /data
       SYSTEM_PROC_ROOT: ${SYSTEM_PROC_ROOT:-/host/proc}
       SYSTEM_SYS_ROOT: ${SYSTEM_SYS_ROOT:-/host/sys}
@@ -82,6 +85,7 @@ services:
       NVIDIA_SMI_PATH: ${NVIDIA_SMI_PATH:-nvidia-smi}
       ENABLE_NVIDIA_GPU_STATUS: ${ENABLE_NVIDIA_GPU_STATUS:-false}
       ENABLE_NVIDIA_GPU_COMPOSE: ${ENABLE_NVIDIA_GPU_COMPOSE:-false}
+      GO2RTC_FFMPEG_HARDWARE: ${GO2RTC_FFMPEG_HARDWARE:-none}
       DB_PATH: /data/kamera_server.db
       RECORDINGS_DIR: /data/recordings
       RECORDINGS_LOCAL_DIR: /data/recordings

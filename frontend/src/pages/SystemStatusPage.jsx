@@ -316,7 +316,13 @@ export function SystemStatusPage() {
         ] : []} />
         <MetricCard icon={CircuitBoard} title="GPU" value={primaryGpu?.utilizationPercent == null ? (primaryGpu ? t('system.gpu.detected') : t('common.unavailable')) : `${Number(primaryGpu.utilizationPercent).toFixed(1)} %`} subtitle={gpuSummary} percent={primaryGpu?.utilizationPercent} history={history.gpu} unavailable={!primaryGpu || primaryGpu.utilizationPercent == null} usageLabel={t('system.usage', { item: 'GPU' })} historyLabel={t('system.history')} details={primaryGpu ? [
           { label: t('system.gpu.vendor'), value: primaryGpu.vendor || '–' },
-          { label: 'VRAM', value: primaryGpu.memoryTotalBytes ? t('system.storage.usedOf', { used: formatBytes(primaryGpu.memoryUsedBytes), total: formatBytes(primaryGpu.memoryTotalBytes) }) : t('common.unavailable') },
+          ...(primaryGpu.vendor === 'Intel' ? [{
+            label: 'Video-Beschleunigung',
+            value: status.gpu?.acceleration?.configured
+              ? (status.gpu.acceleration.renderNodeVisible ? 'VAAPI konfiguriert (Nutzung je nach Stream)' : 'VAAPI konfiguriert – Rendergerät nicht erreichbar')
+              : 'CPU / Stream-Kopie',
+          }] : []),
+          { label: primaryGpu.vendor === 'Intel' ? 'GPU-Speicher (gemeinsamer RAM)' : 'VRAM', value: primaryGpu.memoryTotalBytes ? t('system.storage.usedOf', { used: formatBytes(primaryGpu.memoryUsedBytes), total: formatBytes(primaryGpu.memoryTotalBytes) }) : t('common.unavailable') },
           { label: t('system.temperature'), value: primaryGpu.temperatureC == null ? t('common.unavailable') : `${Number(primaryGpu.temperatureC).toFixed(1)} °C` },
         ] : []} />
       </section>

@@ -53,18 +53,18 @@ export function nativeBrokerSource(sourceUri, inputTransport, timeoutSeconds = 2
   ]);
 }
 
-export function normalizedVideoSource(rawStreamName, timeoutSeconds = 20) {
+export function normalizedVideoSource(rawStreamName, timeoutSeconds = 20, hardware = 'none') {
   const name = String(rawStreamName || '').trim();
   if (!name) throw new Error('Raw broker stream name is empty');
   const timeout = Math.max(5, Math.min(120, Math.round(Number(timeoutSeconds) || 20)));
-  return `ffmpeg:${name}#video=h264#timeout=${timeout}`;
+  return `ffmpeg:${name}#video=h264#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
 }
 
-export function optionalAudioSource(rawStreamName, timeoutSeconds = 20) {
+export function optionalAudioSource(rawStreamName, timeoutSeconds = 20, hardware = 'none') {
   const name = String(rawStreamName || '').trim();
   if (!name) throw new Error('Raw broker stream name is empty');
   const timeout = Math.max(5, Math.min(120, Math.round(Number(timeoutSeconds) || 20)));
-  return `ffmpeg:${name}#video=h264#audio=aac#timeout=${timeout}`;
+  return `ffmpeg:${name}#video=h264#audio=aac#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
 }
 
 function codecName(profile) {

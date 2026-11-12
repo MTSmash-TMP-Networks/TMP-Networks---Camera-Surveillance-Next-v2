@@ -45,3 +45,11 @@ test('profile metadata replaces camera ffprobe as non-blocking diagnostics', () 
   assert.equal(policy.outputVideoCodec, 'h264');
   assert.equal(policy.transcodeVideo, true);
 });
+
+
+test('Intel VAAPI is opt-in for broker encoder and has unchanged CPU fallback path', () => {
+  assert.equal(normalizedVideoSource('cam_1_raw', 20, 'vaapi'), 'ffmpeg:cam_1_raw#video=h264#timeout=20#hardware=vaapi');
+  assert.equal(optionalAudioSource('cam_1_raw', 20, 'vaapi'), 'ffmpeg:cam_1_raw#video=h264#audio=aac#timeout=20#hardware=vaapi');
+  assert.equal(normalizedVideoSource('cam_1_raw', 20, 'none'), normalizedVideoSource('cam_1_raw'));
+  assert.doesNotMatch(normalizedVideoSource('cam_1_raw', 20, 'unknown'), /hardware=/);
+});

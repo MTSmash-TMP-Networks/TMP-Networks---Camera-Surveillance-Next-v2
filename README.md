@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.38
+# TMP Camera Surveillance Next 2.20.39
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -79,7 +79,7 @@ They contain the installation identity, credentials, configuration, database, lo
 ## Documentation
 
 - `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.38.md` - current release notes
+- `UPDATE_NOTES_2.20.39.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources
@@ -107,3 +107,13 @@ Network recording storage uses a verified local-spool workflow. A completed bloc
 Repeated application updates rebuild Docker images. Version 2.20.22 automatically removes dangling images and unused Docker builder/buildx cache before and after update builds and during host-side startup. Application volumes, containers, tagged images and recording data are never pruned by this maintenance. Set `UPDATER_DOCKER_CACHE_CLEANUP=false` in `.env` to opt out. The maintenance log is `data/updates/docker-cleanup.log`.
 
 System Status storage capacity is read live from the mounted data filesystem in 2.20.23. The `SYSTEM_HOST_DISK_*` values written by `start.sh` are only a filesystem identity/fallback snapshot and are no longer used as live free/used values. This prevents stale disk percentages after Docker cleanup.
+
+## Intel N97 / Intel iGPU hardware acceleration (opt-in)
+
+Intel GPU discovery in the status page does not automatically mean FFmpeg is using Quick Sync/VAAPI. Live video is copied when possible and uses no GPU; go2rtc may otherwise normalize video using software encoding by default. For compatible Linux hosts with an Intel render node, 2.20.39 adds a safe, opt-in VAAPI route for go2rtc H.264 normalization.
+
+1. After updating, run `sudo sh ./scripts/intel-vaapi.sh --check` on the **camera server**, not the desktop client. This uses the pinned go2rtc Docker image and tests actual H.264 VAAPI encoding without privileged mode; it does not alter the installation.
+2. Only if that succeeds, run `sudo sh ./scripts/intel-vaapi.sh --enable`. It preserves `.env` permissions and configures only the render node. To apply the settings, run `sudo sh ./scripts/docker-compose.sh build updater`, then `sudo sh ./scripts/docker-compose.sh up -d --no-deps --force-recreate updater mediamtx backend`. This also activates the updated updater's Intel Compose support. It briefly interrupts active video streams; do so during a maintenance window. Existing recordings remain on disk.
+3. The go2rtc normalized video path now requests `#hardware=vaapi`. If stream startup times out with VAAPI, the orchestrator retries using software encoding once. For removal, run `sudo sh ./scripts/intel-vaapi.sh --disable`, then recreate updater, mediamtx and backend.
+
+Never enable VAAPI without the hardware test. The Intel iGPU shares system RAM, so dedicated VRAM figures are normally unavailable. GPU busy percentages are driver-dependent and 0% or unavailable do not prove whether hardware encoding is used. Archive compression remains software-based in this version.

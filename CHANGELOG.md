@@ -1,3 +1,11 @@
+## 2.20.39 - Intel VAAPI video pipeline opt-in
+
+- Add a device-scoped, opt-in Intel /dev/dri/renderD128 passthrough for go2rtc and the backend.
+- Provide a safe Intel H.264 VAAPI smoke test before hardware transcoding is enabled.
+- Use go2rtc #hardware=vaapi for normalized H.264, falling back to software upon stream-start failures.
+- Show Intel acceleration configuration independently from GPU utilization and identify shared-memory VRAM.
+- Keep CPU/software behavior as default and preserve recordings and `.env` permissions.
+
 ## 2.20.38 - Electron install-script approval and runtime verification
 
 - Approves only pinned `electron@35.7.5` install script for npm 11+ script trust policy.

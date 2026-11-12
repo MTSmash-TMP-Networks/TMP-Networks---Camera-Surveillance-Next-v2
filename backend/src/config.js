@@ -88,6 +88,7 @@ export const config = Object.freeze({
   systemNetworkExcludeInterfaces: list('SYSTEM_NETWORK_EXCLUDE_INTERFACES').length ? list('SYSTEM_NETWORK_EXCLUDE_INTERFACES') : ['lo', 'docker*', 'br-*', 'veth*', 'virbr*', 'cni*', 'podman*'],
   systemNetworkMaxDevices: integer('SYSTEM_NETWORK_MAX_DEVICES', 12, { min: 1, max: 128 }),
   nvidiaSmiPath: configurableString('NVIDIA_SMI_PATH', 'nvidia-smi'),
+  go2RtcFfmpegHardware: configurableString('GO2RTC_FFMPEG_HARDWARE', 'none').toLowerCase() === 'vaapi' ? 'vaapi' : 'none',
   // HOST_SCAN_RANGES is administrator-owned and persistent. AUTO_HOST_SCAN_RANGES is refreshed by start.sh.
   hostScanRanges: list('HOST_SCAN_RANGES'),
   autoHostScanRanges: list('AUTO_HOST_SCAN_RANGES'),

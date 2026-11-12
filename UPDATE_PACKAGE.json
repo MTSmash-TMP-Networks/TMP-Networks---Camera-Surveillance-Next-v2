@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.38",
-  "minimumVersion": "2.20.37",
-  "title": "TMP Camera Surveillance Next 2.20.38",
-  "summary": "Pin Electron install-script approval and verify the installed native runtime.",
-  "createdAt": "2026-11-12T12:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.38.md",
+  "version": "2.20.39",
+  "minimumVersion": "2.20.38",
+  "title": "TMP Camera Surveillance Next 2.20.39",
+  "summary": "Intel N97 VAAPI go2rtc hardware transcoding with safe opt-in and software fallback.",
+  "createdAt": "2026-11-12T13:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.39.md",
   "changes": [
-    "Allow Electron 35.7.5 native installation script with npm 11+ allowScripts",
-    "Recover missing Electron native binary from previously skipped postinstall",
-    "Check Electron binary, marker and exact version before installation success"
+    "Optional Intel VAAPI transcoding for go2rtc H.264",
+    "Smoke test before enabling hardware and graceful stream-start CPU fallback",
+    "GPU dashboard distinguishes configured acceleration from measured utilization"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.38.md",
+  "changelog": "UPDATE_NOTES_2.20.39.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.38",
-  "packageId": "tmp-camera-surveillance-next-2.20.38",
-  "fromVersion": "2.20.37",
-  "compatibleFrom": "2.20.37",
-  "description": "Fix npm 11+ blocked Electron postinstall during Linux desktop setup.",
-  "minVersion": "2.20.37",
-  "releaseNotes": "Electron postinstall explicitly approved for pinned package version; install integrity checks.",
-  "fileCount": 433
+  "name": "TMP Camera Surveillance Next v2.20.39",
+  "packageId": "tmp-camera-surveillance-next-2.20.39",
+  "fromVersion": "2.20.38",
+  "compatibleFrom": "2.20.38",
+  "description": "Fix Intel iGPU recognition-only path: optional VAAPI encoding and explicit status.",
+  "minVersion": "2.20.38",
+  "releaseNotes": "Intel VAAPI acceleration with render device passthrough and GPU preflight.",
+  "fileCount": 436
 }

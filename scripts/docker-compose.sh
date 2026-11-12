@@ -36,6 +36,9 @@ IFS=$OLD_IFS
 if [ -f .env ] && grep -Eqi '^ENABLE_NVIDIA_GPU_COMPOSE=(1|true|yes|on)[[:space:]]*$' .env && [ -f docker-compose.gpu.yml ]; then
   set -- -f docker-compose.yml -f docker-compose.gpu.yml "$@"
 fi
+if [ -f .env ] && grep -Eqi '^ENABLE_INTEL_GPU_COMPOSE=(1|true|yes|on)[[:space:]]*$' .env && [ -f scripts/docker-compose.intel.yml ]; then
+  set -- -f docker-compose.yml -f scripts/docker-compose.intel.yml "$@"
+fi
 if [ "$USE_HTTPS" = true ] && [ -f docker-compose.https.yml ]; then
   set -- -f docker-compose.yml -f docker-compose.https.yml "$@"
 fi

@@ -116,6 +116,7 @@ class StreamOrchestrator {
     this.controlResyncTimers = new Map();
     this.cameraStartLocks = new Map();
     this.brokerRefs = new Map();
+    this.intelVaapiRuntimeDisabled = false;
     this.closed = false;
     this.timer = setInterval(() => this.maintenance().catch((error) => logger.error({ err: error }, 'Stream-Wartung fehlgeschlagen')), 10000);
     this.timer.unref();
@@ -147,7 +148,8 @@ class StreamOrchestrator {
     session.paths.webrtc = paths.video;
     session.paths.hls = paths.video;
     const rawSource = nativeBrokerSource(sourceUri, candidate.transport, 20);
-    const videoSource = normalizedVideoSource(paths.raw, 20);
+    const videoHardware = config.go2RtcFfmpegHardware === 'vaapi' && !this.intelVaapiRuntimeDisabled ? 'vaapi' : 'none';
+    const videoSource = normalizedVideoSource(paths.raw, 20, videoHardware);
     let inheritedRefs = 0;
     if (existing) {
       const [registeredRaw, registeredVideo] = await Promise.all([
@@ -192,7 +194,7 @@ class StreamOrchestrator {
       });
       let audioConfigured = false;
       if (profile?.audioCodec) {
-        const audioSource = optionalAudioSource(paths.raw, 20);
+        const audioSource = optionalAudioSource(paths.raw, 20, videoHardware);
         try {
           await go2RtcClient.upsertStream(paths.audio, audioSource);
           await go2RtcClient.waitUntilRegistered(paths.audio);
@@ -524,7 +526,22 @@ class StreamOrchestrator {
           this.phase(session, 'publishing', session.permanent
             ? `Zentraler Dauer-Broker für „${profile.name}“ wird aufgebaut`
             : `Zentraler Broker und lokaler HLS-Ring für „${profile.name}“ werden aufgebaut`, { profile: profile.name, transport: candidate.transport, browserVideoMode: 'broker-normalized' });
-          session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
+          try {
+            session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
+          } catch (primaryError) {
+            // The configured render node/driver can vanish after boot or fail for
+            // a specific camera codec. Do not make video unavailable: recreate the
+            // broker using the original software encoder and retry exactly once.
+            if (config.go2RtcFfmpegHardware !== 'vaapi' || this.intelVaapiRuntimeDisabled ||
+                !['STREAM_NOT_READY', 'FFMPEG_EXITED'].includes(String(primaryError?.code || '')) &&
+                !/vaapi|hardware encoder|renderD128|drm device/i.test(String(primaryError?.message || ''))) throw primaryError;
+            this.intelVaapiRuntimeDisabled = true;
+            this.log(session, 'warn', 'go2rtc', 'INTEL_VAAPI_CPU_FALLBACK', 'Intel-VAAPI lieferte keinen startbereiten Stream; Software-Encoding wird verwendet', {
+              code: primaryError.code, profile: profile.name,
+            });
+            await this.releaseBroker(session);
+            session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
+          }
           if (candidate.sourceId) cameraRepository.updateMediaSourceStatus(candidate.sourceId, 'available', null);
           if (session.mode !== 'go2rtc-managed' && (!session.process || session.process.exitCode !== null)) {
             throw new AppError(502, 'FFMPEG_EXITED', 'FFmpeg wurde während der Stream-Aktivierung beendet', sanitize(session.stderr));

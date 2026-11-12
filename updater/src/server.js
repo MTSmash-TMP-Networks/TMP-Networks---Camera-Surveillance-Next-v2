@@ -38,6 +38,7 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{8,128}$/;
 const FORCE_IMAGE_PULL = ['1', 'true', 'yes', 'on'].includes(String(env.FORCE_IMAGE_PULL || '').trim().toLowerCase());
 const DOCKER_CACHE_CLEANUP_ENABLED = !['0', 'false', 'no', 'off'].includes(String(env.UPDATER_DOCKER_CACHE_CLEANUP || 'true').trim().toLowerCase());
 const GPU_COMPOSE_ENABLED = ['1', 'true', 'yes', 'on'].includes(String(env.ENABLE_NVIDIA_GPU_COMPOSE || '').trim().toLowerCase());
+const INTEL_GPU_COMPOSE_ENABLED = ['1', 'true', 'yes', 'on'].includes(String(env.ENABLE_INTEL_GPU_COMPOSE || 'false').trim().toLowerCase());
 const ALLOWED_ROOT_FILES = new Set([
   '.env.example', '.gitignore', '.gitlab-ci.yml', 'CHANGELOG.md', 'FILES.sha256', 'LICENSE_AGREEMENT.md',
   'INSTALLATION.md', 'MANIFEST.txt', 'PRIVACY_AND_DATA_PROCESSING.md', 'README.md', 'SUPPORT_POLICY.md', 'THIRD_PARTY_NOTICES.md',
@@ -616,8 +617,10 @@ async function validateSourceSyntax(root) {
 function composeFileArgs(root, { https = false } = {}) {
   const args = ['-f', path.join(root, 'docker-compose.yml')];
   const gpuOverride = path.join(root, 'docker-compose.gpu.yml');
+  const intelOverride = path.join(root, 'scripts/docker-compose.intel.yml');
   const httpsOverride = path.join(root, 'docker-compose.https.yml');
   if (GPU_COMPOSE_ENABLED && fs.existsSync(gpuOverride)) args.push('-f', gpuOverride);
+  if (INTEL_GPU_COMPOSE_ENABLED && fs.existsSync(intelOverride)) args.push('-f', intelOverride);
   if (https && fs.existsSync(httpsOverride)) args.push('-f', httpsOverride);
   return args;
 }

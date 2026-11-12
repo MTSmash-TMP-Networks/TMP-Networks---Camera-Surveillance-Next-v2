@@ -1,0 +1,13 @@
+# Opt-in Intel VAAPI acceleration. Do not use without scripts/intel-vaapi.sh --enable.
+# No privileged container, no direct camera credentials, no Docker socket access.
+services:
+  mediamtx:
+    devices:
+      - ${INTEL_RENDER_DEVICE:-/dev/dri/renderD128}:/dev/dri/renderD128
+    group_add:
+      - "${INTEL_RENDER_GID:-109}"
+  backend:
+    devices:
+      - ${INTEL_RENDER_DEVICE:-/dev/dri/renderD128}:/dev/dri/renderD128
+    group_add:
+      - "${INTEL_RENDER_GID:-109}"
