@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.36",
-  "minimumVersion": "2.20.35",
-  "title": "TMP Camera Surveillance Next 2.20.36",
-  "summary": "Fix camera setup validation and GitHub update package integrity.",
-  "createdAt": "2026-11-12T09:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.36.md",
+  "version": "2.20.37",
+  "minimumVersion": "2.20.36",
+  "title": "TMP Camera Surveillance Next 2.20.37",
+  "summary": "Linux desktop installer now automatically prepares missing Node.js/npm and Electron runtime libraries.",
+  "createdAt": "2026-11-12T11:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.37.md",
   "changes": [
-    "Camera wizard normalizes passive discovery/ONVIF metadata before saving; exact field validation feedback",
-    "GitHub source archive exactly matches checksummed ZIP manifest",
-    "GitHub diagnostics identify missing manifests, DNS/TLS/API failures"
+    "Missing Node.js and npm installed locally for the desktop user with verified official SHA-256 manifest",
+    "Electron native library preflight and Debian/Ubuntu/Linux Mint apt repair",
+    "Updated Linux-client ZIP download and installation guidance"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.35.md",
+  "changelog": "UPDATE_NOTES_2.20.37.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.36",
-  "packageId": "tmp-camera-surveillance-next-2.20.36",
-  "fromVersion": "2.20.35",
-  "compatibleFrom": "2.20.35",
-  "description": "Camera-add and GitHub update reliability fixes.",
-  "minVersion": "2.20.35",
-  "releaseNotes": "Camera validation and GitHub archive integrity.",
+  "name": "TMP Camera Surveillance Next v2.20.37",
+  "packageId": "tmp-camera-surveillance-next-2.20.37",
+  "fromVersion": "2.20.36",
+  "compatibleFrom": "2.20.36",
+  "description": "Fix Linux desktop client install when Node.js/npm are missing.",
+  "minVersion": "2.20.36",
+  "releaseNotes": "Automatic local Node.js/npm bootstrap and Electron Linux dependency preflight.",
   "fileCount": 433
 }

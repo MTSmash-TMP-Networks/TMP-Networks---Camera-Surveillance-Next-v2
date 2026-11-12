@@ -1,3 +1,9 @@
+## 2.20.37 - Linux Desktop Client dependency bootstrap
+
+- Desktop installer fetches and SHA-256-verifies Node.js 24 LTS with bundled npm in the user directory when not present.
+- Electron dependency preflight with apt-based repair for Debian, Ubuntu and Linux Mint.
+- Updated web UI instructions, packaged download and offline/error regression checks.
+
 ## 2.20.36 - Camera setup and GitHub update fixes
 
 - Camera input metadata handling and detailed field validation feedback.

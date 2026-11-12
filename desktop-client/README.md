@@ -1,21 +1,24 @@
 # TMP Camera Desktop – Linux Client
 
-Ein eigenständiges Desktop-Fenster für vorhandene TMP Camera Surveillance Server. Kein zusätzlicher Docker-Stack auf dem Arbeitsplatz.
+Eine eigenständige Desktop-Anwendung für einen bereits laufenden TMP Camera Surveillance Server; **kein Docker auf dem Arbeitsplatz nötig**.
 
 ## Installation (Linux x86_64)
 
-1. ZIP aus der Weboberfläche unter **Desktop-Client** herunterladen und entpacken.
-2. Auf dem Linux-Arbeitsplatz **Node.js 20+** und **npm** installieren.
-3. `sh ./install-linux.sh` ausführen. Für die erste Installation ist Internetzugriff erforderlich, um Electron herunterzuladen.
-4. Im Anwendungsmenü **TMP Camera Desktop** starten und die Serveradresse wie `http://SERVER-IP:8080` eintragen.
-5. Mit den vorhandenen Benutzerkonten anmelden.
+1. Im Kamera-Webinterface unter **Desktop-Client** das ZIP herunterladen und entpacken.
+2. In den entpackten Ordner wechseln und `sh ./install-linux.sh` ausführen (ohne `sudo`).
+3. Im Anwendungsmenü **TMP Camera Desktop** öffnen, die Serveradresse (`http://SERVER-IP:8080` oder eine gültige HTTPS-Adresse) eingeben und sich anmelden.
 
-Das Installationsskript arbeitet ausschließlich im Benutzerverzeichnis. Es benötigt keine Root-Rechte und verändert nicht die Docker-Installation des Servers. Bei Self-Signed-HTTPS-Zertifikaten muss das Zertifikat regulär im System als vertrauenswürdig hinterlegt sein; der Client umgeht TLS-Prüfungen nicht.
+**Node.js und npm müssen nicht vorher installiert werden.** Falls beides fehlt oder Node.js zu alt ist, installiert das Skript automatisch Node.js 24 LTS inklusive npm **im eigenen Benutzerverzeichnis** (`~/.local/share/tmp-camera-desktop/runtime/node`). Die Originaldatei wird über HTTPS von nodejs.org bezogen und anhand der veröffentlichten SHA-256-Prüfsumme geprüft. Das installierte Node.js wird nur für TMP Camera Desktop verwendet; die vorhandene Systeminstallation wird nicht verändert.
+
+Das Skript lädt Electron beim ersten Installieren mit npm herunter. Internetzugriff für `nodejs.org`, das npm-Registry und den Electron-Binärdownload wird daher benötigt. Ggf. fehlende Systembibliotheken von Electron werden mit `ldd` erkannt und unter Ubuntu/Debian/Linux Mint **nach einer sudo-Passwortabfrage** via `apt-get` installiert. Andere Distributionen müssen solche Bibliotheken ggf. mit ihrer jeweiligen Paketverwaltung installieren. Es werden keine pauschalen System-Paket-Upgrades durchgeführt. Die normale Installation und Ausführung des Clients benötigt keine Root-Rechte.
+
+Voraussetzungen: Linux x64 mit grafischem Desktop, tar, sha256sum und curl oder wget; Internet beim Erststart. Die Linux-Binärpakete benötigen eine aktuelle glibc. Auf Systemen mit deaktivierten unprivilegierten User-Namespaces kann der Electron-Sandbox-Start vom Betriebssystem blockiert werden. Den Sandbox-Schutz nicht ausschalten; die Desktop-Sicherheitskonfiguration anpassen.
 
 ## Besonderheiten
 
-- Navigation bleibt auf die konfigurierte Server-Origin beschränkt.
-- Kein Node.js-Zugriff aus der Kamera-Weboberfläche; Electron-Sandbox, Context-Isolation und gesperrte Browser-Berechtigungen.
-- Kein direkter Zugriff des Clients auf Kamera-Credentials; Anmeldung erfolgt über den Server.
-- Server wechseln über das Anwendungsmenü **TMP Camera → Server wechseln** oder `Strg+Umschalt+S`.
-- Livevideo nutzt weiterhin den Serverstream. Auf Plattformen mit eingeschränkten Videocodecs kann HLS-Wiedergabe von der lokalen Electron-Distribution abhängen.
+- Kein lokaler Docker-Stack und keine Änderung an den Kameraserver-Daten.
+- Der Client benutzt die Serveranmeldung. TLS-Zertifikate werden weiterhin geprüft.
+- Navigation bleibt auf den gewählten Server begrenzt, Electron-Sandbox und Context-Isolation bleiben eingeschaltet.
+- Wechsel des Servers über **TMP Camera → Server wechseln** oder `Strg+Umschalt+S`.
+- Falls `npm install` wegen Proxy oder Zertifikatsproblemen scheitert, Netzwerk/CA-Konfiguration des Arbeitsplatzes prüfen; keine unsicheren TLS-Ausnahmen setzen.
+- Option `TMP_CAMERA_SKIP_SYSTEM_PACKAGES=1 sh ./install-linux.sh` unterbindet jede automatische Installation von Systembibliotheken.
