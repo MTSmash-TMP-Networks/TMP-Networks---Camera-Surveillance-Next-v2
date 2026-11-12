@@ -33,7 +33,8 @@ function readableError(error, t) {
   const key = code ? `update.errorCode.${code}` : '';
   const message = key ? translatedOrFallback(t, key, 'update.error.generic') : t('update.error.generic');
   const diagnosticId = error?.details?.diagnosticId || error?.details?.diagnosisId || error?.diagnosticId;
-  return diagnosticId ? `${message} ${t('update.diagnostics.id')}: ${diagnosticId}` : message;
+  const githubError = code.startsWith('GITHUB_') ? (error?.message || message) : message;
+  return diagnosticId ? `${githubError} ${t('update.diagnostics.id')}: ${diagnosticId}` : githubError;
 }
 
 const terminalStates = new Set(['completed', 'rolled_back', 'failed']);
@@ -53,6 +54,7 @@ export function UpdatePage() {
   const { t, locale } = useI18n();
   const [overview, setOverview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [githubLatest, setGithubLatest] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -96,6 +98,29 @@ export function UpdatePage() {
   const updaterPillLabel = `${t('update.card.service')} · ${updaterStateLabel}`;
   const updaterActionLabel = updaterInstallReady ? t('update.action.install') : t('update.action.installTry');
   const updaterAttempts = Array.isArray(updater.attempts) ? updater.attempts : [];
+
+  async function checkGithub() {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const latest = await api.checkGitHubUpdate();
+      setGithubLatest(latest);
+      setNotice(latest.available ? `GitHub-Version ${latest.latestVersion} ist verfügbar.` : 'Deine Installation ist auf dem aktuellen GitHub-Stand.');
+    } catch (problem) { setGithubLatest(null); setError(readableError(problem, t)); }
+    finally { setBusy(false); }
+  }
+
+  async function prepareGithub() {
+    if (!githubLatest?.available) return;
+    if (!window.confirm(`GitHub-Version ${githubLatest.latestVersion} herunterladen und als geprüftes Update vorbereiten? Die Installation erfolgt anschließend separat.`)) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const item = await api.prepareGitHubUpdate(githubLatest.commit);
+      setExpanded(item.id);
+      setNotice(`GitHub-Version ${item.inspection.version} wurde geprüft. Zum Einspielen unten auf „Installieren“ klicken.`);
+      await load({ quiet: true });
+    } catch (problem) { setError(readableError(problem, t)); }
+    finally { setBusy(false); }
+  }
 
   async function upload() {
     if (!selectedFile) return;
@@ -198,6 +223,15 @@ export function UpdatePage() {
       {overview.status?.error && <div className="update-inline-error">{t('update.error.generic')}</div>}
       <details className="update-log" open={overview.status?.state === 'failed'}><summary>{t('update.log.technical')}</summary><pre>{(overview.status?.logs || []).map((entry) => `[${date(entry.at, locale)}] ${entry.message}`).join('\n') || t('update.log.empty')}</pre></details>
     </section>}
+
+    <section className="update-upload-card">
+      <div className="section-heading"><div><h2>GitHub-Updates</h2><p>Offizielles Repository prüfen, geprüften Commit herunterladen und über das normale Backup-/Rollback-Verfahren installieren.</p></div><RefreshCw /></div>
+      <div className="update-upload-actions">
+        <small>{githubLatest ? (githubLatest.available ? `Neu: v${githubLatest.latestVersion} · ${githubLatest.commit.slice(0, 12)}` : 'Keine neuere Version verfügbar') : 'Nur manuelle Prüfung – keine automatische Installation.'}</small>
+        <button className="secondary-button" onClick={checkGithub} disabled={busy || running}><RefreshCw /> Auf GitHub prüfen</button>
+        {githubLatest?.available && <button className="primary-button" onClick={prepareGithub} disabled={busy || running}><HardDriveDownload /> Herunterladen & prüfen</button>}
+      </div>
+    </section>
 
     <section className="update-upload-card">
       <div className="section-heading"><div><h2>{t('update.upload.title')}</h2><p>{t('update.upload.description')}</p></div><UploadCloud /></div>

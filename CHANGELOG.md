@@ -1,4 +1,4 @@
-## 2.20.33 - Docker installation bootstrap (2026-11-12)
+## 2.20.34 - Docker installation bootstrap (2026-11-12)
 
 - Install Docker Engine and Compose plugin during first start on supported Ubuntu, Debian, Linux Mint and Fedora hosts when Docker is absent.
 - Keep existing Docker runtimes and NAS/container managers untouched, with explicit failure diagnostics and a disable switch.

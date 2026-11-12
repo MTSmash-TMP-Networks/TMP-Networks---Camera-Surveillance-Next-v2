@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { Transform } from 'node:stream';
+import { Transform, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { config } from '../config.js';
 import { AppError } from '../utils/errors.js';
@@ -190,7 +190,104 @@ async function listBackups() {
   } catch { return []; }
 }
 
+// Hard-coded official repository: do not allow arbitrary update URLs supplied by clients.
+const GITHUB_REPO = 'MTSmash-TMP-Networks/TMP-Networks---Camera-Surveillance-Next-v2';
+const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}/commits/main`;
+const GITHUB_MAX_REDIRECTS = 3;
+const GITHUB_ALLOWED_HOSTS = new Set(['codeload.github.com', 'github.com', 'objects.githubusercontent.com']);
+let githubPreparation = null;
+
+function compareGitHubVersions(a, b) {
+  const parse = (v) => {
+    const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(String(v).trim());
+    if (!m) throw new AppError(502, 'GITHUB_VERSION_INVALID', 'GitHub meldet eine ungültige Versionsnummer');
+    return m.slice(1).map(Number);
+  };
+  const x = parse(a), y = parse(b);
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i] ? 1 : -1;
+  return 0;
+}
+
+async function githubRequest(url, { timeoutMs = 12000, redirects = 0, archive = false } = {}) {
+  const target = new URL(url);
+  const allowed = archive ? GITHUB_ALLOWED_HOSTS : new Set(['api.github.com', 'raw.githubusercontent.com']);
+  if (target.protocol !== 'https:' || !allowed.has(target.hostname) || target.username || target.password || target.port) {
+    throw new AppError(502, 'GITHUB_HOST_INVALID', 'GitHub hat eine unzulässige Download-Adresse geliefert');
+  }
+  let response;
+  try {
+    response = await fetch(target, {
+      redirect: 'manual', signal: AbortSignal.timeout(timeoutMs),
+      headers: { 'User-Agent': 'TMP-Camera-Update-Center', Accept: archive ? 'application/zip' : 'application/json, text/plain' },
+    });
+  } catch {
+    throw new AppError(502, 'GITHUB_UNREACHABLE', 'GitHub konnte nicht erreicht werden');
+  }
+  if (archive && [301, 302, 303, 307, 308].includes(response.status)) {
+    if (redirects >= GITHUB_MAX_REDIRECTS) throw new AppError(502, 'GITHUB_REDIRECT_FAILED', 'Zu viele Weiterleitungen bei GitHub');
+    const next = response.headers.get('location');
+    if (!next) throw new AppError(502, 'GITHUB_REDIRECT_FAILED', 'GitHub hat kein Download-Ziel geliefert');
+    await response.body?.cancel();
+    return githubRequest(new URL(next, target).toString(), { timeoutMs, redirects: redirects + 1, archive: true });
+  }
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw new AppError(502, 'GITHUB_RESPONSE_FAILED', `GitHub antwortete mit HTTP ${response.status}`);
+  }
+  return response;
+}
+
+async function githubLatest() {
+  const commitResponse = await githubRequest(GITHUB_API);
+  const commitData = await commitResponse.json();
+  const sha = String(commitData?.sha || '');
+  if (!/^[a-f0-9]{40}$/.test(sha)) throw new AppError(502, 'GITHUB_COMMIT_INVALID', 'GitHub hat keinen gültigen Commit geliefert');
+  const versionResponse = await githubRequest(`https://raw.githubusercontent.com/${GITHUB_REPO}/${sha}/VERSION`);
+  const latestVersion = (await versionResponse.text()).trim();
+  const available = compareGitHubVersions(latestVersion, config.appVersion) > 0;
+  return {
+    repository: GITHUB_REPO,
+    branch: 'main',
+    commit: sha,
+    currentVersion: config.appVersion,
+    latestVersion,
+    available,
+    checkedAt: new Date().toISOString(),
+    commitUrl: `https://github.com/${GITHUB_REPO}/commit/${sha}`,
+  };
+}
+
+async function prepareGithubPackage(expectedSha, uploadedBy) {
+  if (githubPreparation) throw new AppError(409, 'GITHUB_PREPARATION_BUSY', 'Ein GitHub-Download wird bereits vorbereitet');
+  githubPreparation = true;
+  try {
+    const latest = await githubLatest();
+    if (!latest.available) throw new AppError(409, 'GITHUB_NO_UPDATE', 'Es gibt keine neuere GitHub-Version');
+    if (latest.commit !== expectedSha) throw new AppError(409, 'GITHUB_COMMIT_CHANGED', 'GitHub wurde inzwischen aktualisiert. Bitte erneut nach Updates suchen');
+    await ensureDirectories();
+    const response = await githubRequest(`https://codeload.github.com/${GITHUB_REPO}/zip/${latest.commit}`, { archive: true, timeoutMs: 30000 });
+    if (!response.body) throw new AppError(502, 'GITHUB_DOWNLOAD_EMPTY', 'GitHub lieferte kein Archiv');
+    const item = await updateService.upload(
+      // Node fetch supplies a web stream; convert it to a Node stream for the existing guarded ZIP pipeline.
+      Readable.fromWeb(response.body), `GitHub-${latest.latestVersion}-${latest.commit.slice(0, 12)}.zip`, uploadedBy,
+      response.headers.get('content-length') || null,
+    );
+    if (item.inspection.version !== latest.latestVersion) {
+      await updateService.remove(item.id);
+      throw new AppError(502, 'GITHUB_PACKAGE_VERSION_MISMATCH', 'GitHub-Versionsdatei und geprüftes ZIP stimmen nicht überein');
+    }
+    // The archive passes the identical path, checksums, version and archive checks as a manual ZIP upload.
+    const annotated = { ...item, source: 'github', github: { repository: latest.repository, commit: latest.commit, commitUrl: latest.commitUrl } };
+    await writeJsonAtomic(metadataPath(item.id), annotated);
+    return annotated;
+  } finally {
+    githubPreparation = null;
+  }
+}
+
 export const updateService = {
+  githubLatest,
+  prepareGithubPackage,
   async containerStatus({ requestId } = {}) {
     try {
       return publicContainerStatus(await updaterClient.get('/runtime/containers', {

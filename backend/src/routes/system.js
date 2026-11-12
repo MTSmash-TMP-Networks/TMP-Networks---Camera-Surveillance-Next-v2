@@ -194,6 +194,16 @@ systemRouter.get('/events/recent', asyncHandler(async (req, res) => {
 
 systemRouter.get('/update', asyncHandler(async (req, res) => res.json(await updateService.overview({ requestId: req.id }))));
 
+systemRouter.get('/update/github/check', asyncHandler(async (_req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.json(await updateService.githubLatest());
+}));
+
+systemRouter.post('/update/github/prepare', asyncHandler(async (req, res) => {
+  const input = z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/), confirmation: z.literal('HERUNTERLADEN') }).strict().parse(req.body || {});
+  res.status(201).json(await updateService.prepareGithubPackage(input.commit, req.user.sub));
+}));
+
 systemRouter.post('/update/upload', asyncHandler(async (req, res) => {
   const contentType = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
   if (!['application/zip', 'application/x-zip-compressed', 'application/octet-stream'].includes(contentType)) {

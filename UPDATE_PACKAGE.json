@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.33",
-  "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.33",
-  "summary": "Adds safe Docker Engine and Compose first-start installation for supported Linux hosts.",
+  "version": "2.20.34",
+  "minimumVersion": "2.20.33",
+  "title": "TMP Camera Surveillance Next 2.20.34",
+  "summary": "GitHub update checks and verified download in the existing update center.",
   "createdAt": "2026-11-12T09:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.33.md",
+  "changelogFile": "UPDATE_NOTES_2.20.34.md",
   "changes": [
-    "Automatic Docker Engine and Compose installation only when Docker CLI is absent on supported systemd Linux hosts",
-    "Official Docker package repositories and local privilege confirmation",
-    "Fail-safe handling for existing Docker installations and NAS systems",
-    "Startup regression checks; preserves recording and updater recovery behavior"
+    "Check official GitHub main version and pinned commit",
+    "Download pinned ZIP and validate through existing update inspector",
+    "Install through existing backup and rollback service",
+    "Keep manual ZIP uploads and protected application data unchanged"
   ],
   "preserve": [
     ".env",
@@ -30,14 +30,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.33.md",
+  "changelog": "UPDATE_NOTES_2.20.34.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.33",
-  "packageId": "tmp-camera-surveillance-next-2.20.33",
-  "fromVersion": "2.20.32",
-  "compatibleFrom": "2.20.32",
-  "description": "Installs missing Docker Engine and Compose safely on supported Linux hosts without modifying existing Docker environments.",
-  "minVersion": "2.20.32",
-  "releaseNotes": "Docker bootstrap for Ubuntu, Debian, Linux Mint and Fedora on first start.",
+  "name": "TMP Camera Surveillance Next v2.20.34",
+  "packageId": "tmp-camera-surveillance-next-2.20.34",
+  "fromVersion": "2.20.33",
+  "compatibleFrom": "2.20.33",
+  "description": "Official GitHub commit download with existing ZIP verification, backups and rollback.",
+  "minVersion": "2.20.33",
+  "releaseNotes": "GitHub update integration alongside manual ZIP uploads.",
   "fileCount": 420
 }

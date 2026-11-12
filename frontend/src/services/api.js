@@ -185,6 +185,8 @@ export const api = {
   systemStatus: () => request('/system/status', { cache: 'no-store' }),
   restartSystem: () => request('/system/restart', { method: 'POST', body: { confirmation: 'NEUSTART' } }),
   updateOverview: () => request('/system/update'),
+  checkGitHubUpdate: () => request('/system/update/github/check'),
+  prepareGitHubUpdate: (commit) => request('/system/update/github/prepare', { method: 'POST', body: { commit, confirmation: 'HERUNTERLADEN' } }),
   uploadUpdate,
   installUpdate: (packageId) => request('/system/update/install', { method: 'POST', body: { packageId, confirmation: 'INSTALLIEREN' } }),
   rollbackUpdate: (backupId) => request('/system/update/rollback', { method: 'POST', body: { backupId, confirmation: 'ROLLBACK' } }),

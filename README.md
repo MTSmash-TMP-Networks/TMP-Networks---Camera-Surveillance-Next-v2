@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.33
+# TMP Camera Surveillance Next 2.20.34
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -71,7 +71,7 @@ They contain the installation identity, credentials, configuration, database, lo
 ## Documentation
 
 - `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.33.md` - current release notes
+- `UPDATE_NOTES_2.20.34.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources
