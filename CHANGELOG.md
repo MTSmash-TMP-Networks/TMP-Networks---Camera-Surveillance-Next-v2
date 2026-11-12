@@ -1,3 +1,14 @@
+## 2.20.50 – Shared Warm Stream Architecture für Live und Recording
+
+- Live `Auto` hängt sich jetzt direkt an den bereits beim Backend-Start aufgebauten permanenten Preview/Substream-Publisher.
+- Die Fenstergröße erzeugt im normalen Live-Auto-Modus keinen neuen High-/Mainstream mehr.
+- Der permanente Ingest ist jetzt explizit ein geteilter Backend-Publisher und gehört nicht mehr dem zuletzt anfragenden Kiosk- oder Live-Consumer.
+- Browser-Polling hält die ursprüngliche `quality=auto`-Anfrage fest und erzeugt dadurch nicht versehentlich eine zweite Low-Live-Session.
+- Manuell gewählte Qualität/Profile dürfen weiterhin einen eigenen höherwertigen Stream anfordern.
+- Recording `Auto` fordert ausdrücklich High/Mainstream an, damit Aufnahmen nicht versehentlich auf dem Preview/Substream landen.
+- Bereits laufende geeignete Mainstream-Publisher werden durch `retain()` weiterhin zwischen Live und Recording geteilt.
+- Der bestehende Local-HLS-Ring, Sticky-Profile und Sticky-Encoder bleiben unverändert aktiv.
+
 ## 2.20.49 – Live-Ampeln bleiben nach erfolgreichem Stream grün
 
 - Eine bestätigte `ready`-Streamsession korrigiert einen veralteten Kamera-`stream_error` jetzt wieder auf `online`.

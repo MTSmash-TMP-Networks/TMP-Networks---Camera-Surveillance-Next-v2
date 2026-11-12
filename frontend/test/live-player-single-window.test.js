@@ -72,3 +72,15 @@ describe('Live-Kameraampel', () => {
     expect(livePageSource).toContain('onStatusChange={handlePlaybackStatus}');
   });
 });
+
+
+describe('Shared warm Live Auto', () => {
+  it('keeps full Live Auto on backend auto instead of deriving a new high stream from viewport width', () => {
+    expect(playerSource).toContain("const requestedQuality = quality === 'auto' ? (compact ? automaticQuality : 'auto') : quality");
+    expect(playerSource).toContain("const waitingForAdaptiveMeasurement = compact && quality === 'auto'");
+    expect(poolSource).toContain("const warmLiveAuto = entry.purpose === 'live' && entry.quality === 'auto' && !entry.profileToken");
+    expect(poolSource).toContain("quality: requestedQuality, wait: false");
+    expect(poolSource).not.toContain("quality: trackedQuality, wait: false");
+    expect(poolSource).toContain("warmer Vorschau-Stream");
+  });
+});
