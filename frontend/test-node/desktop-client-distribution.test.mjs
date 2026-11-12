@@ -13,18 +13,18 @@ test('Linux desktop client is available in the frontend download directory', () 
   assert.match(read('frontend/src/config/navigation.js'), /nav\.desktopClient/);
 });
 test('Electron client is sandboxed and restricted to configured server origin', () => {
-  const main = read('desktop-client/main.cjs');
+  const main = read('frontend/desktop-client/main.cjs');
   assert.match(main, /sandbox: true/);
   assert.match(main, /contextIsolation: true/);
   assert.match(main, /nodeIntegration: false/);
   assert.match(main, /candidate\.origin === server/);
   assert.match(main, /setWindowOpenHandler/);
   assert.doesNotMatch(main, /ignoreCertificateErrors|certificate-error/);
-  assert.match(read('desktop-client/install-linux.sh'), /npm install --omit=dev/);
+  assert.match(read('frontend/desktop-client/install-linux.sh'), /npm install --omit=dev/);
 });
 
 test('Linux installer bootstraps Node/npm locally, checks SHA-256, and diagnoses Electron libraries', () => {
-  const script = read('desktop-client/install-linux.sh');
+  const script = read('frontend/desktop-client/install-linux.sh');
   assert.match(script, /latest-v24\.x/);
   assert.match(script, /sha256sum -c/);
   assert.match(script, /install_local_node/);
@@ -37,10 +37,10 @@ test('Linux installer bootstraps Node/npm locally, checks SHA-256, and diagnoses
 
 
 test('Electron postinstall is narrowly approved and installation verifies native binary', () => {
-  const pkg = JSON.parse(read('desktop-client/package.json'));
+  const pkg = JSON.parse(read('frontend/desktop-client/package.json'));
   assert.equal(pkg.dependencies.electron, '35.7.5');
   assert.deepEqual(pkg.allowScripts, { 'electron@35.7.5': true });
-  const script = read('desktop-client/install-linux.sh');
+  const script = read('frontend/desktop-client/install-linux.sh');
   assert.match(script, /npm rebuild electron/);
   assert.match(script, /ELECTRON_MARKER=/);
   assert.match(script, /INSTALLED_ELECTRON_VERSION=/);

@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.40
+# TMP Camera Surveillance Next 2.20.41
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -30,6 +30,10 @@ On Ubuntu, Debian, Linux Mint and Fedora with systemd, the first start can also 
 The first start creates `.env`, generates secure application secrets, prepares persistent storage and builds the Docker services automatically.
 
 For the complete setup procedure, NAS notes, reverse-proxy guidance, updates, backups and troubleshooting, read `INSTALLATION.md`.
+
+## Updates across supported older versions
+
+The complete GitHub source archive and the downloadable update ZIP use a stable root-directory layout supported since v2.20.32. A server at any tested release from v2.20.32 onward can validate the v2.20.41 package directly; it does not need to install every intermediate release. See `docs/UPGRADE_COMPATIBILITY.md` for the supported baseline, compatibility checks, data safety and recovery steps. Releases below v2.20.32 must use an individually verified intermediate bridge, not bypass the validation rules.
 
 ## Installation and GitHub updates
 
@@ -63,7 +67,7 @@ Version 2.20.40 nutzt fuer als H.264 erkannte Kamera-Profile zunaechst go2rtc `#
 
 ## Desktop client for Linux workstations
 
-Authenticated users can open **Desktop-Client** in the left navigation and download `TMP-Camera-Desktop-Linux-x64.zip`. It provides a dedicated Electron window connected to the existing Docker server, without opening Firefox or Chrome. After extracting on a Linux x86_64 workstation, run `sh ./install-linux.sh`. The installer automatically downloads and checksum-verifies a local Node.js 24 LTS runtime including npm if needed, then downloads Electron. The Electron postinstall hook is specifically approved for its pinned version and native runtime presence is verified. Missing Electron libraries on Debian/Ubuntu/Linux Mint can be installed with a sudo password prompt. Run the installer as the regular user (not with sudo). TLS certificate validation remains enabled. No extra server or Docker instance is installed. Source and install instructions are in `desktop-client/`.
+Authenticated users can open **Desktop-Client** in the left navigation and download `TMP-Camera-Desktop-Linux-x64.zip`. It provides a dedicated Electron window connected to the existing Docker server, without opening Firefox or Chrome. After extracting on a Linux x86_64 workstation, run `sh ./install-linux.sh`. The installer automatically downloads and checksum-verifies a local Node.js 24 LTS runtime including npm if needed, then downloads Electron. The Electron postinstall hook is specifically approved for its pinned version and native runtime presence is verified. Missing Electron libraries on Debian/Ubuntu/Linux Mint can be installed with a sudo password prompt. Run the installer as the regular user (not with sudo). TLS certificate validation remains enabled. No extra server or Docker instance is installed. Source and install instructions are in `frontend/desktop-client/`.
 
 ## Frontend foundation
 
@@ -83,7 +87,7 @@ They contain the installation identity, credentials, configuration, database, lo
 ## Documentation
 
 - `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.40.md` - current release notes
+- `UPDATE_NOTES_2.20.41.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources

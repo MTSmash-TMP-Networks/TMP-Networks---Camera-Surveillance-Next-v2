@@ -1,0 +1,17 @@
+name: Cross-version update compatibility
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  legacy-upgrade-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Validate legacy root paths and source manifest
+        run: node scripts/check-update-compatibility.mjs
+      - name: Validate updater compatibility regressions
+        run: node --test backend/test-node/update-compatibility.test.mjs

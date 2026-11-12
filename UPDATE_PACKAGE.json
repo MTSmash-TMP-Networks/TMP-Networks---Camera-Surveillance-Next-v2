@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.40",
-  "minimumVersion": "2.20.39",
-  "title": "TMP Camera Surveillance Next 2.20.40",
-  "summary": "Reduce N97 CPU load with verified H.264 stream copy and per-camera VAAPI fallback.",
-  "createdAt": "2026-11-12T12:34:59+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.40.md",
+  "version": "2.20.41",
+  "minimumVersion": "2.20.32",
+  "title": "TMP Camera Surveillance Next 2.20.41",
+  "summary": "Direct upgrades from all validated legacy releases v2.20.32+; stable source and ZIP compatibility.",
+  "createdAt": "2026-11-12T12:56:06+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.41.md",
   "changes": [
-    "Verified H.264 copy-first instead of unnecessary libx264 transcoding",
-    "Per camera/profile/source VAAPI fallback rather than global GPU shutdown",
-    "Independent broker variants protect concurrent video sessions and recordings"
+    "Direct GitHub/ZIP update support from v2.20.32 and newer without chained intermediate releases",
+    "Move desktop client source inside frontend for old updater path validation",
+    "Prevent future incompatible releases via machine-checked GitHub workflow"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.40.md",
+  "changelog": "UPDATE_NOTES_2.20.41.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.40",
-  "packageId": "tmp-camera-surveillance-next-2.20.40",
-  "fromVersion": "2.20.39",
-  "compatibleFrom": "2.20.39",
-  "description": "Fix redundant go2rtc H.264 re-encoding and Intel global fallback.",
-  "minVersion": "2.20.39",
-  "releaseNotes": "Copy-first for H.264, codec verification and isolated hardware fallback.",
-  "fileCount": 436
+  "name": "TMP Camera Surveillance Next v2.20.41",
+  "packageId": "tmp-camera-surveillance-next-2.20.41",
+  "fromVersion": "2.20.32",
+  "compatibleFrom": "2.20.32",
+  "description": "Stable cross-version release contract for legacy GitHub and ZIP updates.",
+  "minVersion": "2.20.32",
+  "releaseNotes": "Direct compatibility baseline 2.20.32, legacy path-safe desktop source and release guard.",
+  "fileCount": 440
 }

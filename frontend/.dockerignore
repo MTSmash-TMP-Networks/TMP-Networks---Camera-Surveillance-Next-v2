@@ -3,3 +3,5 @@ dist
 coverage
 *.log
 test
+# Source is shipped in the update, not in the web frontend image.
+desktop-client

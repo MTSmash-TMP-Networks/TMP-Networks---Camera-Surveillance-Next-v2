@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.40 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next 2.20.41 and the most common maintenance tasks.
 
 ## 1. Requirements
 
@@ -520,11 +520,16 @@ Open **Desktop-Client** from the authenticated application's sidebar and downloa
 
 ## GitHub direct updates
 
-After upgrading to 2.20.40, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
+After upgrading to 2.20.41, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
 
-For the initial repair from older releases, upload the full 2.20.40 ZIP through the existing ZIP upload option.
+For the initial repair from older releases, upload the full 2.20.41 ZIP through the existing ZIP upload option.
 
 
 ### Optional Intel VAAPI video acceleration
 
 See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated hardware encoding smoke test before setting `GO2RTC_FFMPEG_HARDWARE=vaapi` and `ENABLE_INTEL_GPU_COMPOSE=true`; a render-device-only Compose override is used instead of privileged containers. CPU fallback is built into the live-stream startup. The default remains software for NAS and non-Intel systems.
+
+
+### Versionsuebergreifende Aktualisierung
+
+Ab v2.20.32 kann auf v2.20.41 direkt via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.

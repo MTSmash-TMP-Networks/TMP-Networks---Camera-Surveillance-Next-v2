@@ -1,3 +1,11 @@
+## 2.20.41 - Versionsuebergreifende Updates ab 2.20.32
+
+- Das GitHub-Quellarchiv enthaelt ausschliesslich Wurzelpfade, die bereits der Updater 2.20.32 erlaubt. Die Desktop-Client-Quellen liegen jetzt unter `frontend/desktop-client/`; der eigentliche herunterladbare Linux-Client bleibt unveraendert unter `frontend/public/downloads/`.
+- `minimumVersion`, `minVersion`, `compatibleFrom` und `fromVersion` im Vollupdate werden auf die getestete Kompatibilitaetsbasis 2.20.32 ausgerichtet statt auf die unmittelbar vorherige Version.
+- Automatischer Release-Check blockiert inkompatible Root-Verzeichnisse, fehlende Prüfsummen, Versionsabweichungen und eine unbeabsichtigt angehobene Mindestversion.
+- Alter Updater wird bei einem Update nicht eigenmaechtig im laufenden Prozess ersetzt; vorhandener Backup-/Rollback-Weg und `.env`, `data/`, `.git` bleiben geschuetzt.
+- Eine direkte Aktualisierung aus noch aelteren oder unbekannten Staenden bleibt ohne separate Bridge-Pruefung gesperrt.
+
 ## 2.20.40 - CPU-Sparmodus fuer H.264-Streams und profilgebundener VAAPI-Fallback
 
 - Bereits H.264-kodierte Kamerastreams werden standardmaessig mit go2rtc `#video=copy` statt erneutem libx264-Encoding weitergegeben.
