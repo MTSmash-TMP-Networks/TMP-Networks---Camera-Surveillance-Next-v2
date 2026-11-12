@@ -50,6 +50,14 @@ describe('Nahtloser Live-/Kiosk-Stream', () => {
     expect(poolSource).toContain('compatibleEntry(options)');
     expect(poolSource).toContain('allowCompatibleReuse');
     expect(kioskPageSource).toContain('reconnectSignal={refreshEpoch}');
-    expect(kioskPageSource).toContain('key={camera.id}');
+    expect(kioskPageSource).toContain("key={`${item.id}:${camera?.id || 'empty'}`}");
+  });
+
+  it('bindet einen festen Kioskstream nicht bei jeder ResizeObserver-Aenderung neu an', () => {
+    expect(playerSource).toContain("const requestedQuality = quality === 'auto' ? automaticQuality : quality");
+    expect(playerSource).toContain("const connectionViewportWidth = requestedQuality === 'low' ? 640");
+    expect(playerSource).toContain('waitingForAdaptiveMeasurement');
+    expect(playerSource).toContain('viewportWidth: connectionViewportWidth');
+    expect(playerSource).not.toContain('transportMode, viewportWidth, compact, connectDelayMs');
   });
 });
