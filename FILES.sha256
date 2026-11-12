@@ -142,7 +142,7 @@ fb77ddc1fdf561c61aef69802a72827564fc18f153ceb59d4569c26ad1cb4d84  backend/test-n
 8866e99acca933f0412e0e3437f51ca2bbb40de87763ac306c3888d9fd5b2652  backend/test-node/github-archive-integrity-regression.test.mjs
 b6219b10ca0077cefd821ed4d3ad1c634e0fef83c3cd36b97ef93c62958f9e0f  backend/test-node/github-update-regression.test.mjs
 f57615000db75f5a482dd7af4f72556e6d8eaa7fbd88c826af3e6ff91fe952c4  backend/test-node/go2rtc-control-api.test.mjs
-c5c0c564d9e5ca978ef85cbcd49d0f12ff4881b3b5e1ba7c5a72494034f69473  backend/test-node/intel-vaapi-deployment.test.mjs
+0a6cb666dd770f19a075b114e0a40f6ac204b653c18e93998a4dce9a6cbb1d51  backend/test-node/intel-vaapi-deployment.test.mjs
 0764ed337a9192a676fa954ff1b2c91dda000add182b2950ed0c0389f0e49d76  backend/test-node/local-hls-command.test.mjs
 6d4d3f4c00fa59c886530100c002ca27f872419bea746f4fb6facd415280a9ce  backend/test-node/local-hls-http-runtime.test.mjs
 6a1386fc9420de1ffed1343c004354cdacbac0489b8304e545bb8723a42c446d  backend/test-node/network-recording-storage-regression.test.mjs
@@ -160,7 +160,7 @@ f8a94e591685268d4845a72064b00023dcb71dd3e9a872a63ff6490076a2a89e  backend/test-n
 1528d8237e0fdc6530db112ffa506390ea128ba77b43854ae274e8e312f01d2e  backend/test-node/smtp-client.test.mjs
 7a30d95b7c4a34b6460a7f6bebb0e6e4b6399ac1d7888c0b84d586f4611c5cee  backend/test-node/standalone-license.test.mjs
 a581be38b5887a251434cc766cd0299ce19c1f69076f673ee3198816beb0d3b8  backend/test-node/stream-progress-tracker.test.mjs
-ea2cd13b8092166f076a659c1c4d61eb2666bdf69d6599db776258acdcfebda7  backend/test-node/stream-stability-regression.test.mjs
+bf43a2f9519dd15ae95d3135fb6aa287dbcc7cbf9df17d650d0df02248616519  backend/test-node/stream-stability-regression.test.mjs
 d157547278e304f2f5fd8f4217aa7cbc22e354f851ccb502b3e8abca639334ad  backend/test-node/system-restart-control.test.mjs
 0aca9ffe2b1d552114f380f901732c9c092562bc74aa5acde2a366c386d2cb11  backend/test-node/system-storage-live-regression.test.mjs
 2f4906652088fb99582e2f20f9575891ce701bc0a92c43eb2a7f3a004fefcbf4  backend/test-node/update-compatibility.test.mjs
