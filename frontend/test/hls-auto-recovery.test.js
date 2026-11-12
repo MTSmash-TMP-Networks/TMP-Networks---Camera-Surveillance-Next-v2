@@ -18,13 +18,21 @@ describe('Automatic HLS recovery', () => {
     expect(poolSource).toContain("this.finishHlsRecovery(entry, 'playing')");
   });
 
-  it('uses staged hls.js recovery and a hard timeout', () => {
+  it('uses staged fatal recovery but keeps non-fatal buffer stalls silent', () => {
     expect(hlsSource).toContain('RECOVERY_WATCHDOG_MS');
     expect(hlsSource).toContain('recoverNetwork');
     expect(hlsSource).toContain('recoverMedia');
-    expect(hlsSource).toContain('recoverSoftStall');
+    expect(hlsSource).toContain('nudgeSoftStall');
+    expect(hlsSource).not.toContain('recoverSoftStall');
+    expect(hlsSource).toContain('bufferedAhead(video) < 0.25');
     expect(hlsSource).toContain('recoveryTimedOut');
     expect(hlsSource).toContain('swapAudioCodec');
     expect(hlsSource).toContain('seekToLiveEdge');
+  });
+
+  it('does not jump to the live edge for every buffered fragment', () => {
+    const fragmentHandler = hlsSource.match(/Hls\.Events\.FRAG_BUFFERED[\s\S]*?\n  \}\);/)?.[0] || '';
+    expect(fragmentHandler).toContain('safePlay(video)');
+    expect(fragmentHandler).not.toContain('seekToLiveEdge');
   });
 });
