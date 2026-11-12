@@ -433,7 +433,7 @@ class LiveStreamPool {
     resetVideo(entry.video);
     entry.update({ state: 'starting', protocol: null, message: 'Stream-Sitzung wird vorbereitet …', hasAudio: null, snapshotMode: false });
 
-    const attempts = TRANSCODE_FALLBACK ? [false, true] : [false];
+    const attempts = TRANSCODE_FALLBACK && entry.purpose !== 'kiosk' ? [false, true] : [false];
     let lastError = null;
     for (const forceTranscode of attempts) {
       if (stale()) return;
