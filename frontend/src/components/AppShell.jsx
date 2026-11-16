@@ -22,7 +22,6 @@ export function AppShell() {
   const location = useLocation();
   const user = useSelector((state) => state.auth.user);
   const runtime = useSelector((state) => state.auth.runtime);
-  const cameras = useSelector((state) => state.cameras.items);
   const cameraStatus = useSelector((state) => state.cameras.status);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readCollapsedState);
 
