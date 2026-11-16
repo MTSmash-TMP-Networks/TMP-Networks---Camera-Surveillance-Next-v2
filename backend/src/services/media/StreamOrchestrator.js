@@ -131,6 +131,10 @@ class StreamOrchestrator {
     this.sessions = new Map();
     this.controlResyncTimers = new Map();
     this.cameraStartLocks = new Map();
+    // Global start queue: only one camera may open RTSP/go2rtc/HLS at a time.
+    this.globalCameraStartTail = Promise.resolve();
+    this.permanentBootstrapActive = false;
+    this.deferredPermanentRestartKeys = new Set();
     this.brokerRefs = new Map();
     // Encoder fallback is intentionally sticky per camera/profile/source.
     // Once copy or VAAPI failed and a more conservative encoder took over,
@@ -145,18 +149,21 @@ class StreamOrchestrator {
 
   async startSerialized(session, camera, viewportWidth) {
     const cameraId = String(camera?.id || session?.cameraId || 'camera');
-    const previous = this.cameraStartLocks.get(cameraId) || Promise.resolve();
-    const current = previous
+    const previousGlobal = this.globalCameraStartTail || Promise.resolve();
+    this.log(session, 'debug', 'stream', 'GLOBAL_CAMERA_START_QUEUED', 'Kamera wartet auf die globale Verbindungswarteschlange; nur ein RTSP/go2rtc/HLS-Aufbau darf gleichzeitig laufen');
+    const current = previousGlobal
       .catch(() => null)
       .then(async () => {
-        this.log(session, 'debug', 'stream', 'CAMERA_START_LOCK_ACQUIRED', 'Kamera-Verbindungsaufbau wird serialisiert, damit keine parallelen RTSP-Starts entstehen');
+        this.log(session, 'debug', 'stream', 'GLOBAL_CAMERA_START_ACQUIRED', 'Kamera ist jetzt alleiniger aktiver Verbindungsaufbau');
         return this.start(session, camera, viewportWidth);
       });
+    this.globalCameraStartTail = current;
     this.cameraStartLocks.set(cameraId, current);
     try {
       return await current;
     } finally {
       if (this.cameraStartLocks.get(cameraId) === current) this.cameraStartLocks.delete(cameraId);
+      if (this.globalCameraStartTail === current) this.globalCameraStartTail = Promise.resolve();
     }
   }
 
@@ -1229,6 +1236,11 @@ class StreamOrchestrator {
 
   scheduleRestart(session, requestedDelayMs = null) {
     if (session.restartTimer) return;
+    if (session.permanent && this.permanentBootstrapActive) {
+      this.deferredPermanentRestartKeys.add(session.key);
+      this.log(session, 'debug', 'stream', 'AUTO_RESTART_DEFERRED_BOOTSTRAP', 'Permanenter Stream-Restart wird bis zum Ende des seriellen Kamera-Bootstraps zurückgestellt');
+      return;
+    }
     const baseDelay = requestedDelayMs === null
       ? Math.min(config.streamRestartInitialDelayMs * (2 ** Math.min(session.restartCount, 5)), config.maxRestartBackoffMs)
       : Math.max(0, Number(requestedDelayMs) || 0);
@@ -1716,21 +1728,36 @@ class StreamOrchestrator {
   async startPermanentIngestForAll({ wait = false, staggerMs = config.permanentIngestStartupStaggerMs } = {}) {
     if (!config.permanentIngestEnabled) return { started: 0, reason: 'disabled' };
     const cameras = cameraRepository.listEnabled();
-    let started = 0;
-    for (const [index, camera] of cameras.entries()) {
-      const run = async () => {
-        await this.startPermanentIngestForCamera(camera.id, { wait, reason: 'backend-startup' });
-      };
-      if (wait) await run();
-      else {
-        const delay = Math.max(0, Number(staggerMs) || 0) * index;
-        const timer = setTimeout(() => { void run(); }, delay);
-        timer.unref?.();
+    const pauseMs = Math.max(0, Number(staggerMs) || 0);
+
+    const bootstrap = async () => {
+      this.permanentBootstrapActive = true;
+      logger.info({ cameras: cameras.length, pauseMs }, 'Serieller Kamera-Bootstrap startet; Streams werden strikt nacheinander aufgebaut');
+      let started = 0;
+      try {
+        for (const [index, camera] of cameras.entries()) {
+          await this.startPermanentIngestForCamera(camera.id, { wait: true, reason: 'backend-startup' });
+          started += 1;
+          if (pauseMs > 0 && index < cameras.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, pauseMs));
+          }
+        }
+      } finally {
+        this.permanentBootstrapActive = false;
+        const deferredKeys = [...this.deferredPermanentRestartKeys];
+        this.deferredPermanentRestartKeys.clear();
+        for (const key of deferredKeys) {
+          const session = this.sessions.get(key);
+          if (session?.permanent && session.state === 'failed' && !session.restartTimer) this.scheduleRestart(session);
+        }
       }
-      started += 1;
-    }
-    logger.info({ started, quality: permanentQuality(), permanentIngest: true }, 'Permanente Kamera-Publisher wurden initialisiert');
-    return { started, quality: permanentQuality() };
+      logger.info({ started, quality: permanentQuality(), permanentIngest: true }, 'Serieller Kamera-Bootstrap wurde abgeschlossen');
+      return { started, quality: permanentQuality() };
+    };
+
+    if (wait) return bootstrap();
+    void bootstrap().catch((error) => logger.error({ err: error }, 'Serieller Kamera-Bootstrap ist fehlgeschlagen'));
+    return { started: cameras.length, quality: permanentQuality(), queued: true };
   }
 
   async shutdown() {
