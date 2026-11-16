@@ -22,19 +22,10 @@ export function AppShell() {
   const location = useLocation();
   const user = useSelector((state) => state.auth.user);
   const runtime = useSelector((state) => state.auth.runtime);
-  const cameras = useSelector((state) => state.cameras.items);
   const cameraStatus = useSelector((state) => state.cameras.status);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readCollapsedState);
 
   useEffect(() => { if (cameraStatus === 'idle') dispatch(loadCameras()); }, [dispatch, cameraStatus]);
-  useEffect(() => {
-    const path = String(location.pathname || '');
-    if (path.startsWith('/kiosk') || path.startsWith('/live')) {
-      liveStreamPool.syncPersistentCameras([]);
-      return;
-    }
-    liveStreamPool.syncPersistentCameras(cameras);
-  }, [cameras, location.pathname]);
   useEffect(() => () => { liveStreamPool.destroyAll({ force: true }); }, []);
 
   function toggleSidebar() {

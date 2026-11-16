@@ -1482,6 +1482,46 @@ class StreamOrchestrator {
     return this.publicSession(session, true);
   }
 
+  findPermanentIngestSession(cameraId) {
+    const camera = cameraRepository.get(cameraId);
+    if (!camera || camera.enabled === false) return null;
+    const requestedProfile = permanentProfileToken(camera, null);
+    const key = sessionKey(cameraId, permanentQuality(), requestedProfile, 'ingest');
+    return this.sessions.get(key) || [...this.sessions.values()].find((session) =>
+      String(session.cameraId) === String(cameraId)
+      && (session.purpose || 'live') === 'ingest'
+      && Boolean(session.permanent)
+    ) || null;
+  }
+
+  centralPreview(cameraId, { includePaths = true } = {}) {
+    if (this.closed) throw new AppError(503, 'STREAM_SERVICE_STOPPED', 'Stream-Dienst wird gerade beendet');
+    const camera = cameraRepository.get(cameraId);
+    if (!camera || camera.enabled === false) throw new AppError(404, 'CAMERA_NOT_FOUND', 'Kamera nicht gefunden oder deaktiviert');
+    const session = this.findPermanentIngestSession(cameraId);
+    if (!session) return null;
+    this.markCameraOnlineIfReady(session, 'central-preview-read');
+    return this.publicSession(session, includePaths);
+  }
+
+  centralPreviewStatus(cameraId) {
+    const session = this.findPermanentIngestSession(cameraId);
+    if (!session) return null;
+    const ready = session.state === 'ready' && Boolean(session.outputs?.hls) && this.isSessionProcessAlive(session);
+    return {
+      ready,
+      state: session.state,
+      phase: session.phase,
+      phaseMessage: session.phaseMessage,
+      lastError: session.lastError,
+      restartAt: session.restartAt ? new Date(session.restartAt).toISOString() : null,
+    };
+  }
+
+  hasReadyPermanent(cameraId) {
+    return Boolean(this.centralPreviewStatus(cameraId)?.ready);
+  }
+
   findSession(cameraId, quality = 'auto', viewportWidth = 1280, profileToken = null, purpose = 'live', forceTranscode = false) {
     const consumerPurpose = normalizeConsumerPurpose(purpose);
     const effectiveForceTranscode = Boolean(forceTranscode && config.browserTranscodeFallbackEnabled && consumerPurpose !== 'kiosk');
@@ -1512,12 +1552,16 @@ class StreamOrchestrator {
 
 
   async heartbeat(cameraId, { quality = 'auto', viewportWidth = 1280, profileToken = null, purpose = 'live', forceTranscode = false } = {}) {
-    await this.ensure(cameraId, { quality, viewportWidth, profileToken, purpose, forceTranscode }, { wait: false });
-    const session = this.findSession(cameraId, quality, viewportWidth, profileToken, purpose, forceTranscode);
-    // Client heartbeats are leases, not restart orders. A visible browser can
-    // still receive frames even when FFmpeg progress output is temporarily quiet,
-    // so hard recovery is left to the backend watchdog after go2rtc checks.
-    const current = this.findSession(cameraId, quality, viewportWidth, profileToken, purpose, forceTranscode) || session;
+    const consumerPurpose = normalizeConsumerPurpose(purpose);
+    const permanentReadOnly = shouldUsePermanentIngest(consumerPurpose, Boolean(forceTranscode), quality, profileToken);
+    if (!permanentReadOnly) {
+      await this.ensure(cameraId, { quality, viewportWidth, profileToken, purpose, forceTranscode }, { wait: false });
+    }
+    // Central preview consumers are strictly read-only. Browser heartbeat must
+    // never create, restart or reconfigure a camera publisher.
+    const current = permanentReadOnly
+      ? this.findPermanentIngestSession(cameraId)
+      : this.findSession(cameraId, quality, viewportWidth, profileToken, purpose, forceTranscode);
     this.markCameraOnlineIfReady(current, 'heartbeat-ready');
     return {
       serverTime: new Date().toISOString(),
@@ -1782,6 +1826,25 @@ class StreamOrchestrator {
       && (this.isSessionProcessAlive(session) || ['snapshot', 'snapshot-video'].includes(session.mode)));
   }
 
+  async reconcilePermanentIngestSessions() {
+    if (!config.permanentIngestEnabled) return;
+    const enabled = cameraRepository.listEnabled();
+    // Missing permanent publishers are repaired only by the backend. Start at
+    // most one missing camera per maintenance pass; the global queue remains the
+    // sole owner of camera connection sequencing.
+    const missing = enabled.find((camera) => !this.findPermanentIngestSession(camera.id));
+    if (missing) {
+      void this.startPermanentIngestForCamera(missing.id, { wait: false, reason: 'backend-maintenance-missing-preview' });
+      return;
+    }
+    for (const camera of enabled) {
+      const session = this.findPermanentIngestSession(camera.id);
+      if (session?.state === 'failed' && !session.restartTimer && !this.deferredPermanentRestartKeys.has(session.key)) {
+        this.scheduleRestart(session);
+      }
+    }
+  }
+
   async reconcileBrokerRefs() {
     for (const [key, entry] of this.brokerRefs.entries()) {
       const owners = [...this.sessions.values()].filter((session) => session.brokerRefKey === key).length;
@@ -1819,6 +1882,7 @@ class StreamOrchestrator {
       }
       if (this.isSessionStalled(session, now) && !(await this.refreshStreamBrokerLiveness(session, 'backend-watchdog'))) await this.recoverStalledSession(session, 'backend-watchdog');
     }
+    await this.reconcilePermanentIngestSessions();
     await this.reconcileBrokerRefs();
   }
 

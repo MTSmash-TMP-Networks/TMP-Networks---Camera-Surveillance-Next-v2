@@ -22,7 +22,15 @@ const PTZ_BROWSER_RESYNC_MS = Math.max(500, Number(import.meta.env.VITE_PTZ_BROW
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
-function keyOf({ cameraId, quality, profileToken, purpose = 'live', transportMode = 'auto' }) { return `${cameraId}|${purpose}|${quality}|${profileToken || 'auto'}|${transportMode || 'auto'}`; }
+function isCentralPreviewRequest({ purpose = 'live', quality = 'auto', profileToken = '', forceTranscode = false } = {}) {
+  if (forceTranscode) return false;
+  if (purpose === 'kiosk') return true;
+  return purpose === 'live' && quality === 'auto' && !profileToken;
+}
+function keyOf({ cameraId, quality, profileToken, purpose = 'live', transportMode = 'auto' }) {
+  if (isCentralPreviewRequest({ purpose, quality, profileToken })) return `${cameraId}|central-preview|local-hls`;
+  return `${cameraId}|${purpose}|${quality}|${profileToken || 'auto'}|${transportMode || 'auto'}`;
+}
 function wantsLocalHls(entry) { return String(entry?.transportMode || '').toLowerCase() === 'local-hls'; }
 function resetVideo(video) {
   try { video.pause(); } catch { /* ignored */ }
@@ -160,7 +168,29 @@ function waitForFrameProgress(video, timeout = 7000, signal = null) {
     check();
   });
 }
+async function waitForCentralPreview(entry, isStale) {
+  const deadline = Date.now() + 300000;
+  while (Date.now() < deadline) {
+    if (isStale()) throw new DOMException('Verbindungsaufbau abgebrochen', 'AbortError');
+    const session = await api.streamPreview(entry.cameraId);
+    entry.update({
+      state: 'starting',
+      protocol: session.transport?.toUpperCase() || 'ONVIF',
+      message: session.state === 'failed'
+        ? (session.restartAt ? `Zentraler Stream wird ab ${new Date(session.restartAt).toLocaleTimeString()} wiederhergestellt …` : 'Zentraler Stream wird vom Backend wiederhergestellt …')
+        : session.phaseMessage || 'Zentraler Kamera-Stream wird vorbereitet …',
+    });
+    if (session.state === 'ready' && session.hlsUrl) return session;
+    await sleep(700);
+  }
+  throw new Error('Zentraler Kamera-Stream wurde nicht rechtzeitig bereit');
+}
+
 async function waitForServerSession(entry, isStale, forceTranscode = false) {
+  if (isCentralPreviewRequest({ purpose: entry.purpose, quality: entry.quality, profileToken: entry.profileToken, forceTranscode })) {
+    return waitForCentralPreview(entry, isStale);
+  }
+
   const input = {
     quality: entry.quality,
     viewportWidth: entry.viewportWidth,
@@ -172,29 +202,18 @@ async function waitForServerSession(entry, isStale, forceTranscode = false) {
   let session = await api.streamSession(entry.cameraId, input);
   const requestedQuality = input.quality;
   let trackedQuality = session.quality || input.quality;
-  const permanentRecovery = session.state === 'failed' && session.permanent;
-  entry.update({
-    state: permanentRecovery ? 'starting' : session.state === 'failed' ? 'failed' : 'starting',
-    protocol: session.transport?.toUpperCase() || 'ONVIF',
-    message: permanentRecovery ? 'Kamera-Publisher wartet auf kontrollierten Wiederaufbau …' : session.phaseMessage || 'Kamerastream wird vorbereitet …',
-  });
+  entry.update({ state: session.state === 'failed' ? 'failed' : 'starting', protocol: session.transport?.toUpperCase() || 'ONVIF', message: session.phaseMessage || 'Kamerastream wird vorbereitet …' });
   if (session.state === 'ready') {
     const ready = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: true });
     if (forceTranscode && !ready.forceTranscode) throw new Error('Browser-Transcode-Fallback ist serverseitig nicht verfügbar');
     return ready;
   }
-  const warmLiveAuto = entry.purpose === 'live' && entry.quality === 'auto' && !entry.profileToken;
-  const usesPermanentPreview = entry.purpose === 'kiosk' || warmLiveAuto || Boolean(session.permanent);
-  const deadline = Date.now() + (usesPermanentPreview ? 300000 : 180000);
+  const deadline = Date.now() + 180000;
   const expectedPurposes = forceTranscode
     ? ['browser-fallback']
-    : entry.purpose === 'kiosk'
-      ? ['ingest']
-      : warmLiveAuto
-        ? ['ingest', 'mainstream', 'live']
-        : entry.purpose === 'live'
-          ? ['mainstream', 'live']
-          : [entry.purpose || 'live'];
+    : entry.purpose === 'live'
+      ? ['mainstream', 'live']
+      : [entry.purpose || 'live'];
   let poll = 0;
   while (Date.now() < deadline) {
     if (isStale()) throw new DOMException('Verbindungsaufbau abgebrochen', 'AbortError');
@@ -202,30 +221,19 @@ async function waitForServerSession(entry, isStale, forceTranscode = false) {
     const response = await api.streamStatus(entry.cameraId);
     const matchingSessions = (response.items || []).filter((item) => expectedPurposes.includes(item.purpose || 'live')
       && ((item.purpose || 'live') === 'mainstream'
-        || (item.purpose || 'live') === 'ingest'
         || !item.consumerPurpose
         || item.consumerPurpose === (entry.purpose || 'live')));
     const matching = matchingSessions.find((item) => item.quality === trackedQuality
       && (item.requestedProfileToken || '') === (entry.profileToken || '')) || matchingSessions[0];
     if (matching) {
       trackedQuality = matching.quality || trackedQuality;
-      const backendRecovery = matching.state === 'failed' && matching.permanent;
-      entry.update({
-        state: backendRecovery ? 'starting' : matching.state === 'failed' ? 'failed' : 'starting',
-        protocol: matching.transport?.toUpperCase() || 'ONVIF',
-        message: backendRecovery
-          ? (matching.restartAt ? `Kontrollierter Wiederaufbau ab ${new Date(matching.restartAt).toLocaleTimeString()} …` : 'Kamera-Publisher wird kontrolliert wiederhergestellt …')
-          : matching.phaseMessage || 'Streamstatus wird geprüft …',
-      });
+      entry.update({ state: matching.state === 'failed' ? 'failed' : 'starting', protocol: matching.transport?.toUpperCase() || 'ONVIF', message: matching.phaseMessage || 'Streamstatus wird geprüft …' });
       if (matching.state === 'ready') {
         const ready = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: true });
         if (forceTranscode && !ready.forceTranscode) throw new Error('Browser-Transcode-Fallback ist serverseitig nicht verfügbar');
         return ready;
       }
-      if (matching.state === 'failed') {
-        if (matching.permanent) continue;
-        throw new Error(matching.lastError || matching.phaseMessage || 'Kamerastream konnte nicht gestartet werden');
-      }
+      if (matching.state === 'failed') throw new Error(matching.lastError || matching.phaseMessage || 'Kamerastream konnte nicht gestartet werden');
     }
     poll += 1;
     if (poll % 20 === 0) session = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: false });
@@ -595,17 +603,28 @@ class LiveStreamPool {
     if (entry.heartbeat) clearInterval(entry.heartbeat);
     entry.heartbeat = setInterval(async () => {
       try {
-        const heartbeat = await api.streamHeartbeat(entry.cameraId, { quality: entry.quality, viewportWidth: entry.viewportWidth, profileToken: entry.profileToken || null, purpose: entry.purpose || 'live', forceTranscode: entry.forceTranscode });
-        const session = heartbeat.session || heartbeat;
+        const centralPreview = isCentralPreviewRequest({ purpose: entry.purpose, quality: entry.quality, profileToken: entry.profileToken, forceTranscode: entry.forceTranscode });
+        const heartbeat = centralPreview
+          ? await api.streamPreview(entry.cameraId)
+          : await api.streamHeartbeat(entry.cameraId, { quality: entry.quality, viewportWidth: entry.viewportWidth, profileToken: entry.profileToken || null, purpose: entry.purpose || 'live', forceTranscode: entry.forceTranscode });
+        const session = centralPreview ? heartbeat : (heartbeat.session || heartbeat);
         entry.hlsTokenRef.current = heartbeat.tokens?.hls || session?.tokens?.hls || entry.hlsTokenRef.current;
         const backendFailed = session?.state === 'failed' || session?.ffmpegRunning === false;
         const backendSoftStall = Boolean(session?.stalled || Number(session?.progressAgeMs || 0) > STALL_MS * 1.5);
         if (backendFailed) {
-          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_FAILED', 'Backend meldet einen ausgefallenen Streamprozess', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled, ffmpegRunning: session?.ffmpegRunning });
-          if (hasActiveConsumer(entry)) this.reconnect(entry, 'Backend-Stream wird wiederhergestellt …', 0);
+          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_FAILED', 'Backend meldet einen ausgefallenen Streamprozess', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled, ffmpegRunning: session?.ffmpegRunning, centralPreview });
+          if (centralPreview) {
+            // Backend owns recovery. Keep the current video element and last
+            // decoded/buffered frame in place instead of visibly tearing down
+            // the Kiosk player just because the publisher is being repaired.
+            entry.update({
+              state: 'recovering',
+              message: session?.restartAt ? `Zentraler Stream wird ab ${new Date(session.restartAt).toLocaleTimeString()} wiederhergestellt …` : 'Zentraler Stream wird im Backend wiederhergestellt …',
+            });
+          } else if (hasActiveConsumer(entry)) this.reconnect(entry, 'Backend-Stream wird wiederhergestellt …', 0);
         } else if (backendSoftStall && hasActiveConsumer(entry) && browserVisible() && !hasRecentBrowserFrames(entry, STALL_MS)) {
-          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_STALLED', 'Backend und Browser liefern keine neuen Frames; Verbindung wird neu aufgebaut', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled });
-          this.reconnect(entry, 'Backend-Heartbeat fordert Neuverbindung an …', 0);
+          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_STALLED', 'Backend und Browser liefern keine neuen Frames; Verbindung wird neu aufgebaut', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled, centralPreview });
+          if (!centralPreview) this.reconnect(entry, 'Backend-Heartbeat fordert Neuverbindung an …', 0);
         } else if (backendSoftStall) {
           const now = Date.now();
           if (now - Number(entry.lastBackendSoftStallReportAt || 0) > 60000) {

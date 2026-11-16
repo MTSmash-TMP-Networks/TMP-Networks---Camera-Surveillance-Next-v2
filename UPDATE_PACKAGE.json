@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.55",
+  "version": "2.20.56",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.55",
-  "summary": "Stabilize Live/Kiosk reconnects by making backend restart backoff authoritative, pinning the last working profile+transport candidate, and keeping permanent previews video-only.",
-  "createdAt": "2026-11-16T16:55:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.55.md",
+  "title": "TMP Camera Surveillance Next 2.20.56",
+  "summary": "Separate Kiosk and Live Auto from camera lifecycle control so they only read the backend-owned central preview publisher.",
+  "createdAt": "2026-11-16T16:20:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.56.md",
   "changes": [
-    "Browser waits through permanent publisher backend recovery instead of forcing new starts",
-    "Pin the last stable profile plus transport candidate across reconnects",
-    "Disable optional AAC transcode for permanent preview/motion/prebuffer paths and increase auto first-frame grace"
+    "Add a read-only central preview endpoint for Kiosk and Live Auto",
+    "Remove browser-owned prewarm/start paths and canonicalize Kiosk to one preview per camera",
+    "Make camera green status depend on the central preview plus Local-HLS readiness"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.55.md",
+  "changelog": "UPDATE_NOTES_2.20.56.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.55",
-  "packageId": "tmp-camera-surveillance-next-2.20.55",
+  "name": "TMP Camera Surveillance Next v2.20.56",
+  "packageId": "tmp-camera-surveillance-next-2.20.56",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Stable Live/Kiosk reconnect behavior without browser-driven restart storms.",
+  "description": "Backend-owned central preview architecture with read-only Kiosk and Live Auto consumers.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Permanent publisher recovery is backend-controlled; browser polling no longer bypasses backoff, stable TCP/UDP candidates remain pinned, and preview paths stay video-only.",
-  "fileCount": 457
+  "releaseNotes": "Kiosk and Live Auto no longer control camera starts or restarts; the backend owns the permanent preview lifecycle and frontend consumers only read it.",
+  "fileCount": 458
 }
