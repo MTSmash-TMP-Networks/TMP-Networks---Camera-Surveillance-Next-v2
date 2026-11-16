@@ -51,6 +51,8 @@ describe('Migration einer bestehenden Installation', () => {
     expect(payload.codecPreference).toBe('auto');
     expect(payload.sourcePolicy).toBe('auto');
     expect(payload.columns).toContain('codec_preference');
+    expect(payload.columns).toContain('mac_address');
+    expect(payload.columns).toContain('device_uid');
     expect(payload.columns).toContain('source_policy');
     expect(payload.sourceColumns).toContain('url');
     expect(payload.profileColumns).toContain('video_profile');

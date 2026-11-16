@@ -61,6 +61,11 @@ function recordingSourceDescriptor(mediaPath, protocol = 'hls') {
 }
 
 function recordingSourceCandidates(mediaPath) {
+  // The emergency snapshot publisher is a local HLS file, not a go2rtc stream.
+  // Read it directly with FFmpeg even if a legacy RTSP-only preference is set.
+  if (/^file:\/\//i.test(String(mediaPath || ''))) {
+    return [{ uri: mediaPath, protocol: 'hls', label: 'Snapshot-HLS lokal', needsMediaToken: false }];
+  }
   const raw = String(config.recordingSourceProtocol || 'auto').trim().toLowerCase();
   const rtsp = recordingSourceDescriptor(mediaPath, 'rtsp');
   const hls = recordingSourceDescriptor(mediaPath, 'hls');
@@ -719,7 +724,7 @@ class RecordingService {
     this.ensureStorage();
     const session = retained || await this.resolveRecordingSession(state);
     state.automationPermit?.assert('after-recording-session');
-    const mediaPath = retained?.path || session.paths?.hls;
+    const mediaPath = retained?.path || streamOrchestrator.retainedMediaPath(session);
     if (!mediaPath) throw new Error('Der unabhaengige Aufnahme-Medienpfad ist nicht verfuegbar');
 
     const sources = recordingSourceCandidates(mediaPath);
@@ -1501,7 +1506,11 @@ class RecordingService {
   }
 
   async shutdown() {
-    for (const state of [...this.active.values()]) await this.stop(state.id).catch(() => {});
+    // Independent camera recordings finalize concurrently; tasks for one
+    // camera remain serialized by the recording-control coordinator.
+    const results = await Promise.allSettled([...this.active.values()].map((state) => this.stop(state.id)));
+    const failed = results.filter((item) => item.status === 'rejected');
+    if (failed.length) throw new AggregateError(failed.map((item) => item.reason), `${failed.length} Aufnahme(n) konnten nicht abgeschlossen werden`);
   }
 }
 

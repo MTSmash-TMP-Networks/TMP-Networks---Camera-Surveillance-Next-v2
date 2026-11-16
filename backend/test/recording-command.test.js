@@ -32,6 +32,20 @@ describe('Aufnahme-FFmpeg-Kommandos', () => {
     expect(progressiveHttp).toEqual(expect.arrayContaining(['-reconnect_at_eof', '1']));
   });
 
+  it('liest lokalen Snapshot-HLS-Fallback ohne HTTP-Reconnect, Netzwerk-Timeout oder Medientoken', () => {
+    const uri = 'file:///data/live/cam_preview_hls/index.m3u8';
+    const args = buildRecordingArgs({
+      sourceUri: uri,
+      segmentPattern: '/data/recordings/block-%06d.ts.partial',
+      segmentSeconds: 30,
+    });
+    expect(args).toContain(uri);
+    expect(args).not.toContain('-reconnect');
+    expect(args).not.toContain('-rw_timeout');
+    expect(args).not.toContain('-headers');
+    expect(args).toEqual(expect.arrayContaining(['-c:v', 'copy', '-c:a', 'copy']));
+  });
+
   it('teilt einen dauerhaften Aufnahmeprozess ohne Stream-Neuverbindung in unabhängige Blöcke', () => {
     const args = buildRecordingArgs({
       sourceUri: 'http://127.0.0.1:8888/cam_hls/index.m3u8',

@@ -28,7 +28,9 @@ describe('Update-Center API', () => {
   it('liefert Version und Updaterstatus für Administratoren', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ service: 'tmp-camera-updater', status: 'ok', installReady: true, version: '2.8.3', busy: false }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
     const response = await request(app).get('/api/system/update').set('Authorization', `Bearer ${adminToken}`).expect(200);
-    expect(response.body.currentVersion).toBe('2.8.3');
+    // The response reports the installed backend version rather than the
+    // arbitrary version reported by a mocked updater health check.
+    expect(response.body.currentVersion).toBe('2.20.32');
     expect(response.body.updater.status).toBe('ok');
     expect(response.body.updater.url).toBeUndefined();
     expect(JSON.stringify(response.body)).not.toContain('http://updater:3010');

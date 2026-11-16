@@ -20,6 +20,9 @@ function isHlsSource(sourceUri) {
  */
 export function buildRecordingInputArgs(sourceUri) {
   const protocol = protocolOf(sourceUri);
+  // Local snapshot HLS runs on the same backend filesystem. HTTP-only
+  // reconnect/timeouts would make FFmpeg reject a file:// source.
+  if (protocol === 'file:') return [];
   const common = ['-rw_timeout', '15000000'];
   if (['rtsp:', 'rtsps:'].includes(protocol)) {
     return [

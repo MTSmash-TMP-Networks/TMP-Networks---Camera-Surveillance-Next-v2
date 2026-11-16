@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { cameraRepository } from '../cameraRepository.js';
@@ -20,6 +21,8 @@ import { snapshotService } from './SnapshotService.js';
 import { startSnapshotFramePump } from './SnapshotVideoBridge.js';
 import { createStreamProgressTracker, consumeFfmpegProgress } from './StreamProgressTracker.js';
 import { isBenignFfmpegDiagnostic } from './FfmpegDiagnostics.js';
+import { CameraStartLimiter } from './CameraStartLimiter.js';
+import { inspectLocalHlsRing } from './LocalHlsHealth.js';
 import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, parseFfprobeVideoCodec } from './BrokerPipeline.js';
 
 const execFileAsync = promisify(execFile);
@@ -66,6 +69,10 @@ export function streamPathBase(cameraId, quality, profileToken = null, purpose =
 
 function widthForQuality(quality) {
   return quality === 'low' ? 640 : quality === 'balanced' ? 1280 : 1920;
+}
+
+function snapshotFallbackWidth(quality) {
+  return Math.min(widthForQuality(quality), config.snapshotVideoMaxWidth);
 }
 
 
@@ -138,8 +145,8 @@ class StreamOrchestrator {
     this.sessions = new Map();
     this.controlResyncTimers = new Map();
     this.cameraStartLocks = new Map();
-    // Global start queue: only one camera may open RTSP/go2rtc/HLS at a time.
-    this.globalCameraStartTail = Promise.resolve();
+    // Serial per camera; bounded concurrent starts across independent cameras.
+    this.cameraStarts = new CameraStartLimiter(config.streamStartConcurrency);
     this.permanentBootstrapActive = false;
     this.deferredPermanentRestartKeys = new Set();
     this.brokerRefs = new Map();
@@ -154,23 +161,30 @@ class StreamOrchestrator {
     this.timer.unref();
   }
 
+  assertStartCurrent(session, expectedEpoch) {
+    if (this.closed || this.sessions.get(session.key) !== session
+      || Number(session.startEpoch || 0) !== Number(expectedEpoch || 0)) {
+      throw new AppError(409, 'STREAM_START_CANCELLED', 'Veralteter Kamerastart wurde verworfen');
+    }
+  }
+
   async startSerialized(session, camera, viewportWidth) {
     const cameraId = String(camera?.id || session?.cameraId || 'camera');
-    const previousGlobal = this.globalCameraStartTail || Promise.resolve();
-    this.log(session, 'debug', 'stream', 'GLOBAL_CAMERA_START_QUEUED', 'Kamera wartet auf die globale Verbindungswarteschlange; nur ein RTSP/go2rtc/HLS-Aufbau darf gleichzeitig laufen');
-    const current = previousGlobal
-      .catch(() => null)
-      .then(async () => {
-        this.log(session, 'debug', 'stream', 'GLOBAL_CAMERA_START_ACQUIRED', 'Kamera ist jetzt alleiniger aktiver Verbindungsaufbau');
-        return this.start(session, camera, viewportWidth);
-      });
-    this.globalCameraStartTail = current;
+    const expectedEpoch = Number(session.startEpoch || 0);
+    const previous = this.cameraStartLocks.get(cameraId) || Promise.resolve();
+    this.log(session, 'debug', 'stream', 'CAMERA_START_QUEUED', 'Kamerastart wartet auf einen freien begrenzten Verbindungsplatz');
+    const current = previous.catch(() => null).then(() => this.cameraStarts.run(async () => {
+      this.assertStartCurrent(session, expectedEpoch);
+      const latest = cameraRepository.getWithCredentials(cameraId);
+      if (!latest || !latest.enabled) throw new AppError(409, 'STREAM_START_CANCELLED', 'Kamera wurde entfernt oder deaktiviert');
+      this.log(session, 'debug', 'stream', 'CAMERA_START_ACQUIRED', 'Kamerastart hat einen freien Verbindungsplatz', this.cameraStarts.status());
+      return this.start(session, latest, viewportWidth, expectedEpoch);
+    }));
     this.cameraStartLocks.set(cameraId, current);
     try {
       return await current;
     } finally {
       if (this.cameraStartLocks.get(cameraId) === current) this.cameraStartLocks.delete(cameraId);
-      if (this.globalCameraStartTail === current) this.globalCameraStartTail = Promise.resolve();
     }
   }
 
@@ -360,7 +374,11 @@ class StreamOrchestrator {
     session.sourcePolicy = camera.sourcePolicy || 'auto';
     if (!session.startPromise || ['failed', 'stopped'].includes(session.state)) {
       session.startFailure = null;
+      session.state = 'starting';
+      session.phase = 'start_queued';
+      session.phaseMessage = 'Kamera wartet auf einen freien Startplatz';
       session.startPromise = this.startSerialized(session, camera, viewportWidth).catch((error) => {
+        if (error?.code === 'STREAM_START_CANCELLED') return null;
         session.state = 'failed';
         session.phase = 'failed';
         session.phaseMessage = error.message;
@@ -432,6 +450,7 @@ class StreamOrchestrator {
     } else if (!session.startPromise || session.state === 'stopped') {
       session.startFailure = null;
       session.startPromise = this.startSerialized(session, camera, viewportWidth).catch((error) => {
+        if (error?.code === 'STREAM_START_CANCELLED') return null;
         session.state = 'failed';
         session.phase = 'failed';
         session.phaseMessage = error.message;
@@ -506,7 +525,8 @@ class StreamOrchestrator {
     return prioritizeStableCandidate(stableProfileFirst, session.stableCandidateKey);
   }
 
-  async start(session, camera, viewportWidth) {
+  async start(session, camera, viewportWidth, startEpoch = Number(session.startEpoch || 0)) {
+    this.assertStartCurrent(session, startEpoch);
     if (session.restartTimer) {
       clearTimeout(session.restartTimer);
       session.restartTimer = null;
@@ -531,7 +551,9 @@ class StreamOrchestrator {
       const info = await go2RtcClient.info();
       this.log(session, 'info', 'go2rtc', 'GO2RTC_READY', 'go2rtc-API ist erreichbar', { version: info?.version || null });
     } catch (error) {
-      throw new AppError(502, 'GO2RTC_UNAVAILABLE', 'go2rtc ist über die interne Control-API nicht erreichbar', error.message);
+      // The emergency snapshot publisher writes a local HLS ring; it does not
+      // require go2rtc. Let ordinary sources fail over instead of aborting early.
+      this.log(session, 'warn', 'go2rtc', 'GO2RTC_UNAVAILABLE_SNAPSHOT_FALLBACK', 'go2rtc ist nicht erreichbar; lokale Snapshot-HLS-Notversorgung bleibt zulaessig', errorDetails(error));
     }
 
     const directStream = camera.connectionType === 'stream';
@@ -548,9 +570,11 @@ class StreamOrchestrator {
           profiles: profiles.map((profile) => ({ name: profile.name, videoCodec: profile.videoCodec, audioCodec: profile.audioCodec, width: profile.width, height: profile.height, role: profile.role })),
         });
       } catch (error) {
-        if (!mediaSources.some((source) => source.enabled)) throw error;
+        const hasAlternatives = mediaSources.some((source) => source.enabled);
         profiles = [];
-        this.log(session, 'warn', 'onvif', 'PROFILES_UNAVAILABLE_USING_ALTERNATIVES', 'ONVIF-Profile sind nicht erreichbar; alternative Medienquellen werden trotzdem geprüft', errorDetails(error));
+        this.log(session, 'warn', 'onvif', hasAlternatives ? 'PROFILES_UNAVAILABLE_USING_ALTERNATIVES' : 'PROFILES_UNAVAILABLE_SNAPSHOT_FALLBACK',
+          hasAlternatives ? 'ONVIF-Profile sind nicht erreichbar; alternative Medienquellen und Snapshot-Fallback werden geprueft'
+            : 'ONVIF-Profile sind nicht erreichbar; Snapshot-Fallback wird trotzdem geprueft', errorDetails(error));
       }
     }
     const failures = [];
@@ -558,6 +582,7 @@ class StreamOrchestrator {
     const passes = hadStoredProfiles && !directStream ? 2 : 1;
 
     for (let pass = 0; pass < passes; pass += 1) {
+      this.assertStartCurrent(session, startEpoch);
       if (pass === 1) {
         try {
           this.phase(session, 'profile_refresh', 'Gespeicherte Profile schlugen fehl; ONVIF-Profile werden neu eingelesen', null, 'warn');
@@ -577,6 +602,7 @@ class StreamOrchestrator {
         order: attempts.map(({ profile, candidate }) => ({ profile: profile.name, sourceType: candidate.sourceType || 'onvif', sourceLabel: candidate.sourceLabel || null, videoCodec: profile.videoCodec, videoProfile: profile.videoProfile, transport: candidate.transport, endpoint: candidate.endpoint || null, endpointReason: candidate.endpointReason || null })),
       });
       for (const [index, { profile, candidate }] of attempts.entries()) {
+        this.assertStartCurrent(session, startEpoch);
         session.attemptIndex = index + 1;
         session.currentAttempt = { profile: profile.name, sourceType: candidate.sourceType || 'onvif', sourceLabel: candidate.sourceLabel || null, transport: candidate.transport };
         try {
@@ -628,9 +654,11 @@ class StreamOrchestrator {
             stickyEncoderFailures: [...failedEncoders.keys()],
           });
           for (const [encoderIndex, encoder] of encoders.entries()) {
+            this.assertStartCurrent(session, startEpoch);
             session.brokerEncoder = encoder;
             try {
               session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
+              this.assertStartCurrent(session, startEpoch);
               break;
             } catch (encodeError) {
               await this.kill(session);
@@ -701,6 +729,10 @@ class StreamOrchestrator {
           this.log(session, 'info', 'stream', 'STREAM_READY', 'Live-Stream ist bereit', { profile: profile.name, sourceType: session.sourceType, sourceLabel: session.sourceLabel, videoCodec: profile.videoCodec, videoProfile: profile.videoProfile, quality: session.quality, codecPreference: session.codecPreference, sourcePolicy: session.sourcePolicy, transport: candidate.transport, copyVideo: policy.copyVideo, videoEncoder: session.brokerEncoder, observedVideoCodec: session.observedVideoCodec || null, sourceAudio: probe.audio?.codec || null, outputs: session.outputs });
           return;
         } catch (error) {
+          if (error?.code === 'STREAM_START_CANCELLED') {
+            await this.kill(session);
+            throw error;
+          }
           session.failedCandidates.set(candidateKey(candidate, profile.token), Date.now());
           const summary = `${profile.name}/${candidate.transport}: ${error.message}`;
           failures.push(summary);
@@ -729,26 +761,26 @@ class StreamOrchestrator {
         }
       }
     }
-    const syntheticFallbackForbidden = Boolean(session.permanent
-      || ['ingest', 'recording', 'motion', 'prebuffer'].includes(session.purpose || '')
-      || ['recording', 'motion', 'prebuffer'].includes(session.consumerPurpose || '')
-      || Number(session.recordingRefs || 0) > 0);
-    if (syntheticFallbackForbidden) {
-      this.log(session, 'warn', 'stream', 'SNAPSHOT_VIDEO_FALLBACK_SKIPPED', 'CPU-intensiver Snapshot-H.264-Fallback ist fuer permanente/Recording/Motion-Pfade gesperrt', {
-        purpose: session.purpose || null,
-        consumerPurpose: session.consumerPurpose || null,
-        permanent: Boolean(session.permanent),
-        recordingRefs: Number(session.recordingRefs || 0),
-      });
-      throw new AppError(502, 'STREAM_START_FAILED', 'Keine echte Videoquelle konnte ressourcenschonend gestartet werden', failures.slice(-25));
-    }
+    // Snapshot-H.264 is an emergency source for every consumer, including
+    // permanent previews, recording, motion and prebuffer. Resource control is
+    // provided by the output width/FPS rather than a hard purpose blacklist.
+    this.assertStartCurrent(session, startEpoch);
+    this.log(session, 'warn', 'stream', 'SNAPSHOT_VIDEO_FALLBACK_ATTEMPT', 'Alle Videoquellen fehlgeschlagen; lokaler Snapshot-HLS-Fallback wird auch fuer Dauerstream/Aufnahme/Motion versucht', {
+      purpose: session.purpose || null,
+      consumerPurpose: session.consumerPurpose || null,
+      permanent: Boolean(session.permanent),
+      recordingRefs: Number(session.recordingRefs || 0),
+    });
 
     try {
       this.phase(session, 'snapshot_fallback', 'Bewegte Streamquellen sind nicht erreichbar; Snapshot-Video-Fallback wird aufgebaut', null, 'warn');
-      const initialSnapshot = await snapshotService.capture(camera.id, session.requestedProfileToken);
+      // Manual source:ID selections are not ONVIF profile tokens. Snapshot
+      // discovery must remain possible even when the requested RTSP source died.
+      const snapshotProfileToken = String(session.requestedProfileToken || '').startsWith('source:') ? null : session.requestedProfileToken;
+      const initialSnapshot = await snapshotService.capture(camera.id, snapshotProfileToken);
       const fallbackProfile = { token: 'snapshot-video-fallback', name: 'Snapshot-Video-Fallback', role: 'fallback' };
       const fallbackProbe = {
-        video: { codec: 'mjpeg', width: widthForQuality(session.quality), height: Math.round(widthForQuality(session.quality) * 9 / 16), fps: config.snapshotVideoFps },
+        video: { codec: 'mjpeg', width: snapshotFallbackWidth(session.quality), height: Math.round(snapshotFallbackWidth(session.quality) * 9 / 16), fps: config.snapshotVideoFps },
         audio: null,
         bitRate: null,
       };
@@ -759,7 +791,8 @@ class StreamOrchestrator {
         outputVideoCodec: 'h264',
         reason: 'Snapshots werden serverseitig wiederholt und als kontinuierlicher H.264-Stream ausgegeben.',
       };
-      session.outputs = await this.launchSnapshotVideo(session, camera, initialSnapshot, fallbackProfile, fallbackProbe, fallbackPolicy);
+      session.outputs = await this.launchSnapshotVideo(session, camera, initialSnapshot, fallbackProfile, fallbackProbe, fallbackPolicy, snapshotProfileToken);
+      this.assertStartCurrent(session, startEpoch);
       session.state = 'ready';
       session.phase = 'ready';
       session.phaseMessage = 'Snapshot-Video-Fallback ist live';
@@ -813,16 +846,15 @@ class StreamOrchestrator {
     try { fs.rmSync(this.localHlsDirectory(session), { recursive: true, force: true }); } catch { /* best effort */ }
   }
 
+  localHlsHealth(session, now = Date.now()) {
+    return inspectLocalHlsRing(this.localHlsDirectory(session), {
+      now,
+      maxAgeMs: config.localHlsFreshnessSeconds * 1000,
+    });
+  }
+
   localHlsReady(session) {
-    try {
-      const playlist = this.localHlsPlaylist(session);
-      const text = fs.readFileSync(playlist, 'utf8');
-      if (!text.includes('#EXTM3U')) return false;
-      const directory = this.localHlsDirectory(session);
-      return fs.readdirSync(directory).some((name) => name.endsWith('.ts') && fs.statSync(path.join(directory, name)).size > 1880);
-    } catch {
-      return false;
-    }
+    return this.localHlsHealth(session).ready;
   }
 
   async waitUntilLocalHlsReady(session, { timeoutMs = config.startTimeoutMs, intervalMs = 250 } = {}) {
@@ -1031,11 +1063,11 @@ class StreamOrchestrator {
     return outputs;
   }
 
-  async launchSnapshotVideo(session, camera, initialSnapshot, profile, probe, policy) {
+  async launchSnapshotVideo(session, camera, initialSnapshot, profile, probe, policy, snapshotProfileToken = null) {
     this.cleanLocalHls(session);
     const outputDir = this.localHlsDirectory(session);
     fs.mkdirSync(outputDir, { recursive: true });
-    const width = widthForQuality(session.quality);
+    const width = snapshotFallbackWidth(session.quality);
     const height = Math.round(width * 9 / 16);
     const args = buildSnapshotLocalHlsArgs({
       outputDir,
@@ -1060,7 +1092,7 @@ class StreamOrchestrator {
     session.snapshotPump = startSnapshotFramePump({
       child,
       initialBuffer: initialSnapshot.buffer,
-      capture: () => snapshotService.capture(camera.id, session.requestedProfileToken),
+      capture: () => snapshotService.capture(camera.id, snapshotProfileToken),
       fps: config.snapshotVideoFps,
       refreshMs: config.snapshotRefreshMs,
       onFetchError: (error, consecutiveErrors) => {
@@ -1206,6 +1238,11 @@ class StreamOrchestrator {
 
   isSessionStalled(session, now = Date.now()) {
     if (!session || session.state !== 'ready' || !session.lastProgressAt) return false;
+    if (['local-hls-ring', 'snapshot-video'].includes(session.mode)) {
+      const health = this.localHlsHealth(session, now);
+      const lastRealMediaAt = Number(health.newestSegmentAt || session.connectedAt || session.createdAt || now);
+      return !health.ready && now - lastRealMediaAt > config.localHlsFreshnessSeconds * 1000;
+    }
     const progressAge = now - Number(session.lastProgressAt || 0);
     const mediaAge = session.lastStreamBrokerAliveAt ? now - Number(session.lastStreamBrokerAliveAt || 0) : Number.POSITIVE_INFINITY;
     return progressAge > config.streamStallSeconds * 1000 && mediaAge > config.streamStallSeconds * 1000;
@@ -1213,6 +1250,8 @@ class StreamOrchestrator {
 
   async refreshStreamBrokerLiveness(session, reason = 'watchdog') {
     if (!session || session.state !== 'ready') return false;
+    // Broker tracks can remain present when video frames have frozen.
+    if (session.mode === 'local-hls-ring' && !this.localHlsReady(session)) return false;
     try {
       const mediaAlive = await this.hasStreamBrokerTracks(session);
       if (!mediaAlive) return false;
@@ -1241,7 +1280,8 @@ class StreamOrchestrator {
       const stalledForMs = Date.now() - Number(session.lastProgressAt || 0);
       const processAlive = this.isSessionProcessAlive(session) || ['snapshot', 'snapshot-video'].includes(session.mode);
       const hardStallMs = Math.max(config.streamHardStallSeconds * 1000, config.streamStallSeconds * 2000);
-      if (processAlive && await this.refreshStreamBrokerLiveness(session, reason)) {
+      const confirmedLocalHlsStall = ['local-hls-ring', 'snapshot-video'].includes(session.mode) && !this.localHlsReady(session);
+      if (processAlive && !confirmedLocalHlsStall && await this.refreshStreamBrokerLiveness(session, reason)) {
         this.log(session, 'debug', 'stream', 'STREAM_SOFT_STALL_IGNORED', 'FFmpeg-Fortschritt war alt, aber go2rtc oder der Browserpfad ist weiterhin lebendig; kein harter Neuaufbau', {
           reason,
           stalledForMs,
@@ -1250,7 +1290,7 @@ class StreamOrchestrator {
         });
         return false;
       }
-      if (processAlive && stalledForMs < hardStallMs) {
+      if (processAlive && !confirmedLocalHlsStall && stalledForMs < hardStallMs) {
         this.log(session, 'debug', 'stream', 'STREAM_HARD_STALL_GRACE', 'Stream wirkt kurzzeitig still; harter Neustart wird bis zur Hard-Stall-Grenze unterdrueckt', {
           reason,
           stalledForMs,
@@ -1296,7 +1336,7 @@ class StreamOrchestrator {
   }
 
   scheduleRestart(session, requestedDelayMs = null) {
-    if (session.restartTimer) return;
+    if (session.restartTimer || this.closed || this.sessions.get(session.key) !== session) return;
     if (session.permanent && this.permanentBootstrapActive) {
       this.deferredPermanentRestartKeys.add(session.key);
       this.log(session, 'debug', 'stream', 'AUTO_RESTART_DEFERRED_BOOTSTRAP', 'Permanenter Stream-Restart wird bis zum Ende des seriellen Kamera-Bootstraps zurückgestellt');
@@ -1336,11 +1376,13 @@ class StreamOrchestrator {
       session.restartTimer = null;
       session.restartAt = null;
       const camera = cameraRepository.getWithCredentials(session.cameraId);
-      if (!camera || (!session.permanent && session.recordingRefs === 0 && Date.now() - session.lastRequestedAt >= config.streamIdleSeconds * 1000)) return;
+      if (!camera || !camera.enabled || this.closed || this.sessions.get(session.key) !== session
+        || (!session.permanent && session.recordingRefs === 0 && Date.now() - session.lastRequestedAt >= config.streamIdleSeconds * 1000)) return;
       session.state = 'starting';
       session.phase = 'restart_queued';
-      session.phaseMessage = 'Automatischer Wiederaufbau wartet auf die globale Kamera-Warteschlange';
+      session.phaseMessage = 'Automatischer Wiederaufbau wartet auf einen freien Kamera-Verbindungsplatz';
       session.startPromise = this.startSerialized(session, camera, widthForQuality(session.quality)).catch((error) => {
+        if (error?.code === 'STREAM_START_CANCELLED') return null;
         session.state = 'failed';
         session.phase = 'failed';
         session.phaseMessage = error.message;
@@ -1350,6 +1392,15 @@ class StreamOrchestrator {
       });
     }, delay);
     session.restartTimer.unref?.();
+  }
+
+  retainedMediaPath(session) {
+    // Snapshot video is published directly into the backend's local HLS ring.
+    // Recordings and motion must read that playlist rather than a nonexistent
+    // go2rtc stream name. This URI stays internal and is never a browser URL.
+    if (session?.mode === 'snapshot-video') return pathToFileURL(this.localHlsPlaylist(session)).href;
+    if (session?.mode === 'local-hls-ring') return session.paths.recording || session.paths.video || session.paths.webrtc;
+    return session?.paths?.hls || null;
   }
 
   findReusableReadySession(cameraId, requestedProfile = null, preferredQuality = null, consumerPurpose = 'recording') {
@@ -1368,6 +1419,17 @@ class StreamOrchestrator {
         if (purpose === 'prebuffer') return session.quality === preferredQuality || (preferredQuality === 'low' && session.purpose === 'ingest');
         return true;
       });
+    if (!candidates.length && ['motion', 'prebuffer'].includes(purpose)) {
+      // Reuse the warm low-bandwidth snapshot publisher instead of starting a
+      // second software H.264 encoder for the same camera and quality.
+      return [...this.sessions.entries()].find(([, session]) => session.cameraId === cameraId
+        && session.state === 'ready'
+        && session.mode === 'snapshot-video'
+        && (session.requestedProfileToken || null) === (requestedProfile || null)
+        && session.quality === preferredQuality
+        && this.isSessionProcessAlive(session)
+        && this.localHlsReady(session)) || null;
+    }
     if (!candidates.length) return null;
     return candidates.sort(([, left], [, right]) => {
       const leftPermanent = Number(left.purpose === 'ingest');
@@ -1403,7 +1465,7 @@ class StreamOrchestrator {
           pathType: consumerPurpose === 'motion' ? 'shared-substream-hls' : 'shared-mainstream-hls',
           quality: session.quality,
         });
-        return { key, path: session.mode === 'local-hls-ring' ? (session.paths.recording || session.paths.video || session.paths.webrtc) : session.paths.hls, purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
+        return { key, path: this.retainedMediaPath(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
       } catch (error) {
         this.log(session, 'warn', consumerPurpose === 'motion' ? 'motion-detection' : 'recording', 'STREAM_RETAIN_REUSE_FAILED', 'Vorhandener Publisher konnte nicht weiterverwendet werden', errorDetails(error));
       }
@@ -1415,7 +1477,6 @@ class StreamOrchestrator {
       : sessionKey(cameraId, ready.quality, ready.requestedProfileToken || null, consumerPurpose);
     const session = this.sessions.get(key);
     if (!session || session.state !== 'ready') throw new AppError(502, 'STREAM_NOT_READY', 'Kamerastream ist fuer den Medienverbrauch nicht bereit');
-    if (['snapshot', 'snapshot-video'].includes(session.mode)) throw new AppError(409, 'SNAPSHOT_MODE_NOT_RECORDABLE', 'Ein synthetischer Snapshot-Livemodus kann nicht als Recording/Motion-Videoquelle verwendet werden');
     await this.ensureRetainedHls(session);
     session.recordingRefs += 1;
     session.lastRequestedAt = Date.now();
@@ -1427,12 +1488,12 @@ class StreamOrchestrator {
       recordingRefs: session.recordingRefs,
       pathType: consumerPurpose === 'motion' ? 'motion-substream-hls' : 'recording-mainstream-hls',
     });
-    return { key, path: session.mode === 'local-hls-ring' ? (session.paths.recording || session.paths.video || session.paths.webrtc) : session.paths.hls, purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
+    return { key, path: this.retainedMediaPath(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
   }
 
   async ensureRetainedHls(session) {
     if (!session) throw new AppError(502, 'STREAM_NOT_READY', 'Kamerastream ist fuer den Medienverbrauch nicht bereit');
-    if (session.mode === 'local-hls-ring') {
+    if (['local-hls-ring', 'snapshot-video'].includes(session.mode)) {
       if (!this.localHlsReady(session)) {
         const ready = await this.waitUntilLocalHlsReady(session, { timeoutMs: Math.min(8000, config.startTimeoutMs), intervalMs: 250 });
         session.outputs.hls = Boolean(ready.ready);
@@ -1507,7 +1568,9 @@ class StreamOrchestrator {
   centralPreviewStatus(cameraId) {
     const session = this.findPermanentIngestSession(cameraId);
     if (!session) return null;
-    const ready = session.state === 'ready' && Boolean(session.outputs?.hls) && this.isSessionProcessAlive(session);
+    const ready = session.state === 'ready' && Boolean(session.outputs?.hls)
+      && this.isSessionProcessAlive(session)
+      && (!['local-hls-ring', 'snapshot-video'].includes(session.mode) || this.localHlsReady(session));
     return {
       ready,
       state: session.state,
@@ -1710,6 +1773,7 @@ class StreamOrchestrator {
   async restart(cameraId) {
     const targets = [...this.sessions.values()].filter((session) => session.cameraId === cameraId && session.purpose !== 'recording' && Number(session.recordingRefs || 0) === 0);
     for (const session of targets) {
+      session.startEpoch = Number(session.startEpoch || 0) + 1;
       if (session.restartTimer) clearTimeout(session.restartTimer);
       session.restartTimer = null;
       await this.kill(session);
@@ -1725,6 +1789,7 @@ class StreamOrchestrator {
   async stopCamera(cameraId) {
     const targets = [...this.sessions.entries()].filter(([, session]) => session.cameraId === cameraId);
     for (const [key, session] of targets) {
+      session.startEpoch = Number(session.startEpoch || 0) + 1;
       if (session.restartTimer) clearTimeout(session.restartTimer);
       await this.kill(session);
       this.sessions.delete(key);
@@ -1829,9 +1894,8 @@ class StreamOrchestrator {
   async reconcilePermanentIngestSessions() {
     if (!config.permanentIngestEnabled) return;
     const enabled = cameraRepository.listEnabled();
-    // Missing permanent publishers are repaired only by the backend. Start at
-    // most one missing camera per maintenance pass; the global queue remains the
-    // sole owner of camera connection sequencing.
+    // Missing permanent publishers are repaired only by the backend.
+    // Bounded startup admission keeps independent cameras from being blocked.
     const missing = enabled.find((camera) => !this.findPermanentIngestSession(camera.id));
     if (missing) {
       void this.startPermanentIngestForCamera(missing.id, { wait: false, reason: 'backend-maintenance-missing-preview' });
@@ -1872,6 +1936,7 @@ class StreamOrchestrator {
     const now = Date.now();
     for (const [key, session] of this.sessions.entries()) {
       if (!session.permanent && session.recordingRefs === 0 && now - session.lastRequestedAt > config.streamIdleSeconds * 1000) {
+        session.startEpoch = Number(session.startEpoch || 0) + 1;
         if (session.restartTimer) clearTimeout(session.restartTimer);
         await this.kill(session);
         session.state = 'stopped';
@@ -1909,16 +1974,19 @@ class StreamOrchestrator {
 
     const bootstrap = async () => {
       this.permanentBootstrapActive = true;
-      logger.info({ cameras: cameras.length, pauseMs }, 'Serieller Kamera-Bootstrap startet; Streams werden strikt nacheinander aufgebaut');
+      logger.info({ cameras: cameras.length, pauseMs }, 'Kamera-Bootstrap startet; Streams werden mit begrenzter Parallelitaet aufgebaut');
       let started = 0;
       try {
+        const requests = [];
         for (const [index, camera] of cameras.entries()) {
-          await this.startPermanentIngestForCamera(camera.id, { wait: true, reason: 'backend-startup' });
+          if (this.closed) break;
+          requests.push(this.startPermanentIngestForCamera(camera.id, { wait: true, reason: 'backend-startup' }));
           started += 1;
           if (pauseMs > 0 && index < cameras.length - 1) {
             await new Promise((resolve) => setTimeout(resolve, pauseMs));
           }
         }
+        await Promise.allSettled(requests);
       } finally {
         this.permanentBootstrapActive = false;
         const deferredKeys = [...this.deferredPermanentRestartKeys];
@@ -1928,12 +1996,12 @@ class StreamOrchestrator {
           if (session?.permanent && session.state === 'failed' && !session.restartTimer) this.scheduleRestart(session);
         }
       }
-      logger.info({ started, quality: permanentQuality(), permanentIngest: true }, 'Serieller Kamera-Bootstrap wurde abgeschlossen');
+      logger.info({ started, quality: permanentQuality(), permanentIngest: true }, 'Kamera-Bootstrap wurde abgeschlossen');
       return { started, quality: permanentQuality() };
     };
 
     if (wait) return bootstrap();
-    void bootstrap().catch((error) => logger.error({ err: error }, 'Serieller Kamera-Bootstrap ist fehlgeschlagen'));
+    void bootstrap().catch((error) => logger.error({ err: error }, 'Kamera-Bootstrap ist fehlgeschlagen'));
     return { started: cameras.length, quality: permanentQuality(), queued: true };
   }
 
@@ -1946,6 +2014,7 @@ class StreamOrchestrator {
     this.controlResyncTimers.clear();
     const sessions = [...this.sessions.values()];
     for (const session of sessions) {
+      session.startEpoch = Number(session.startEpoch || 0) + 1;
       if (session.restartTimer) clearTimeout(session.restartTimer);
       session.restartTimer = null;
       session.state = 'stopping';

@@ -179,6 +179,8 @@ function captureStreamToGray(uri, { width, height, timeoutMs = 9000, mediaToken 
 }
 
 function liveSourceCandidates(sourceMode, mediaPath) {
+  // Snapshot-only cameras offer a local HLS playlist, not an RTSP/go2rtc path.
+  if (/^file:\/\//i.test(String(mediaPath || ''))) return [{ name: 'snapshot-local-hls', uri: mediaPath }];
   const rtsp = { name: 'live-rtsp', uri: rtspUrlForPath(mediaPath) };
   const hls = { name: 'live-hls', uri: hlsUrlForPath(mediaPath) };
   if (['hls', 'live-hls', 'hls-only'].includes(sourceMode)) return [hls];
@@ -247,6 +249,7 @@ class MotionDetectionService {
   }
 
   mediaTokenForLease(lease) {
+    if (/^file:\/\//i.test(String(lease?.path || ''))) return null;
     const ttlSeconds = Math.max(60, Number(config.mediaTokenTtlSeconds) || 3600);
     const refreshBeforeMs = Math.min(120_000, Math.max(15_000, ttlSeconds * 100));
     if (!lease.mediaToken || Date.now() >= Number(lease.mediaTokenExpiresAt || 0) - refreshBeforeMs) {

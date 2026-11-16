@@ -244,6 +244,7 @@ async function waitForServerSession(entry, isStale, forceTranscode = false) {
 class LiveStreamPool {
   constructor() {
     this.entries = new Map();
+    this.viewerSequence = 0;
     this.staging = null;
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => this.reconnectAll('Netzwerkverbindung wiederhergestellt'));
@@ -306,7 +307,7 @@ class LiveStreamPool {
     video.autoplay = true;
     video.muted = true;
     const entry = {
-      key: keyOf(options), cameraId: options.cameraId, quality: options.quality, profileToken: options.profileToken || '', purpose: options.purpose || 'live', transportMode: options.transportMode || 'auto', viewportWidth: options.viewportWidth || 1280,
+      key: options.poolKey || keyOf(options), cameraId: options.cameraId, quality: options.quality, profileToken: options.profileToken || '', purpose: options.purpose || 'live', transportMode: options.transportMode || 'auto', viewportWidth: options.viewportWidth || 1280,
       video, refs: 0, pins: new Set(), subscribers: new Set(), host: null, cleanup: null, abort: null,
       connectPromise: null, generation: 0, idleTimer: null, reconnectTimer: null, heartbeat: null, monitor: null, hlsRecoveryTimer: null, hlsRecoveryStartedAt: 0, lastHlsRecoveryAt: 0,
       reconnectAttempt: 0, forceTranscode: false, hlsTokenRef: { current: '' }, lastCurrentTime: 0, lastFrameAt: Date.now(), lastProgressSource: 'created', lastDecodedFrames: 0, frameCounterObserved: false, frameCallbackObserved: false, frameCallbackId: null, frameVersion: 0, lastStatsFramesDecoded: 0, lastStatsBytesReceived: 0, lastStatsPacketsReceived: 0, lastStatsProgressAt: 0, controlWatchTimer: null, controlActiveUntil: 0, lastUsedAt: Date.now(), lastBackendSoftStallReportAt: 0,
@@ -332,6 +333,7 @@ class LiveStreamPool {
     const candidates = [...this.entries.values()].filter((entry) => entry.cameraId === options.cameraId
       && entry.purpose === (options.purpose || 'live')
       && (entry.transportMode || 'auto') === (options.transportMode || 'auto')
+      && (entry.refs === 0 || entry.host === options.host)
       && ['ready', 'connecting', 'recovering', 'starting'].includes(entry.state.state));
     return candidates.sort((left, right) => {
       const leftProfile = Number((left.profileToken || '') === (options.profileToken || ''));
@@ -346,9 +348,14 @@ class LiveStreamPool {
 
   acquire(options, host, subscriber) {
     const key = keyOf(options);
-    const entry = this.entries.get(key)
-      || (options.allowCompatibleReuse ? this.compatibleEntry(options) : null)
-      || this.create(options);
+    const existing = this.entries.get(key);
+    // Never move an actively displayed video element out of another tile.
+    // Duplicate tiles consume one central backend publisher with separate
+    // browser media elements.
+    const available = existing && (existing.refs === 0 || existing.host === host) ? existing : null;
+    const entry = available
+      || (options.allowCompatibleReuse ? this.compatibleEntry({ ...options, host }) : null)
+      || this.create({ ...options, poolKey: existing ? `${key}|viewer:${++this.viewerSequence}` : key });
     entry.viewportWidth = options.viewportWidth || entry.viewportWidth;
     entry.lastUsedAt = Date.now();
     entry.refs += 1;
@@ -668,7 +675,9 @@ class LiveStreamPool {
         markBrowserProgress(entry, frameAdvanced ? 'decoded-frames' : statsAdvanced ? 'webrtc-stats' : 'media-timeline');
       } else if (!entry.video.paused && Date.now() - entry.lastFrameAt > STALL_MS) {
         this.report(entry, 'warn', 'BROWSER_STREAM_STALLED', 'Browserstream lieferte keine neuen Frames', entry.state.protocol || 'browser', { decodedFrames: frames, currentTime: current, hasReliableFrameSignal, lastProgressSource: entry.lastProgressSource });
-        this.reconnect(entry, 'Stillstehenden Stream erkannt – Verbindung wird erneuert …', 0);
+        const central = isCentralPreviewRequest({ purpose: entry.purpose, quality: entry.quality, profileToken: entry.profileToken, forceTranscode: entry.forceTranscode });
+        if (central && wantsLocalHls(entry)) this.beginHlsRecovery(entry, { source: 'browser-frame-watchdog' });
+        else this.reconnect(entry, 'Stillstehenden Stream erkannt – Verbindung wird erneuert …', 0);
       }
     }, 2500);
   }

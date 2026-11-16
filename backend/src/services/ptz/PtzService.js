@@ -15,6 +15,9 @@ function resolveProfile(cameraId, camera, requested) {
   const token = requested ? String(requested).trim() : '';
   const profiles = cameraRepository.profiles(cameraId);
   const requestedProfile = token ? profiles.find((item) => item.token === token) : null;
+  // A supplied profile token must belong to this camera. Silently falling
+  // back changes what the operator believes they are controlling.
+  if (token && !requestedProfile) throw new AppError(400, 'INVALID_PROFILE', 'Das angeforderte PTZ-Profil gehoert nicht zu dieser Kamera');
   const preferredProfile = profiles.find((item) => item.token === camera.preferredProfile);
   const profile = (requestedProfile?.hasPtz ? requestedProfile : null)
     || (preferredProfile?.hasPtz ? preferredProfile : null)

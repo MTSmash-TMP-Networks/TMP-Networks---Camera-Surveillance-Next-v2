@@ -20,5 +20,15 @@ jobs:
           node --test backend/test-node/local-hls-command.test.mjs
           node --test backend/test-node/stream-stability-regression.test.mjs
           node --test backend/test-node/recording-recovery-policy.test.mjs
+          node --test backend/test-node/local-hls-health.test.mjs
       - name: Validate desktop client distribution and Electron installer
         run: node --test frontend/test-node/desktop-client-distribution.test.mjs
+      - name: Install package dependencies and run actual unit tests and frontend build
+        run: |
+          npm ci --prefix backend --no-audit --no-fund
+          npm ci --prefix frontend --no-audit --no-fund
+          npm run test --prefix backend
+          npm run test:critical --prefix backend
+          npm run test --prefix frontend
+          npm run build --prefix frontend
+          npm run test --prefix updater

@@ -1,15 +1,18 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.56",
+  "version": "2.20.57",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.56",
-  "summary": "Separate Kiosk and Live Auto from camera lifecycle control so they only read the backend-owned central preview publisher.",
-  "createdAt": "2026-11-16T16:20:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.56.md",
+  "title": "TMP Camera Surveillance Next 2.20.57",
+  "summary": "Recording-safe single-pass upgrades, authenticated HLS, bounded camera starts, verified preview freshness and restored snapshot fallback.",
+  "createdAt": "2026-11-16T20:52:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.57.md",
   "changes": [
-    "Add a read-only central preview endpoint for Kiosk and Live Auto",
-    "Remove browser-owned prewarm/start paths and canonicalize Kiosk to one preview per camera",
-    "Make camera green status depend on the central preview plus Local-HLS readiness"
+    "Graceful single-pass Docker upgrade and recording finalization",
+    "Bound camera connection starts and do not block recording scheduler",
+    "Reject stale/frozen HLS previews and recover their backend publishers",
+    "Authenticate local HLS playlists and MPEG-TS segments",
+    "Isolate simultaneous kiosk tile players and extend CI regression tests",
+    "Restore low-connectivity snapshot H.264 fallback for permanent, recording, motion and prebuffer paths"
   ],
   "preserve": [
     ".env",
@@ -29,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.56.md",
+  "changelog": "UPDATE_NOTES_2.20.57.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.56",
-  "packageId": "tmp-camera-surveillance-next-2.20.56",
+  "name": "TMP Camera Surveillance Next v2.20.57",
+  "packageId": "tmp-camera-surveillance-next-2.20.57",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Backend-owned central preview architecture with read-only Kiosk and Live Auto consumers.",
+  "description": "Central preview and upgrade hardening with preserved legacy update contract.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Kiosk and Live Auto no longer control camera starts or restarts; the backend owns the permanent preview lifecycle and frontend consumers only read it.",
-  "fileCount": 458
+  "releaseNotes": "Upgrade compatible from 2.20.32, no database migrations, protected runtime data and stable stream URLs.",
+  "fileCount": 462
 }

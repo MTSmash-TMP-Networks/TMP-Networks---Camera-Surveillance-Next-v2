@@ -10,6 +10,8 @@ const compression = readFileSync(resolve(root, 'backend/src/services/recording/R
 const config = readFileSync(resolve(root, 'backend/src/config.js'), 'utf8');
 const ptzBackend = readFileSync(resolve(root, 'backend/src/services/ptz/PtzService.js'), 'utf8');
 const orchestrator = readFileSync(resolve(root, 'backend/src/services/media/StreamOrchestrator.js'), 'utf8');
+const recordingService = readFileSync(resolve(root, 'backend/src/services/RecordingService.js'), 'utf8');
+const motionService = readFileSync(resolve(root, 'backend/src/services/recording/MotionDetectionService.js'), 'utf8');
 const ptzFrontend = readFileSync(resolve(root, 'frontend/src/components/PtzControls.jsx'), 'utf8');
 const livePool = readFileSync(resolve(root, 'frontend/src/services/liveStreamPool.js'), 'utf8');
 const player = readFileSync(resolve(root, 'frontend/src/components/SeamlessLivePlayer.jsx'), 'utf8');
@@ -225,22 +227,19 @@ test('permanent preview publisher is shared and not owned by kiosk or Live', () 
 });
 
 
-test('camera connection setup is globally serialized across different cameras', () => {
-  assert.match(orchestrator, /globalCameraStartTail = Promise\.resolve\(\)/);
-  assert.match(orchestrator, /GLOBAL_CAMERA_START_QUEUED/);
-  assert.match(orchestrator, /GLOBAL_CAMERA_START_ACQUIRED/);
-  assert.match(orchestrator, /const previousGlobal = this\.globalCameraStartTail/);
-  assert.doesNotMatch(orchestrator, /const previous = this\.cameraStartLocks\.get\(cameraId\)/);
+test('camera startup is serialized per camera and bounded across cameras', () => {
+  assert.match(orchestrator, /new CameraStartLimiter\(config\.streamStartConcurrency\)/);
+  assert.match(orchestrator, /this\.cameraStartLocks\.get\(cameraId\)/);
+  assert.match(orchestrator, /STREAM_START_CANCELLED/);
+  assert.doesNotMatch(orchestrator, /globalCameraStartTail/);
 });
 
-test('backend startup finishes permanent previews before motion and recording automation', () => {
-  assert.match(server, /startPermanentIngestForAll\(\{ wait: true \}\)/);
-  const bootstrapIndex = server.indexOf("startPermanentIngestForAll({ wait: true })");
-  const motionIndex = server.indexOf('motionDetectionService.start()');
+test('a disconnected preview does not block recording scheduler startup', () => {
+  assert.match(server, /startPermanentIngestForAll\(\{ wait: false \}\)/);
+  const bootstrapIndex = server.indexOf('startPermanentIngestForAll({ wait: false })');
   const schedulerIndex = server.indexOf('recordingScheduler.start()');
-  assert.ok(bootstrapIndex >= 0 && bootstrapIndex < motionIndex);
-  assert.ok(bootstrapIndex < schedulerIndex);
-  assert.match(orchestrator, /await this\.startPermanentIngestForCamera\(camera\.id, \{ wait: true, reason: 'backend-startup' \}\)/);
+  assert.ok(bootstrapIndex >= 0 && bootstrapIndex < schedulerIndex);
+  assert.match(orchestrator, /Promise\.allSettled\(requests\)/);
 });
 
 test('permanent restart loops are deferred until serial bootstrap completes', () => {
@@ -268,11 +267,18 @@ test('short-lived ready streams keep exponential restart history and open a circ
   assert.doesNotMatch(orchestrator, /session\.connectedAt = Date\.now\(\);[\s\S]{0,250}session\.restartCount = 0/);
 });
 
-test('permanent and retained media paths never fall back to CPU snapshot video', () => {
-  assert.match(orchestrator, /SNAPSHOT_VIDEO_FALLBACK_SKIPPED/);
-  assert.match(orchestrator, /session\.permanent/);
-  assert.match(orchestrator, /\['ingest', 'recording', 'motion', 'prebuffer'\]/);
-  assert.match(orchestrator, /\['snapshot', 'snapshot-video'\]\.includes\(session\.mode\)/);
+test('snapshot H.264 recovery serves permanent, recording and motion without a purpose blacklist', () => {
+  assert.doesNotMatch(orchestrator, /SNAPSHOT_VIDEO_FALLBACK_SKIPPED|syntheticFallbackForbidden|SNAPSHOT_MODE_NOT_RECORDABLE/);
+  assert.match(orchestrator, /SNAPSHOT_VIDEO_FALLBACK_ATTEMPT/);
+  assert.match(orchestrator, /GO2RTC_UNAVAILABLE_SNAPSHOT_FALLBACK/);
+  assert.match(orchestrator, /PROFILES_UNAVAILABLE_SNAPSHOT_FALLBACK/);
+  assert.match(orchestrator, /pathToFileURL\(this\.localHlsPlaylist\(session\)\)\.href/);
+  assert.match(orchestrator, /retainedMediaPath\(session\)/);
+  assert.match(orchestrator, /\['local-hls-ring', 'snapshot-video'\]\.includes\(session\.mode\)/);
+  assert.match(recordingService, /Snapshot-HLS lokal/);
+  assert.match(recordingService, /streamOrchestrator\.retainedMediaPath\(session\)/);
+  assert.match(motionService, /snapshot-local-hls/);
+  assert.match(config, /SNAPSHOT_VIDEO_MAX_WIDTH', 960/);
 });
 
 test('sticky CPU fallback remains available for permanent previews', () => {
