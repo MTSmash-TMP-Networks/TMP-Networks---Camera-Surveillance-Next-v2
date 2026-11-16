@@ -67,6 +67,11 @@ const server = app.listen(config.port, config.host, () => {
       }
       networkRecordingStorageService.start();
       discoveryJobService.bootstrap();
+      try {
+        await streamOrchestrator.pruneOrphanedBrokersOnBoot();
+      } catch (error) {
+        logger.warn({ err: error }, 'Bereinigung alter Kamera-Producer fehlgeschlagen; Stream-Start bleibt moeglich');
+      }
       // Offline preview cameras cannot delay the recording scheduler.
       // Media startup remains bounded and owned by the backend.
       void streamOrchestrator.startPermanentIngestForAll({ wait: false });

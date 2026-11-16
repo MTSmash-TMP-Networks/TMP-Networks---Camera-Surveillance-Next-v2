@@ -26,6 +26,7 @@ UPDATE_NOTES_2.20.57.md
 UPDATE_NOTES_2.20.58.md
 UPDATE_NOTES_2.20.59.md
 UPDATE_NOTES_2.20.60.md
+UPDATE_NOTES_2.20.61.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -130,6 +131,7 @@ backend/src/services/ptz/ptzCapability.js
 backend/src/services/recording/BlockArchive.js
 backend/src/services/recording/MotionDetectionAlgorithm.js
 backend/src/services/recording/MotionDetectionService.js
+backend/src/services/recording/MotionLocalSegmentSource.js
 backend/src/services/recording/MotionZone.js
 backend/src/services/recording/RecordingCommand.js
 backend/src/services/recording/RecordingCompressionCommand.js
@@ -173,10 +175,13 @@ backend/test-node/github-archive-integrity-regression.test.mjs
 backend/test-node/github-update-regression.test.mjs
 backend/test-node/go2rtc-control-api.test.mjs
 backend/test-node/intel-vaapi-deployment.test.mjs
+backend/test-node/kiosk-broker-oom-guard.test.mjs
 backend/test-node/local-hls-command.test.mjs
 backend/test-node/local-hls-health.test.mjs
 backend/test-node/local-hls-http-runtime.test.mjs
 backend/test-node/local-hls-startup-grace.test.mjs
+backend/test-node/motion-local-segment.test.mjs
+backend/test-node/motion-recording-cpu-regression.test.mjs
 backend/test-node/network-recording-storage-regression.test.mjs
 backend/test-node/notification-template-locales.test.mjs
 backend/test-node/onvif-setup-probe-regression.test.mjs

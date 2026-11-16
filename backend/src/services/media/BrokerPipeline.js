@@ -65,12 +65,16 @@ export function normalizedVideoSource(rawStreamName, timeoutSeconds = 20, hardwa
   return `ffmpeg:${name}#video=${video}#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
 }
 
-export function optionalAudioSource(rawStreamName, timeoutSeconds = 20, hardware = 'none') {
+export function optionalAudioSource(rawStreamName, timeoutSeconds = 20, hardware = 'none', sourceVideoCodec = null) {
   const name = String(rawStreamName || '').trim();
   if (!name) throw new Error('Raw broker stream name is empty');
   const timeout = Math.max(5, Math.min(120, Math.round(Number(timeoutSeconds) || 20)));
-  const video = hardware === 'copy' ? 'copy' : 'h264';
-  return `ffmpeg:${name}#video=${video}#audio=aac#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
+  // AAC transcode must not silently start a SECOND libx264 video encoder.
+  // H.264 camera video stays bit-identical even if a separate video fallback
+  // session is using a CPU encoder. Non-H264 sources keep their prior path.
+  const copyVideo = hardware === 'copy' || ['h264', 'avc'].includes(lower(sourceVideoCodec));
+  const video = copyVideo ? 'copy' : 'h264';
+  return `ffmpeg:${name}#video=${video}#audio=aac#timeout=${timeout}${(!copyVideo && hardware === 'vaapi') ? '#hardware=vaapi' : ''}`;
 }
 
 function codecName(profile) {

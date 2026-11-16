@@ -151,6 +151,7 @@ class StreamOrchestrator {
     this.permanentBootstrapActive = false;
     this.deferredPermanentRestartKeys = new Set();
     this.brokerRefs = new Map();
+    this.maintenanceRunning = false;
     // Encoder fallback is intentionally sticky per camera/profile/source.
     // Once copy or VAAPI failed and a more conservative encoder took over,
     // do not probe the failed path again during this backend lifetime.
@@ -261,7 +262,7 @@ class StreamOrchestrator {
       let audioConfigured = false;
       const videoOnlyPreview = !session.permanent && ['motion', 'prebuffer'].includes(session.purpose || '');
       if (profile?.audioCodec && !videoOnlyPreview) {
-        const audioSource = optionalAudioSource(paths.raw, 20, encoder);
+        const audioSource = optionalAudioSource(paths.raw, 20, encoder, profile?.videoCodec);
         try {
           await go2RtcClient.upsertStream(paths.audio, audioSource);
           await go2RtcClient.waitUntilRegistered(paths.audio);
@@ -303,12 +304,17 @@ class StreamOrchestrator {
     entry.refs = Math.max(0, Number(entry.refs || 1) - 1);
     if (entry.refs > 0) return;
     this.brokerRefs.delete(key);
+    // Multiple encoder variants may share the SAME native RTSP producer.
+    // Deleting raw while another video/audio path uses it forces a second
+    // camera connection and can cause unbounded ffmpeg reconnect churn.
+    const rawInUse = [...this.brokerRefs.values()].some((ref) =>
+      ref.raw === entry.raw && Number(ref.refs || 0) > 0);
     await Promise.allSettled([
       go2RtcClient.deletePreload(entry.video),
       go2RtcClient.deletePreload(entry.audio),
       go2RtcClient.deleteStream(entry.audio),
       go2RtcClient.deleteStream(entry.video),
-      go2RtcClient.deleteStream(entry.raw),
+      ...(!rawInUse ? [go2RtcClient.deleteStream(entry.raw)] : []),
     ]);
   }
 
@@ -1411,6 +1417,13 @@ class StreamOrchestrator {
     session.restartTimer.unref?.();
   }
 
+  motionHlsUri(session) {
+    // Motion can decode finished 1-second TS segments directly from the
+    // already running central HLS ring. No new RTSP/go2rtc reader is needed.
+    if (!config.motionPreferLocalHls || !['local-hls-ring', 'snapshot-video'].includes(session?.mode)) return null;
+    return pathToFileURL(this.localHlsPlaylist(session)).href;
+  }
+
   retainedMediaPath(session) {
     // Snapshot video is published directly into the backend's local HLS ring.
     // Recordings and motion must read that playlist rather than a nonexistent
@@ -1482,7 +1495,7 @@ class StreamOrchestrator {
           pathType: consumerPurpose === 'motion' ? 'shared-substream-hls' : 'shared-mainstream-hls',
           quality: session.quality,
         });
-        return { key, path: this.retainedMediaPath(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
+        return { key, path: this.retainedMediaPath(session), motionHlsUri: this.motionHlsUri(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
       } catch (error) {
         this.log(session, 'warn', consumerPurpose === 'motion' ? 'motion-detection' : 'recording', 'STREAM_RETAIN_REUSE_FAILED', 'Vorhandener Publisher konnte nicht weiterverwendet werden', errorDetails(error));
       }
@@ -1505,7 +1518,7 @@ class StreamOrchestrator {
       recordingRefs: session.recordingRefs,
       pathType: consumerPurpose === 'motion' ? 'motion-substream-hls' : 'recording-mainstream-hls',
     });
-    return { key, path: this.retainedMediaPath(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
+    return { key, path: this.retainedMediaPath(session), motionHlsUri: this.motionHlsUri(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
   }
 
   async ensureRetainedHls(session) {
@@ -1926,17 +1939,46 @@ class StreamOrchestrator {
     }
   }
 
+  async pruneOrphanedBrokersOnBoot() {
+    // After an OOM/VM reboot go2rtc may survive the backend restart with
+    // preloads registered by the OLD process. The new backend's refs are
+    // empty: delete only application-owned cam_* broker nodes before boot.
+    if (this.closed || this.sessions.size || this.brokerRefs.size) return 0;
+    let paths;
+    try { paths = await go2RtcClient.paths(); }
+    catch (error) {
+      logger.warn({ err: error }, 'go2rtc-Broker-Cleanup beim Start war nicht verfuegbar');
+      return 0;
+    }
+    const stale = [...paths.keys()].filter((name) =>
+      /^cam_[a-z0-9_.-]+_(raw|video|audio)$/.test(name)).slice(0, 90);
+    let removed = 0;
+    for (let i = 0; i < stale.length && !this.sessions.size; i += 6) {
+      const group = stale.slice(i, i + 6);
+      const result = await Promise.allSettled(group.map(async (name) => {
+        await go2RtcClient.deletePreload(name);
+        await go2RtcClient.deleteStream(name);
+      }));
+      removed += result.filter((r) => r.status === 'fulfilled').length;
+    }
+    if (removed) logger.warn({ removed, total: stale.length },
+      'Verwaiste go2rtc-Kamera-Producer nach Backend-Neustart entfernt');
+    return removed;
+  }
+
   async reconcileBrokerRefs() {
     for (const [key, entry] of this.brokerRefs.entries()) {
       const owners = [...this.sessions.values()].filter((session) => session.brokerRefKey === key).length;
       if (owners <= 0) {
         this.brokerRefs.delete(key);
+        const rawInUse = [...this.brokerRefs.values()].some((ref) =>
+          ref.raw === entry.raw && Number(ref.refs || 0) > 0);
         await Promise.allSettled([
           go2RtcClient.deletePreload(entry.video),
           go2RtcClient.deletePreload(entry.audio),
           go2RtcClient.deleteStream(entry.audio),
           go2RtcClient.deleteStream(entry.video),
-          go2RtcClient.deleteStream(entry.raw),
+          ...(!rawInUse ? [go2RtcClient.deleteStream(entry.raw)] : []),
         ]);
         logger.warn({ broker: key }, 'Verwaister go2rtc-Broker wurde durch den Ressourcen-Waechter entfernt');
         continue;
@@ -1949,10 +1991,16 @@ class StreamOrchestrator {
   }
 
   async maintenance() {
-    if (this.closed) return;
+    // Go2rtc API calls and camera kill/restarts may exceed one 10-second
+    // maintenance interval under weak WLAN. Never overlap cleanup/restarts.
+    if (this.closed || this.maintenanceRunning) return;
+    this.maintenanceRunning = true;
+    try {
     const now = Date.now();
     for (const [key, session] of this.sessions.entries()) {
-      if (!session.permanent && session.recordingRefs === 0 && now - session.lastRequestedAt > config.streamIdleSeconds * 1000) {
+      const idleSeconds = ['motion', 'prebuffer'].includes(session.purpose)
+        ? Math.min(8, config.streamIdleSeconds) : config.streamIdleSeconds;
+      if (!session.permanent && session.recordingRefs === 0 && now - session.lastRequestedAt > idleSeconds * 1000) {
         session.startEpoch = Number(session.startEpoch || 0) + 1;
         if (session.restartTimer) clearTimeout(session.restartTimer);
         await this.kill(session);
@@ -1966,6 +2014,9 @@ class StreamOrchestrator {
     }
     await this.reconcilePermanentIngestSessions();
     await this.reconcileBrokerRefs();
+    } finally {
+      this.maintenanceRunning = false;
+    }
   }
 
   async startPermanentIngestForCamera(cameraId, { wait = false, reason = 'camera-enabled' } = {}) {

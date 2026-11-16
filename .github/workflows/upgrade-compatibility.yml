@@ -21,6 +21,12 @@ jobs:
           node --test backend/test-node/stream-stability-regression.test.mjs
           node --test backend/test-node/recording-recovery-policy.test.mjs
           node --test backend/test-node/local-hls-health.test.mjs
+      - name: Validate kiosk and recording VM memory safeguards
+        run: node --test backend/test-node/kiosk-broker-oom-guard.test.mjs
+      - name: Validate motion/recording CPU cost and local HLS segment fallbacks
+        run: |
+          node --test backend/test-node/motion-local-segment.test.mjs
+          node --test backend/test-node/motion-recording-cpu-regression.test.mjs
       - name: Validate recording watchdog and kiosk heartbeat resilience
         run: node --test backend/test-node/recording-kiosk-crashguard.test.mjs
       - name: Validate PTZ responsiveness and physical stop safety

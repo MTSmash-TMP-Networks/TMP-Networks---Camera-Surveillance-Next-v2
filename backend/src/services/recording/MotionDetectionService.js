@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { selectFreshMotionSegment } from './MotionLocalSegmentSource.js';
 import { config } from '../../config.js';
 import { cameraRepository } from '../cameraRepository.js';
 import { cameraEventLog, sanitizeLogText } from '../CameraEventLog.js';
@@ -135,6 +136,7 @@ function captureStreamToGray(uri, { width, height, timeoutMs = 9000, mediaToken 
     const preparedSource = prepareMediaReadSource(noCacheReadUri(uri), mediaToken);
     const args = [
       '-hide_banner', '-nostdin', '-loglevel', 'error',
+      '-filter_threads', '1', '-threads', '1',
       ...buildMediaInputArgs(preparedSource.uri, 'tcp'),
       '-analyzeduration', '1000000', '-probesize', '1000000',
       ...preparedSource.inputArgs,
@@ -178,14 +180,25 @@ function captureStreamToGray(uri, { width, height, timeoutMs = 9000, mediaToken 
   });
 }
 
-function liveSourceCandidates(sourceMode, mediaPath) {
-  // Snapshot-only cameras offer a local HLS playlist, not an RTSP/go2rtc path.
-  if (/^file:\/\//i.test(String(mediaPath || ''))) return [{ name: 'snapshot-local-hls', uri: mediaPath }];
+function liveSourceCandidates(sourceMode, mediaPath, localHlsPlaylistUri = null) {
+  const isRtspOnly = ['rtsp', 'live-rtsp', 'rtsp-only'].includes(sourceMode);
+  const localPlaylist = localHlsPlaylistUri || (/^file:\/\//i.test(String(mediaPath || '')) ? mediaPath : null);
+  const latest = config.motionPreferLocalHls && !isRtspOnly
+    ? selectFreshMotionSegment(localPlaylist, { maxAgeMs: Math.min(8000, config.localHlsFreshnessSeconds * 1000) })
+    : null;
+  const local = latest ? {
+    name: 'local-hls-segment', uri: latest.uri, sourceKey: localPlaylist,
+  } : null;
+  // A snapshot-only camera has no real go2rtc reader: keep its playlist fallback
+  // in place if a segment is momentarily unavailable or being rotated.
+  if (/^file:\/\//i.test(String(mediaPath || ''))) {
+    return local ? [local, { name: 'snapshot-local-hls', uri: mediaPath }] : [{ name: 'snapshot-local-hls', uri: mediaPath }];
+  }
   const rtsp = { name: 'live-rtsp', uri: rtspUrlForPath(mediaPath) };
   const hls = { name: 'live-hls', uri: hlsUrlForPath(mediaPath) };
-  if (['hls', 'live-hls', 'hls-only'].includes(sourceMode)) return [hls];
-  if (['rtsp', 'live-rtsp', 'rtsp-only'].includes(sourceMode)) return [rtsp];
-  return [rtsp, hls];
+  if (['hls', 'live-hls', 'hls-only'].includes(sourceMode)) return local ? [local, hls] : [hls];
+  if (isRtspOnly) return [rtsp];
+  return local ? [local, rtsp, hls] : [rtsp, hls];
 }
 
 function comparisonOptions(camera = null) {
@@ -367,7 +380,17 @@ class MotionDetectionService {
   async ensureMotionLease(camera, motionPlan) {
     const quality = config.motionPreferSubstream ? 'low' : (motionPlan.quality || 'balanced');
     const profileToken = motionPlan.profileToken || motionPlan.plan.profileToken || null;
-    const current = this.leases.get(camera.id);
+    let current = this.leases.get(camera.id);
+    const central = streamOrchestrator.findPermanentIngestSession(camera.id);
+    if (current && central && current.key !== central.key && central.state === 'ready'
+      && central.quality === quality
+      && (central.requestedProfileToken || null) === (profileToken || null)
+      && central.outputs?.hls && streamOrchestrator.isSessionProcessAlive(central)) {
+      // The substream publisher became ready after motion was started.
+      // Promote the motion lease so kiosk/preview and motion share ONE camera.
+      this.releaseMotionLease(camera.id, 'central-preview-ready');
+      current = null;
+    }
     if (current && current.quality === quality && current.profileToken === profileToken) {
       try {
         await streamOrchestrator.retainedSession(current.key, { ensureHls: true });
@@ -388,6 +411,7 @@ class MotionDetectionService {
     const lease = {
       key: retained.key,
       path: retained.path,
+      localHlsPlaylistUri: retained.motionHlsUri || null,
       quality,
       profileToken,
       source: 'preview-substream',
@@ -416,7 +440,7 @@ class MotionDetectionService {
       try {
         const lease = await this.ensureMotionLease(camera, motionPlan);
         const mediaToken = this.mediaTokenForLease(lease);
-        for (const candidate of liveSourceCandidates(sourceMode, lease.path)) {
+        for (const candidate of liveSourceCandidates(sourceMode, lease.path, lease.localHlsPlaylistUri)) {
           try {
             const frame = await captureStreamToGray(candidate.uri, {
               width: config.motionDetectionFrameWidth,
@@ -425,7 +449,7 @@ class MotionDetectionService {
               mediaToken,
               signal,
             });
-            const displayUri = prepareMediaReadSource(candidate.uri).displayUri;
+            const displayUri = prepareMediaReadSource(candidate.sourceKey || candidate.uri).displayUri;
             state.source = candidate.name;
             state.sourceUrl = displayUri;
             state.captureSourceKey = `${candidate.name}|${displayUri}|${lease.createdAt || ''}`;

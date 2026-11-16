@@ -1,3 +1,10 @@
+## 2.20.61 - CPU-Last durch Motion und Aufnahmen senken
+
+- Bewegungserkennung liest fertige frische HLS-Segmente des zentralen Publishers, bevor eine zusaetzliche RTSP-/HLS-Verbindung gestartet wird.
+- Begrenzte FFmpeg-Decoderthreads fuer Motion-Frames.
+- Nachkomprimierung wartet bei laufenden Aufnahmen oder hoher Systemlast; Video-/Audio-Copy und Aufnahmequalitaet bleiben erhalten.
+- Neue optionale Variable MOTION_PREFER_LOCAL_HLS. Upgrade kompatibel ab 2.20.32.
+
 ## 2.20.60 – Aufnahme-Watchdog und Kioskstatus stabilisiert
 
 - Atomare Blockumbenennungen loesen im laufenden Aufnahmescanner keinen unbehandelten ENOENT-Fehler mehr aus.
