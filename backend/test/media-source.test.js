@@ -16,13 +16,13 @@ describe('Alternative Medienquellen', () => {
     expect(() => normalizeMediaSourceUrl('http://198.51.100.20/live.m3u8', '192.0.2.10')).toThrow(/Kamera-IP/);
   });
 
-  it('expandiert RTSP in TCP, HTTP-Tunnel und UDP und laesst Snapshots aus der Videopipeline', () => {
+  it('expandiert RTSP in die unterstuetzten TCP- und UDP-Varianten und laesst Snapshots aus der Videopipeline', () => {
     const sources = normalizeMediaSources([
       { label: 'RTSP', kind: 'rtsp', url: 'rtsp://192.0.2.10/live', priority: 10, enabled: true },
       { label: 'Standbild', kind: 'snapshot', url: 'http://192.0.2.10/snapshot.jpg', priority: 20, enabled: true },
     ], '192.0.2.10');
     const attempts = manualStreamAttempts(sources);
-    expect(attempts.map((attempt) => attempt.candidate.transport)).toEqual(['tcp', 'http', 'udp']);
+    expect(attempts.map((attempt) => attempt.candidate.transport)).toEqual(['tcp', 'udp']);
     expect(attempts.every((attempt) => attempt.candidate.sourceType === 'rtsp')).toBe(true);
   });
 

@@ -137,6 +137,9 @@ export function migrate() {
     updated_at: 'TEXT', username_enc: 'TEXT', password_enc: 'TEXT', enabled: 'INTEGER NOT NULL DEFAULT 1',
     profile_policy: "TEXT NOT NULL DEFAULT 'auto'", codec_preference: "TEXT NOT NULL DEFAULT 'auto'", source_policy: "TEXT NOT NULL DEFAULT 'auto'", last_seen_at: 'TEXT', last_error: 'TEXT',
     device_uid: 'TEXT', serial_number: 'TEXT', motion_zone: 'TEXT',
+    // Legacy 2.20.32 cameras did not always contain these columns, but
+    // later migrations create indexes referencing them.
+    mac_address: 'TEXT', default_preset_token: 'TEXT', default_preset_name: 'TEXT', rotation: 'INTEGER DEFAULT 0', capabilities: 'TEXT',
   };
   for (const [name, declaration] of Object.entries(cameraColumns)) addColumn('cameras', name, declaration);
   addColumn('camera_profiles', 'video_profile', 'TEXT');

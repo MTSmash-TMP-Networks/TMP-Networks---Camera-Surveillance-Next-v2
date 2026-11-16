@@ -369,6 +369,9 @@ class StreamOrchestrator {
     session.sourcePolicy = camera.sourcePolicy || 'auto';
     if (!session.startPromise || ['failed', 'stopped'].includes(session.state)) {
       session.startFailure = null;
+      session.state = 'starting';
+      session.phase = 'start_queued';
+      session.phaseMessage = 'Kamera wartet auf einen freien Startplatz';
       session.startPromise = this.startSerialized(session, camera, viewportWidth).catch((error) => {
         if (error?.code === 'STREAM_START_CANCELLED') return null;
         session.state = 'failed';
