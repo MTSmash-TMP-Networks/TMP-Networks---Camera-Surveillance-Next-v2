@@ -21,6 +21,8 @@ jobs:
           node --test backend/test-node/stream-stability-regression.test.mjs
           node --test backend/test-node/recording-recovery-policy.test.mjs
           node --test backend/test-node/local-hls-health.test.mjs
+      - name: Validate recording watchdog and kiosk heartbeat resilience
+        run: node --test backend/test-node/recording-kiosk-crashguard.test.mjs
       - name: Validate PTZ responsiveness and physical stop safety
         run: |
           node --test backend/test-node/ptz-responsive-regression.test.mjs

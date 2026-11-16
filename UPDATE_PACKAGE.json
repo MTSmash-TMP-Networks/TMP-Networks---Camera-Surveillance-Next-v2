@@ -1,11 +1,11 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.59",
+  "version": "2.20.60",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.59",
-  "summary": "Lower PTZ response latency by warming ONVIF clients and reducing interactive Live HLS delay.",
+  "title": "TMP Camera Surveillance Next 2.20.60",
+  "summary": "Protect recording watchdog from block rename races and decouple kiosk heartbeat from heavy archive queries.",
   "createdAt": "2026-11-16T20:52:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.59.md",
+  "changelogFile": "UPDATE_NOTES_2.20.60.md",
   "changes": [
     "Graceful single-pass Docker upgrade and recording finalization",
     "Bound camera connection starts and do not block recording scheduler",
@@ -17,7 +17,10 @@
     "Preserve original MPEG-TS timestamps during local HLS remux",
     "Warm ONVIF PTZ Move and Stop connections when opening PTZ controls without waiting for camera auth on pointer down",
     "Reduce redundant ContinuousMove pulses while preserving separate prioritized Stop",
-    "Use a 3-second browser HLS target for interactive Live, maintain 8-second kiosk buffer, and seek only lagged PTZ Live players"
+    "Use a 3-second browser HLS target for interactive Live, maintain 8-second kiosk buffer, and seek only lagged PTZ Live players",
+    "Guard recording watchdog against atomic file-rename races and prevent duplicate finalization scans",
+    "Use lightweight in-memory recording status for kiosk polling instead of database queries per recording",
+    "Suppress transient kiosk API status errors; bounded requests preserve existing last-good camera status"
   ],
   "preserve": [
     ".env",
@@ -37,14 +40,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.59.md",
+  "changelog": "UPDATE_NOTES_2.20.60.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.59",
-  "packageId": "tmp-camera-surveillance-next-2.20.59",
+  "name": "TMP Camera Surveillance Next v2.20.60",
+  "packageId": "tmp-camera-surveillance-next-2.20.60",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "More responsive safe PTZ movement and stop commands without changing backend camera ingest or kiosk playback.",
+  "description": "Crash guard for recording startup and lightweight fault-tolerant kiosk status.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32. PTZ connection warmup, fewer redundant move pulses and a shorter live PTZ preview delay; existing kiosk HLS buffer unchanged.",
-  "fileCount": 467
+  "releaseNotes": "Compatible from 2.20.32: recording watcher tolerates concurrent block rename; Kiosk heartbeat stays lightweight and survives transient API failures.",
+  "fileCount": 469
 }

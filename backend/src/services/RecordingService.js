@@ -401,6 +401,8 @@ class RecordingService {
         rotationTimer: null,
         rotationKillTimer: null,
         watchdogTimer: null,
+        watchdogCommitPending: false,
+        lastWatchdogScanErrorAt: 0,
         interruptions: 0,
         gapSeconds: 0,
         outageStartedAt: null,
@@ -648,6 +650,7 @@ class RecordingService {
     state.lastFileSize = Math.max(0, Number(state.lastFileSize || 0));
     state.watchdogTimer = setInterval(() => {
       if (state.child !== child || state.stopping || state.finalizing || child.exitCode !== null) return;
+      try {
       const partials = scanSessionBlocks(state.sessionDir).filter((file) => file.kind === 'partial');
       const current = partials.at(-1);
       const size = current?.sizeBytes || 0;
@@ -658,9 +661,14 @@ class RecordingService {
         state.lastProgressAt = Date.now();
         if (size > 0) this.markRecordingProgress(state, current?.index);
       }
-      this.commitClosedBlocks(state).catch((commitError) => {
-        logger.error({ cameraId: state.cameraId, recordingId: state.id, err: commitError }, 'Abgeschlossene Aufnahmeblöcke konnten nicht übernommen werden');
-      });
+      if (!state.watchdogCommitPending) {
+        state.watchdogCommitPending = true;
+        void this.commitClosedBlocks(state).catch((commitError) => {
+          logger.error({ cameraId: state.cameraId, recordingId: state.id, err: commitError }, 'Abgeschlossene Aufnahmeblöcke konnten nicht übernommen werden');
+        }).finally(() => {
+          state.watchdogCommitPending = false;
+        });
+      }
       if (Date.now() - state.lastProgressAt > config.recordingStallSeconds * 1000) {
         this.log(state.cameraId, 'warn', 'RECORDING_STALLED', 'Die Aufnahmequelle lieferte keine neuen Daten und wird neu verbunden', {
           recordingId: state.id,
@@ -669,6 +677,18 @@ class RecordingService {
         });
         child.__tmpExpectedExit = null;
         child.kill('SIGKILL');
+      }
+      } catch (error) {
+        // Watchdog exceptions must not bring down the Node backend.
+        // Surface repeated disk I/O failures without silently declaring the
+        // recording healthy; leave the normal stall/recovery path intact.
+        const now = Date.now();
+        if (now - Number(state.lastWatchdogScanErrorAt || 0) >= 30_000) {
+          state.lastWatchdogScanErrorAt = now;
+          this.log(state.cameraId, 'warn', 'RECORDING_WATCHDOG_SCAN_FAILED',
+            'Aufnahme-Watchdog konnte die aktuellen Blockdateien nicht lesen; erneuter Versuch folgt',
+            { recordingId: state.id, error: sanitizeLogText(error?.message || String(error), 500) });
+        }
       }
     }, config.recordingWatchdogIntervalMs);
     state.watchdogTimer.unref?.();
@@ -1391,6 +1411,24 @@ class RecordingService {
   }
 
   list(input) { return recordingRepository.list(input); }
+
+  kioskActiveList() {
+    // Kiosk polling must not query all archive blocks for every recorder.
+    // The recording state is authoritative for this lightweight heartbeat.
+    return [...this.active.values()].map((state) => ({
+      id: state.id,
+      cameraId: state.cameraId,
+      startedAt: state.startedAt,
+      elapsedSeconds: Math.round((Date.now() - state.startedAtMs) / 1000),
+      status: 'recording',
+      triggerType: state.triggerType,
+      planId: state.planId || null,
+      eventId: state.eventId || null,
+      recovering: Boolean(state.recovering),
+      interruptions: state.interruptions || 0,
+      playableBlockCount: state.committedBlocks.size,
+    }));
+  }
 
   activeList(cameraId = null) {
     return [...this.active.values()]

@@ -179,6 +179,7 @@ export function KioskPage() {
   const [fullscreen, setFullscreen] = useState(Boolean(document.fullscreenElement));
   const [runtimeStatus, setRuntimeStatus] = useState({});
   const [statusError, setStatusError] = useState('');
+  const kioskStatusFailures = useRef(0);
   const [layouts, setLayouts] = useState(() => loadKioskLayouts());
   const [activeLayoutId, setActiveLayoutId] = useState(() => loadActiveKioskLayoutId());
   const [editorLayout, setEditorLayout] = useState(null);
@@ -199,16 +200,21 @@ export function KioskPage() {
       try {
         const result = await api.kioskStatus();
         if (cancelled) return;
+        kioskStatusFailures.current = 0;
         setRuntimeStatus(buildKioskCameraStatus({ ...result, cameras }));
         setStatusError('');
       } catch {
-        if (!cancelled) setStatusError(t('kiosk.status.unavailable'));
+        if (cancelled) return;
+        kioskStatusFailures.current += 1;
+        // A single missed backend heartbeat during recording startup is not
+        // a video failure. Keep the most recent camera/motion status visible.
+        if (kioskStatusFailures.current >= 3) setStatusError(t('kiosk.status.unavailable'));
       } finally {
         inFlight = false;
       }
     }
     loadRuntimeStatus();
-    const interval = window.setInterval(loadRuntimeStatus, 2500);
+    const interval = window.setInterval(loadRuntimeStatus, 3500);
     return () => { cancelled = true; window.clearInterval(interval); };
   }, [cameras, t]);
 
