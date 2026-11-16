@@ -1,3 +1,15 @@
+## 2.20.56 – Zentraler Preview-Publisher strikt vom Frontend getrennt
+
+- Kiosk und Live-Auto lesen ausschließlich den serverseitig gehaltenen zentralen Preview-Publisher über einen read-only Preview-Endpunkt.
+- Der Browser darf diesen Publisher nicht mehr starten, stoppen, restarten, umprofilieren oder über Heartbeats neu anlegen.
+- Browser-Prewarm beim Kamera-Anlegen und die AppShell-weite Browser-Synchronisierung wurden entfernt.
+- Kiosk verwendet pro Kamera genau einen kanonischen zentralen Preview-Key; Tile-Größe, Resize und UI-Qualität erzeugen keine zusätzliche Stream-Session.
+- Der Kiosk-Qualitätswahlschalter wurde entfernt; die Backend-Preview-Qualität ist die alleinige Quelle.
+- Bei Backend-Recovery bleibt der Browserplayer bestehen und hält den letzten/buffered Frame, statt wegen Backendstatus aggressiv neu aufgebaut zu werden.
+- Das Backend überwacht fehlende permanente Preview-Publisher selbst und startet maximal einen fehlenden Publisher pro Wartungsrunde über die globale Kamera-Queue.
+- Die Kameraübersicht zeigt Grün nur noch, wenn der zentrale Preview-Publisher samt Local-HLS tatsächlich ready ist. Eine alte Live-/Mainstream-Session kann die Ampel nicht mehr fälschlich grün halten.
+- Update-Basis bleibt 2.20.32.
+
 ## 2.20.55 – Stabiler Live-Reconnect ohne Browser-Reconnect-Sturm
 
 - Browser-Session- und Heartbeat-Abfragen duerfen einen fehlgeschlagenen permanenten Kamera-Publisher nicht mehr sofort neu starten.
