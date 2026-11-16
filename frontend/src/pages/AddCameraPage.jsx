@@ -7,7 +7,6 @@ import { codecLabel } from '../utils/codec.js';
 import { connectionModeForDiscoveredCamera } from '../utils/cameraSetup.js';
 import { cameraSavePayload, cameraSetupError } from '../utils/cameraValidation.js';
 import { cameraUpserted } from '../features/cameras/camerasSlice.js';
-import { liveStreamPool } from '../services/liveStreamPool.js';
 import { cameraSetupAvailability, isDiscoveryRunning, mergeDiscoveredDevices } from '../services/cameraDiscoveryState.js';
 import { useI18n } from '../i18n/index.js';
 
@@ -347,14 +346,6 @@ export function AddCameraPage() {
       }
       const result = await api.addCamera(payload);
       dispatch(cameraUpserted(result.camera));
-      // Start the muted stream before route navigation. The same video node and
-      // transport session are then attached to Live/Kiosk without rebuilding.
-      liveStreamPool.prewarm({
-        cameraId: result.camera.id,
-        quality: 'balanced',
-        profileToken: result.camera.preferredProfile || form.preferredProfile || '',
-        viewportWidth: 1280,
-      });
       navigate(`/live?camera=${result.camera.id}`);
     } catch (e) { setError(cameraSetupError(e, locale)); }
     finally { setActionBusy(false); }
