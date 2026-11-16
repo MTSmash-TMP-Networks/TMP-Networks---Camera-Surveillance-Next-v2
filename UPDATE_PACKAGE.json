@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.54",
+  "version": "2.20.55",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.54",
-  "summary": "Prevent runaway CPU usage by fixing broker reference leaks, adding stable restart backoff/circuit breaking, and blocking CPU-heavy synthetic fallbacks on permanent media paths.",
-  "createdAt": "2026-11-16T16:05:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.54.md",
+  "title": "TMP Camera Surveillance Next 2.20.55",
+  "summary": "Stabilize Live/Kiosk reconnects by making backend restart backoff authoritative, pinning the last working profile+transport candidate, and keeping permanent previews video-only.",
+  "createdAt": "2026-11-16T16:55:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.55.md",
   "changes": [
-    "Fix go2rtc broker reference leaks across HLS/FFmpeg recovery and profile/encoder changes",
-    "Keep restart history across short-lived ready states and add a recovery circuit breaker",
-    "Block snapshot-to-H264 CPU fallback for permanent/recording/motion/prebuffer paths and keep event prebuffer off forced mainstream"
+    "Browser waits through permanent publisher backend recovery instead of forcing new starts",
+    "Pin the last stable profile plus transport candidate across reconnects",
+    "Disable optional AAC transcode for permanent preview/motion/prebuffer paths and increase auto first-frame grace"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.54.md",
+  "changelog": "UPDATE_NOTES_2.20.55.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.54",
-  "packageId": "tmp-camera-surveillance-next-2.20.54",
+  "name": "TMP Camera Surveillance Next v2.20.55",
+  "packageId": "tmp-camera-surveillance-next-2.20.55",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Stream resource guard for runaway CPU and recovery leak prevention.",
+  "description": "Stable Live/Kiosk reconnect behavior without browser-driven restart storms.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Broker refs no longer grow during recovery, short crash loops are circuit-broken, and CPU-heavy snapshot fallback is forbidden on permanent media paths.",
-  "fileCount": 456
+  "releaseNotes": "Permanent publisher recovery is backend-controlled; browser polling no longer bypasses backoff, stable TCP/UDP candidates remain pinned, and preview paths stay video-only.",
+  "fileCount": 457
 }
