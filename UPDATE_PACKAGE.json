@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.51",
+  "version": "2.20.52",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.51",
-  "summary": "Harden the direct-update contract so releases remain backward compatible to TMP Camera Surveillance Next 2.20.32.",
-  "createdAt": "2026-11-12T17:50:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.51.md",
+  "title": "TMP Camera Surveillance Next 2.20.52",
+  "summary": "Make the Linux desktop installer recover from incomplete Electron npm/rebuild installs using a verified official release fallback.",
+  "createdAt": "2026-11-16T15:30:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.52.md",
   "changes": [
-    "Pin all compatibility fields to 2.20.32",
-    "Validate preserved runtime paths .env, data and .git in the release guard",
-    "Keep legacy root-path, manifest, checksum and package-version validation active"
+    "Add a SHA-256 verified direct Electron 35.7.5 fallback when npm leaves the native runtime incomplete",
+    "Rebuild the downloadable Linux desktop client ZIP with the fixed installer",
+    "Run desktop-client distribution and installer regression tests in release CI"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.51.md",
+  "changelog": "UPDATE_NOTES_2.20.52.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.51",
-  "packageId": "tmp-camera-surveillance-next-2.20.51",
+  "name": "TMP Camera Surveillance Next v2.20.52",
+  "packageId": "tmp-camera-surveillance-next-2.20.52",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Backward-compatible release contract hardened for direct upgrades from v2.20.32.",
+  "description": "Verified Electron runtime recovery for Linux desktop installations.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Direct upgrades from TMP Camera Surveillance Next 2.20.32 remain explicitly supported and guarded.",
-  "fileCount": 453
+  "releaseNotes": "Incomplete npm Electron installs now recover through the official Electron release ZIP with checksum verification.",
+  "fileCount": 454
 }
