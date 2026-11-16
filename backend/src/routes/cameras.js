@@ -102,9 +102,14 @@ const discoverySchema = z.object({
 }));
 
 function withRuntimeCameraStatus(camera) {
-  if (!camera) return camera;
-  if (!streamOrchestrator.hasReady(camera.id)) return camera;
-  return { ...camera, status: 'online', lastError: null };
+  if (!camera || camera.enabled === false) return camera;
+  const preview = streamOrchestrator.centralPreviewStatus(camera.id);
+  if (preview?.ready) return { ...camera, status: 'online', lastError: null };
+  if (preview?.state === 'failed') return { ...camera, status: 'stream_error', lastError: preview.lastError || preview.phaseMessage || camera.lastError || null };
+  // Overview status follows the central preview publisher, not an unrelated
+  // leftover Live/Mainstream session. This keeps green == Kiosk-readable.
+  if (preview) return { ...camera, status: 'activating', lastError: preview.phaseMessage || null };
+  return { ...camera, status: 'activating', lastError: 'Zentraler Kamera-Publisher wird vorbereitet' };
 }
 
 camerasRouter.get('/', (_req, res) => res.json({ items: cameraRepository.list().map(withRuntimeCameraStatus) }));
