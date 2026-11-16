@@ -27,14 +27,6 @@ export function AppShell() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readCollapsedState);
 
   useEffect(() => { if (cameraStatus === 'idle') dispatch(loadCameras()); }, [dispatch, cameraStatus]);
-  useEffect(() => {
-    const path = String(location.pathname || '');
-    if (path.startsWith('/kiosk') || path.startsWith('/live')) {
-      liveStreamPool.syncPersistentCameras([]);
-      return;
-    }
-    liveStreamPool.syncPersistentCameras(cameras);
-  }, [cameras, location.pathname]);
   useEffect(() => () => { liveStreamPool.destroyAll({ force: true }); }, []);
 
   function toggleSidebar() {
