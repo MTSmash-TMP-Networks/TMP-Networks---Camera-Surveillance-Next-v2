@@ -184,6 +184,8 @@ export const config = Object.freeze({
   streamLeaseTtlSeconds: integer('STREAM_LEASE_TTL_SECONDS', 90, { min: 20, max: 900 }),
   streamBrowserCacheSeconds: integer('STREAM_BROWSER_CACHE_SECONDS', 120, { min: 0, max: 600 }),
   streamStallSeconds: number('STREAM_STALL_SECONDS', 45),
+  streamStartConcurrency: integer('STREAM_START_CONCURRENCY', 2, { min: 1, max: 8 }),
+  localHlsFreshnessSeconds: integer('LOCAL_HLS_FRESHNESS_SECONDS', 30, { min: 5, max: 120 }),
   streamHardStallSeconds: integer('STREAM_HARD_STALL_SECONDS', 300, { min: 60, max: 3600 }),
   streamBrokerApiGraceMs: integer('STREAM_BROKER_API_GRACE_MS', 120000, { min: 5000, max: 600000 }),
   streamRestartInitialDelayMs: integer('STREAM_RESTART_INITIAL_DELAY_MS', 2500, { min: 500, max: 60000 }),

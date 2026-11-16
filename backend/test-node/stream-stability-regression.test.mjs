@@ -225,22 +225,19 @@ test('permanent preview publisher is shared and not owned by kiosk or Live', () 
 });
 
 
-test('camera connection setup is globally serialized across different cameras', () => {
-  assert.match(orchestrator, /globalCameraStartTail = Promise\.resolve\(\)/);
-  assert.match(orchestrator, /GLOBAL_CAMERA_START_QUEUED/);
-  assert.match(orchestrator, /GLOBAL_CAMERA_START_ACQUIRED/);
-  assert.match(orchestrator, /const previousGlobal = this\.globalCameraStartTail/);
-  assert.doesNotMatch(orchestrator, /const previous = this\.cameraStartLocks\.get\(cameraId\)/);
+test('camera startup is serialized per camera and bounded across cameras', () => {
+  assert.match(orchestrator, /new CameraStartLimiter\(config\.streamStartConcurrency\)/);
+  assert.match(orchestrator, /this\.cameraStartLocks\.get\(cameraId\)/);
+  assert.match(orchestrator, /STREAM_START_CANCELLED/);
+  assert.doesNotMatch(orchestrator, /globalCameraStartTail/);
 });
 
-test('backend startup finishes permanent previews before motion and recording automation', () => {
-  assert.match(server, /startPermanentIngestForAll\(\{ wait: true \}\)/);
-  const bootstrapIndex = server.indexOf("startPermanentIngestForAll({ wait: true })");
-  const motionIndex = server.indexOf('motionDetectionService.start()');
+test('a disconnected preview does not block recording scheduler startup', () => {
+  assert.match(server, /startPermanentIngestForAll\(\{ wait: false \}\)/);
+  const bootstrapIndex = server.indexOf('startPermanentIngestForAll({ wait: false })');
   const schedulerIndex = server.indexOf('recordingScheduler.start()');
-  assert.ok(bootstrapIndex >= 0 && bootstrapIndex < motionIndex);
-  assert.ok(bootstrapIndex < schedulerIndex);
-  assert.match(orchestrator, /await this\.startPermanentIngestForCamera\(camera\.id, \{ wait: true, reason: 'backend-startup' \}\)/);
+  assert.ok(bootstrapIndex >= 0 && bootstrapIndex < schedulerIndex);
+  assert.match(orchestrator, /Promise\.allSettled\(requests\)/);
 });
 
 test('permanent restart loops are deferred until serial bootstrap completes', () => {

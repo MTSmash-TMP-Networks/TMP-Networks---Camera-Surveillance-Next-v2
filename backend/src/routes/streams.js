@@ -81,7 +81,7 @@ streamsRouter.get('/:id/preview', (req, res) => {
     });
   }
   const { paths, ...publicSession } = session;
-  if (session.state !== 'ready' || !session.outputs?.hls) {
+  if (session.state !== 'ready' || !session.outputs?.hls || !streamOrchestrator.centralPreviewStatus(req.params.id)?.ready) {
     return res.status(202).json({
       ...publicSession,
       tokens: { webrtc: null, hls: null },
