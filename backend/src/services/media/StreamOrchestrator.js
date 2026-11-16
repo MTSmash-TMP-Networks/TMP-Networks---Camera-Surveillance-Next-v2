@@ -589,26 +589,19 @@ class StreamOrchestrator {
             : `Zentraler Broker und lokaler HLS-Ring für „${profile.name}“ werden aufgebaut`, { profile: profile.name, transport: candidate.transport, browserVideoMode: 'broker-normalized' });
           const failureKey = brokerStreamPaths(camera.id, profile, candidate).video;
           const failedEncoders = this.brokerEncoderFailures.get(failureKey) || new Map();
-          const forcePermanentCopy = session.permanent && config.permanentIngestVideoMode === 'force-copy';
-          let encoders = brokerEncoderCandidates(profile, config.go2RtcFfmpegHardware, config.go2RtcH264CopyFirst)
+          // Copy remains preferred for permanent preview publishers, but the
+          // established sticky VAAPI/CPU fallback must stay available. Once a
+          // more conservative encoder is selected successfully, failed modes
+          // remain pinned out for this backend lifetime.
+          const encoders = brokerEncoderCandidates(profile, config.go2RtcFfmpegHardware, config.go2RtcH264CopyFirst)
             .filter((mode) => mode === 'software' || !failedEncoders.has(mode));
-          if (forcePermanentCopy) {
-            encoders = encoders.filter((mode) => mode === 'copy');
-            if (!encoders.length) {
-              throw new AppError(415, 'PERMANENT_COPY_REQUIRED', 'Permanenter Preview-Publisher darf dieses Profil nicht per CPU/GPU transkodieren; naechstes Profil wird versucht', {
-                profile: profile.name,
-                declaredVideoCodec: profile.videoCodec || null,
-                permanentIngestVideoMode: config.permanentIngestVideoMode,
-              });
-            }
-          }
           this.log(session, 'info', 'go2rtc', 'BROKER_ENCODER_CANDIDATES', 'Encoder werden fuer das Kameraprofil vorbereitet', {
             profile: profile.name,
             declaredVideoCodec: profile.videoCodec || null,
             copyFirst: config.go2RtcH264CopyFirst,
             configuredHardware: config.go2RtcFfmpegHardware,
             availableEncoders: encoders,
-            permanentForceCopy: forcePermanentCopy,
+            permanentVideoMode: session.permanent ? config.permanentIngestVideoMode : null,
             stickyEncoderFailures: [...failedEncoders.keys()],
           });
           for (const [encoderIndex, encoder] of encoders.entries()) {
