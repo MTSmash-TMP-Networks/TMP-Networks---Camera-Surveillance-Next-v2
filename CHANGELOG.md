@@ -1,3 +1,14 @@
+## 2.20.53 – Kameras starten strikt nacheinander statt in parallelen Loops
+
+- Der bisherige Start-Lock war nur pro Kamera und erlaubte dadurch parallele RTSP/go2rtc/HLS-Aufbauten verschiedener Kameras.
+- Eine globale Kamera-Startwarteschlange erlaubt jetzt systemweit nur einen aktiven Kamera-Verbindungsaufbau gleichzeitig.
+- Der permanente Kamera-Bootstrap arbeitet alle aktivierten Kameras vollständig nacheinander ab.
+- Der bisherige Timer-Stagger wurde durch eine echte Ruhepause nach einer fertig abgearbeiteten Kamera ersetzt.
+- Motion Detection und Recording Scheduler starten erst, nachdem alle permanenten Preview-Publisher ihren ersten Startversuch abgeschlossen haben.
+- Permanente Auto-Restarts werden während des initialen Bootstraps zurückgestellt und erst danach freigegeben.
+- Dadurch können fehlerhafte Kameras den Erstaufbau der übrigen Kameras nicht mehr mit parallelen Restart-Loops stören.
+- Update-Basis bleibt 2.20.32.
+
 ## 2.20.52 – Robuster Linux-Desktop-Installer für unvollständige Electron-Downloads
 
 - Electron 35.7.5 bleibt fest gepinnt und wird weiterhin zuerst über den normalen npm-Installationspfad installiert.
