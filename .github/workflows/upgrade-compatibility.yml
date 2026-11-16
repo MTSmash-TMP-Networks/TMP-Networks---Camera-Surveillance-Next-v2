@@ -28,6 +28,7 @@ jobs:
           npm ci --prefix backend --no-audit --no-fund
           npm ci --prefix frontend --no-audit --no-fund
           npm run test --prefix backend
+          npm run test:critical --prefix backend
           npm run test --prefix frontend
           npm run build --prefix frontend
           npm run test --prefix updater
