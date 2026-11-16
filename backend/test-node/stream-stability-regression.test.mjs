@@ -244,3 +244,39 @@ test('permanent restart loops are deferred until serial bootstrap completes', ()
   assert.match(orchestrator, /AUTO_RESTART_DEFERRED_BOOTSTRAP/);
   assert.match(orchestrator, /session\?\.permanent && session\.state === 'failed'/);
 });
+
+
+test('stream recovery does not leak go2rtc broker references', () => {
+  assert.match(orchestrator, /if \(session\.brokerRefKey && session\.brokerRefKey !== paths\.video\)/);
+  assert.match(orchestrator, /const nextRefs = alreadyOwned \? Math\.max\(1, inheritedRefs\) : inheritedRefs \+ 1/);
+  assert.match(orchestrator, /if \(!alreadyOwned\) existing\.refs \+= 1/);
+  assert.match(orchestrator, /reconcileBrokerRefs/);
+  assert.match(orchestrator, /Fehlerhafter go2rtc-Broker-Refcount wurde korrigiert/);
+});
+
+test('short-lived ready streams keep exponential restart history and open a circuit breaker', () => {
+  assert.match(config, /STREAM_STABLE_RESET_SECONDS', 60/);
+  assert.match(config, /STREAM_RESTART_CIRCUIT_ATTEMPTS', 6/);
+  assert.match(config, /STREAM_RESTART_CIRCUIT_COOLDOWN_MS', 120000/);
+  assert.match(orchestrator, /AUTO_RESTART_CIRCUIT_OPEN/);
+  assert.match(orchestrator, /stableForMs >= config\.streamStableResetSeconds \* 1000/);
+  assert.doesNotMatch(orchestrator, /session\.connectedAt = Date\.now\(\);[\s\S]{0,250}session\.restartCount = 0/);
+});
+
+test('permanent and retained media paths never fall back to CPU snapshot video', () => {
+  assert.match(orchestrator, /SNAPSHOT_VIDEO_FALLBACK_SKIPPED/);
+  assert.match(orchestrator, /session\.permanent/);
+  assert.match(orchestrator, /\['ingest', 'recording', 'motion', 'prebuffer'\]/);
+  assert.match(orchestrator, /\['snapshot', 'snapshot-video'\]\.includes\(session\.mode\)/);
+});
+
+test('sticky CPU fallback remains available for permanent previews', () => {
+  assert.match(orchestrator, /Copy remains preferred for permanent preview publishers/);
+  assert.match(orchestrator, /mode === 'software' \|\| !failedEncoders\.has\(mode\)/);
+  assert.doesNotMatch(orchestrator, /PERMANENT_COPY_REQUIRED/);
+});
+
+test('event prebuffer no longer forces recording-mainstream semantics', () => {
+  assert.match(orchestrator, /purpose === 'prebuffer' \? 'prebuffer' : 'recording'/);
+  assert.match(orchestrator, /purpose === 'prebuffer'\) return session\.quality === preferredQuality/);
+});
