@@ -1,3 +1,15 @@
+## 2.20.54 – Stream Resource Guard gegen CPU-Runaway und Recovery-Leaks
+
+- go2rtc-Broker-Referenzen werden bei Stream-Recovery nicht mehr mehrfach hochgezaehlt; Profil-/Encoderwechsel geben den alten Broker vor dem Wechsel frei.
+- Ein periodischer Ressourcen-Waechter korrigiert fehlerhafte Broker-Refcounts und entfernt verwaiste go2rtc-Broker.
+- Kurzlebige `ready`-Phasen setzen die Restart-Historie nicht mehr sofort auf null. Erst nach 60 Sekunden stabiler Laufzeit gilt ein Stream wieder als gesund.
+- Nach sechs kurzen Start-/Absturzzyklen oeffnet ein Circuit Breaker und verzoegert weitere automatische Neustarts standardmaessig um mindestens 120 Sekunden.
+- Der CPU-intensive Snapshot→H.264-Fallback ist fuer permanente Preview-, Recording-, Motion- und Prebuffer-Pfade gesperrt.
+- Sticky Encoder-Fallback bleibt erhalten: Copy → VAAPI → CPU darf weiterhin erfolgen und bleibt bei stabilem CPU-Pfad gepinnt.
+- Event-Prebuffer nutzt jetzt einen eigenen `prebuffer`-Streamzweck und erzwingt nicht mehr automatisch Recording/Mainstream-High.
+- Synthetische Snapshot-Video-Sessions werden nicht mehr als Recording-/Motion-Quelle wiederverwendet.
+- Update-Basis bleibt 2.20.32.
+
 ## 2.20.53 – Kameras starten strikt nacheinander statt in parallelen Loops
 
 - Der bisherige Start-Lock war nur pro Kamera und erlaubte dadurch parallele RTSP/go2rtc/HLS-Aufbauten verschiedener Kameras.
