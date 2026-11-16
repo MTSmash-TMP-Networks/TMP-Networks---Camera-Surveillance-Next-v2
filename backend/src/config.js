@@ -207,6 +207,7 @@ export const config = Object.freeze({
   ptzTombstoneTtlMs: integer('PTZ_TOMBSTONE_TTL_MS', 15_000, { min: 1000, max: 300_000 }),
   ptzMaxLeasesPerCamera: integer('PTZ_MAX_LEASES_PER_CAMERA', 16, { min: 1, max: 256 }),
   ptzClientIdleMs: integer('PTZ_CLIENT_IDLE_MS', 300_000, { min: 10_000, max: 86_400_000 }),
+  ptzPrewarmEnabled: boolean('PTZ_PREWARM_ENABLED', true),
   recordingQueueMaxPending: integer('RECORDING_QUEUE_MAX_PENDING', 20, { min: 1, max: 500 }),
   recordingCompressionEnabled: boolean('RECORDING_COMPRESSION_ENABLED', true),
   recordingCompressionCrf: integer('RECORDING_COMPRESSION_CRF', 29, { min: 18, max: 40 }),

@@ -1,3 +1,10 @@
+## 2.20.59 – PTZ-Steuerung reagiert schneller
+
+- Vorwaermen separater ONVIF-Verbindungen fuer Move und Stop, ohne die Bedienung zu blockieren.
+- Reduzierte Wiederholungsbefehle bei gehaltenen PTZ-Tasten, Sicherheits-Stop bleibt priorisiert.
+- Nur interaktive Live-Vorschau naeher an der HLS-Kante (3 s statt 8 s); Kiosk-Puffer unveraendert.
+- Keine Aenderung der zentralen Video-/Audio- und Aufnahme-Pipeline; Update ab 2.20.32.
+
 ## 2.20.58 – WLAN-RTSP und Ton im zentralen Live-Preview
 
 - Der permanente zentrale Live-Preview-Publisher behaelt Audio (G.711 nach AAC fuer HLS), statt den Audiopfad pauschal abzuschalten.

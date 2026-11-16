@@ -32,6 +32,12 @@ function actorContext(req, input = {}) {
   };
 }
 
+ptzRouter.post('/:id/prepare', asyncHandler(async (req, res) => {
+  const input = interactionSchema.parse(req.body || {});
+  res.set({ 'Cache-Control': 'private, no-store, max-age=0', Pragma: 'no-cache' });
+  res.json(ptzService.prepare(req.params.id, input));
+}));
+
 ptzRouter.post('/:id/move', asyncHandler(async (req, res) => {
   const input = moveSchema.parse(req.body || {});
   res.set({ 'Cache-Control': 'private, no-store, max-age=0', Pragma: 'no-cache' });

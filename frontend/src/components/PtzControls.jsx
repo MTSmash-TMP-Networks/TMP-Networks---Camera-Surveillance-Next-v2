@@ -5,7 +5,9 @@ import { liveStreamPool } from '../services/liveStreamPool.js';
 import { cameraSupportsPtz } from '../utils/cameraCapabilities.js';
 
 // A frozen player must never delay or block physical PTZ commands.
-const MOVE_PULSE_MS = 450;
+// Camera ContinuousMove is held for 1200 ms. Fewer control pulses avoid
+// saturating slow ONVIF implementations without delaying the first command.
+const MOVE_PULSE_MS = 700;
 const LEASE_HEARTBEAT_MS = 900;
 const CLIENT_STORAGE_KEY = 'tmp-camera-ptz-client-id';
 
@@ -108,9 +110,11 @@ export function PtzControls({ camera, profileToken, allowed }) {
       clientId: clientIdRef.current,
       sequence,
     }).then(() => {
+      if (interaction.ended || activeRef.current !== interaction) return;
       liveStreamPool.markControlActivity(cameraRef.current, 'ptz-move-ok');
       updateStatus('PTZ aktiv');
     }).catch((error) => {
+      if (interaction.ended || activeRef.current !== interaction) return;
       interaction.failures += 1;
       updateStatus(error?.message || 'PTZ-Befehl fehlgeschlagen');
       if (interaction.failures >= 3) void stopInteraction('move-error');
@@ -193,6 +197,13 @@ export function PtzControls({ camera, profileToken, allowed }) {
       }
     };
   }, [clearInteractionTimers, stopInteraction]);
+
+  useEffect(() => {
+    if (!hasPtz || !allowed) return undefined;
+    // Connection warmup is not a physical move and does not block rendering.
+    api.ptzPrepare(camera.id, { profileToken: profileToken || null }).catch(() => {});
+    return undefined;
+  }, [camera.id, profileToken, hasPtz, allowed]);
 
   useEffect(() => {
     let cancelled = false;
