@@ -67,7 +67,9 @@ const server = app.listen(config.port, config.host, () => {
       }
       networkRecordingStorageService.start();
       discoveryJobService.bootstrap();
-      await streamOrchestrator.startPermanentIngestForAll({ wait: false });
+      // Finish the permanent preview bootstrap first. Motion and recording
+      // automation must not create extra camera sessions while startup is still running.
+      await streamOrchestrator.startPermanentIngestForAll({ wait: true });
       motionDetectionService.start();
       recordingScheduler.start();
       // Retention starts last. It must never delete archive rows before local,
