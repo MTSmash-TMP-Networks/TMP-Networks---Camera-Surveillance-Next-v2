@@ -209,13 +209,13 @@ test('ready runtime sessions repair stale red camera status and Live keeps the g
 });
 
 
-test('shared warm preview keeps Live Auto auto across browser polling', () => {
-  assert.match(player, /const requestedQuality = quality === 'auto' \? \(compact \? automaticQuality : 'auto'\) : quality/);
-  assert.match(livePool, /const requestedQuality = input\.quality/);
-  assert.match(livePool, /warmLiveAuto = entry\.purpose === 'live' && entry\.quality === 'auto' && !entry\.profileToken/);
-  assert.match(livePool, /quality: requestedQuality, wait: false/);
-  assert.doesNotMatch(livePool, /quality: trackedQuality, wait: false/);
-  assert.match(livePool, /sharedPreview = session\.purpose === 'ingest'/);
+test('shared warm preview keeps Live Auto on the read-only central publisher', () => {
+  assert.match(player, /const requestedQuality = compact \? 'low' : \(quality === 'auto' \? 'auto' : quality\)/);
+  assert.match(livePool, /isCentralPreviewRequest\(\{ purpose: entry\.purpose, quality: entry\.quality/);
+  assert.match(livePool, /return waitForCentralPreview\(entry, isStale\)/);
+  assert.match(livePool, /api\.streamPreview\(entry\.cameraId\)/);
+  const centralPreviewFunction = livePool.match(/async function waitForCentralPreview[\s\S]*?\n\}/)?.[0] || '';
+  assert.doesNotMatch(centralPreviewFunction, /streamSession|streamHeartbeat/);
 });
 
 test('permanent preview publisher is shared and not owned by kiosk or Live', () => {
