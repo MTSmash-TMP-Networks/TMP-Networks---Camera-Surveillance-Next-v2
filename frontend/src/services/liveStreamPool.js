@@ -612,11 +612,19 @@ class LiveStreamPool {
         const backendFailed = session?.state === 'failed' || session?.ffmpegRunning === false;
         const backendSoftStall = Boolean(session?.stalled || Number(session?.progressAgeMs || 0) > STALL_MS * 1.5);
         if (backendFailed) {
-          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_FAILED', 'Backend meldet einen ausgefallenen Streamprozess', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled, ffmpegRunning: session?.ffmpegRunning });
-          if (hasActiveConsumer(entry)) this.reconnect(entry, 'Backend-Stream wird wiederhergestellt …', 0);
+          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_FAILED', 'Backend meldet einen ausgefallenen Streamprozess', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled, ffmpegRunning: session?.ffmpegRunning, centralPreview });
+          if (centralPreview) {
+            // Backend owns recovery. Keep the current video element and last
+            // decoded/buffered frame in place instead of visibly tearing down
+            // the Kiosk player just because the publisher is being repaired.
+            entry.update({
+              state: 'recovering',
+              message: session?.restartAt ? `Zentraler Stream wird ab ${new Date(session.restartAt).toLocaleTimeString()} wiederhergestellt …` : 'Zentraler Stream wird im Backend wiederhergestellt …',
+            });
+          } else if (hasActiveConsumer(entry)) this.reconnect(entry, 'Backend-Stream wird wiederhergestellt …', 0);
         } else if (backendSoftStall && hasActiveConsumer(entry) && browserVisible() && !hasRecentBrowserFrames(entry, STALL_MS)) {
-          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_STALLED', 'Backend und Browser liefern keine neuen Frames; Verbindung wird neu aufgebaut', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled });
-          this.reconnect(entry, 'Backend-Heartbeat fordert Neuverbindung an …', 0);
+          this.report(entry, 'warn', 'BACKEND_STREAM_HEARTBEAT_STALLED', 'Backend und Browser liefern keine neuen Frames; Verbindung wird neu aufgebaut', entry.state.protocol || 'browser', { progressAgeMs: session?.progressAgeMs, stalled: session?.stalled, centralPreview });
+          if (!centralPreview) this.reconnect(entry, 'Backend-Heartbeat fordert Neuverbindung an …', 0);
         } else if (backendSoftStall) {
           const now = Date.now();
           if (now - Number(entry.lastBackendSoftStallReportAt || 0) > 60000) {
