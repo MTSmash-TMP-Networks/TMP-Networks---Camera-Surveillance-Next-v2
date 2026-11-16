@@ -172,14 +172,20 @@ async function waitForServerSession(entry, isStale, forceTranscode = false) {
   let session = await api.streamSession(entry.cameraId, input);
   const requestedQuality = input.quality;
   let trackedQuality = session.quality || input.quality;
-  entry.update({ state: session.state === 'failed' ? 'failed' : 'starting', protocol: session.transport?.toUpperCase() || 'ONVIF', message: session.phaseMessage || 'Kamerastream wird vorbereitet …' });
+  const permanentRecovery = session.state === 'failed' && session.permanent;
+  entry.update({
+    state: permanentRecovery ? 'starting' : session.state === 'failed' ? 'failed' : 'starting',
+    protocol: session.transport?.toUpperCase() || 'ONVIF',
+    message: permanentRecovery ? 'Kamera-Publisher wartet auf kontrollierten Wiederaufbau …' : session.phaseMessage || 'Kamerastream wird vorbereitet …',
+  });
   if (session.state === 'ready') {
     const ready = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: true });
     if (forceTranscode && !ready.forceTranscode) throw new Error('Browser-Transcode-Fallback ist serverseitig nicht verfügbar');
     return ready;
   }
-  const deadline = Date.now() + 180000;
   const warmLiveAuto = entry.purpose === 'live' && entry.quality === 'auto' && !entry.profileToken;
+  const usesPermanentPreview = entry.purpose === 'kiosk' || warmLiveAuto || Boolean(session.permanent);
+  const deadline = Date.now() + (usesPermanentPreview ? 300000 : 180000);
   const expectedPurposes = forceTranscode
     ? ['browser-fallback']
     : entry.purpose === 'kiosk'
@@ -203,13 +209,23 @@ async function waitForServerSession(entry, isStale, forceTranscode = false) {
       && (item.requestedProfileToken || '') === (entry.profileToken || '')) || matchingSessions[0];
     if (matching) {
       trackedQuality = matching.quality || trackedQuality;
-      entry.update({ state: matching.state === 'failed' ? 'failed' : 'starting', protocol: matching.transport?.toUpperCase() || 'ONVIF', message: matching.phaseMessage || 'Streamstatus wird geprüft …' });
+      const backendRecovery = matching.state === 'failed' && matching.permanent;
+      entry.update({
+        state: backendRecovery ? 'starting' : matching.state === 'failed' ? 'failed' : 'starting',
+        protocol: matching.transport?.toUpperCase() || 'ONVIF',
+        message: backendRecovery
+          ? (matching.restartAt ? `Kontrollierter Wiederaufbau ab ${new Date(matching.restartAt).toLocaleTimeString()} …` : 'Kamera-Publisher wird kontrolliert wiederhergestellt …')
+          : matching.phaseMessage || 'Streamstatus wird geprüft …',
+      });
       if (matching.state === 'ready') {
         const ready = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: true });
         if (forceTranscode && !ready.forceTranscode) throw new Error('Browser-Transcode-Fallback ist serverseitig nicht verfügbar');
         return ready;
       }
-      if (matching.state === 'failed') throw new Error(matching.lastError || matching.phaseMessage || 'Kamerastream konnte nicht gestartet werden');
+      if (matching.state === 'failed') {
+        if (matching.permanent) continue;
+        throw new Error(matching.lastError || matching.phaseMessage || 'Kamerastream konnte nicht gestartet werden');
+      }
     }
     poll += 1;
     if (poll % 20 === 0) session = await api.streamSession(entry.cameraId, { ...input, quality: requestedQuality, wait: false });
