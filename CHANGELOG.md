@@ -1,3 +1,13 @@
+## 2.20.52 – Robuster Linux-Desktop-Installer für unvollständige Electron-Downloads
+
+- Electron 35.7.5 bleibt fest gepinnt und wird weiterhin zuerst über den normalen npm-Installationspfad installiert.
+- Meldet npm/rebuild Erfolg, obwohl `dist/electron` oder `path.txt` fehlen, greift jetzt ein verifizierter Direkt-Fallback.
+- Der Fallback lädt das offizielle Electron-Release-ZIP und `SHASUMS256.txt`, prüft SHA-256 und entpackt mit `unzip` oder `python3`.
+- `path.txt` wird nach erfolgreicher verifizierter Extraktion kontrolliert erzeugt; ein stiller npm-Erfolg kann die Installation nicht mehr blockieren.
+- Desktop-Client-Paket und tatsächlich angebotene Linux-ZIP-Datei wurden auf 2.20.52 aktualisiert.
+- Der Desktop-Installer-Test ist jetzt Bestandteil des Cross-Version-GitHub-Workflows.
+- Direkte Updates bleiben ab 2.20.32 kompatibel.
+
 ## 2.20.51 – Abwärtskompatibler Update-Vertrag bis 2.20.32
 
 - Direkte Update-Basis bleibt ausdrücklich `2.20.32`.

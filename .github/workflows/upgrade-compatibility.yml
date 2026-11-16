@@ -19,3 +19,5 @@ jobs:
         run: |
           node --test backend/test-node/local-hls-command.test.mjs
           node --test backend/test-node/stream-stability-regression.test.mjs
+      - name: Validate desktop client distribution and Electron installer
+        run: node --test frontend/test-node/desktop-client-distribution.test.mjs

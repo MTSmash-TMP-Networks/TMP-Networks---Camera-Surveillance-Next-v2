@@ -42,8 +42,15 @@ test('Electron postinstall is narrowly approved and installation verifies native
   assert.deepEqual(pkg.allowScripts, { 'electron@35.7.5': true });
   const script = read('frontend/desktop-client/install-linux.sh');
   assert.match(script, /npm rebuild electron/);
+  assert.match(script, /install_electron_runtime/);
+  assert.match(script, /SHASUMS256\.txt/);
+  assert.match(script, /electron-v\$ELECTRON_VERSION-linux-\$NODE_ARCH\.zip/);
+  assert.match(script, /sha256sum -c/);
+  assert.match(script, /unzip -q|python3 -/);
+  assert.match(script, /printf '%s\\n' electron > "\$DEST\/node_modules\/electron\/path\.txt"/);
   assert.match(script, /ELECTRON_MARKER=/);
   assert.match(script, /INSTALLED_ELECTRON_VERSION=/);
-  assert.match(script, /Installation nicht abgeschlossen/);
+  assert.match(script, /verifizierten Direkt-Fallback/);
+  assert.match(script, /auch nach dem verifizierten Direkt-Fallback nicht startbereit/);
   assert.doesNotMatch(script.split('\n').filter(line => !line.trim().startsWith('#')).join('\n'), /dangerously-allow-all-scripts/);
 });
