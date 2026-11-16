@@ -16,6 +16,7 @@ const player = readFileSync(resolve(root, 'frontend/src/components/SeamlessLiveP
 const ffmpegCommand = readFileSync(resolve(root, 'backend/src/services/media/FfmpegCommand.js'), 'utf8');
 const hlsPlayer = readFileSync(resolve(root, 'frontend/src/services/hlsPlayer.js'), 'utf8');
 const livePage = readFileSync(resolve(root, 'frontend/src/pages/LivePage.jsx'), 'utf8');
+const server = readFileSync(resolve(root, 'backend/src/server.js'), 'utf8');
 
 test('compression backfill cannot bypass the configured startup delay', () => {
   assert.match(compression, /this\.backfill\(\{ schedule: false \}\)/);
@@ -216,4 +217,30 @@ test('permanent preview publisher is shared and not owned by kiosk or Live', () 
   assert.match(orchestrator, /session\.consumerPurpose = null/);
   assert.match(orchestrator, /consumerPurpose: 'shared-preview'/);
   assert.match(orchestrator, /shouldUsePermanentIngest\(consumerPurpose, effectiveForceTranscode, quality, profileToken\)/);
+});
+
+
+test('camera connection setup is globally serialized across different cameras', () => {
+  assert.match(orchestrator, /globalCameraStartTail = Promise\.resolve\(\)/);
+  assert.match(orchestrator, /GLOBAL_CAMERA_START_QUEUED/);
+  assert.match(orchestrator, /GLOBAL_CAMERA_START_ACQUIRED/);
+  assert.match(orchestrator, /const previousGlobal = this\.globalCameraStartTail/);
+  assert.doesNotMatch(orchestrator, /const previous = this\.cameraStartLocks\.get\(cameraId\)/);
+});
+
+test('backend startup finishes permanent previews before motion and recording automation', () => {
+  assert.match(server, /startPermanentIngestForAll\(\{ wait: true \}\)/);
+  const bootstrapIndex = server.indexOf("startPermanentIngestForAll({ wait: true })");
+  const motionIndex = server.indexOf('motionDetectionService.start()');
+  const schedulerIndex = server.indexOf('recordingScheduler.start()');
+  assert.ok(bootstrapIndex >= 0 && bootstrapIndex < motionIndex);
+  assert.ok(bootstrapIndex < schedulerIndex);
+  assert.match(orchestrator, /await this\.startPermanentIngestForCamera\(camera\.id, \{ wait: true, reason: 'backend-startup' \}\)/);
+});
+
+test('permanent restart loops are deferred until serial bootstrap completes', () => {
+  assert.match(orchestrator, /permanentBootstrapActive/);
+  assert.match(orchestrator, /deferredPermanentRestartKeys/);
+  assert.match(orchestrator, /AUTO_RESTART_DEFERRED_BOOTSTRAP/);
+  assert.match(orchestrator, /session\?\.permanent && session\.state === 'failed'/);
 });
