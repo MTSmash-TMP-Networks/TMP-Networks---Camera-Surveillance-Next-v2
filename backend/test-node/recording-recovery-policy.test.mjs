@@ -60,3 +60,10 @@ test('PTZ retry delay follows settle time and stays bounded', () => {
   assert.equal(ptzDeferredRetryDelay(null, { now, fallbackMs: 100 }), 500);
   assert.equal(ptzDeferredRetryDelay({ settleUntil: '2026-07-25T00:01:00.000Z' }, { now }), 15000);
 });
+
+
+test('event standby prebuffer requests its own bounded-quality stream purpose', () => {
+  const scheduler = readFileSync(resolve(root, 'backend/src/services/recording/RecordingScheduler.js'), 'utf8');
+  assert.match(scheduler, /purpose: 'prebuffer'/);
+  assert.doesNotMatch(scheduler, /quality: desired\.quality[\s\S]{0,100}purpose: 'recording'/);
+});
