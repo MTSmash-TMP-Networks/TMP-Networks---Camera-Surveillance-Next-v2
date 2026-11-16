@@ -130,7 +130,7 @@ class RecordingScheduler {
     if (current) this.releasePrebuffer(camera.id, 'configuration-changed');
     try {
       const retained = await streamOrchestrator.retain(camera.id, {
-        quality: desired.quality, viewportWidth: 1280, profileToken: desired.profileToken, purpose: 'recording',
+        quality: desired.quality, viewportWidth: 1280, profileToken: desired.profileToken, purpose: 'prebuffer',
       });
       this.prebufferFailures.delete(camera.id);
       this.prebufferLeases.set(camera.id, { ...desired, key: retained.key, retainedAt: new Date().toISOString() });
