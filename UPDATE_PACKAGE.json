@@ -1,15 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.53",
+  "version": "2.20.54",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.53",
-  "summary": "Serialize camera startup globally so permanent preview publishers connect strictly one after another without overlapping restart or recording loops.",
-  "createdAt": "2026-11-16T15:45:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.53.md",
+  "title": "TMP Camera Surveillance Next 2.20.54",
+  "summary": "Prevent runaway CPU usage by fixing broker reference leaks, adding stable restart backoff/circuit breaking, and blocking CPU-heavy synthetic fallbacks on permanent media paths.",
+  "createdAt": "2026-11-16T16:05:00+00:00",
+  "changelogFile": "UPDATE_NOTES_2.20.54.md",
   "changes": [
-    "Allow only one camera RTSP/go2rtc/HLS startup globally at a time",
-    "Complete permanent camera bootstrap before motion detection and recording scheduler start",
-    "Defer permanent stream auto-restarts until the initial serial bootstrap has finished"
+    "Fix go2rtc broker reference leaks across HLS/FFmpeg recovery and profile/encoder changes",
+    "Keep restart history across short-lived ready states and add a recovery circuit breaker",
+    "Block snapshot-to-H264 CPU fallback for permanent/recording/motion/prebuffer paths and keep event prebuffer off forced mainstream"
   ],
   "preserve": [
     ".env",
@@ -29,14 +29,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.53.md",
+  "changelog": "UPDATE_NOTES_2.20.54.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.53",
-  "packageId": "tmp-camera-surveillance-next-2.20.53",
+  "name": "TMP Camera Surveillance Next v2.20.54",
+  "packageId": "tmp-camera-surveillance-next-2.20.54",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Strict sequential camera bootstrap without overlapping startup/restart loops.",
+  "description": "Stream resource guard for runaway CPU and recovery leak prevention.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Permanent camera previews now initialize one by one; automation starts afterward and failed streams retry only after bootstrap.",
-  "fileCount": 455
+  "releaseNotes": "Broker refs no longer grow during recovery, short crash loops are circuit-broken, and CPU-heavy snapshot fallback is forbidden on permanent media paths.",
+  "fileCount": 456
 }
