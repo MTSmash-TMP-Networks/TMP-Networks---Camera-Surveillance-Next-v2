@@ -1,5 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = resolve(here, '../..');
 import {
   isRecoverableInitialRecordingFailure,
   ptzDeferredRetryDelay,
@@ -59,4 +65,11 @@ test('PTZ retry delay follows settle time and stays bounded', () => {
   assert.equal(ptzDeferredRetryDelay({ settleUntil: '2026-07-25T00:00:02.000Z' }, { now }), 2250);
   assert.equal(ptzDeferredRetryDelay(null, { now, fallbackMs: 100 }), 500);
   assert.equal(ptzDeferredRetryDelay({ settleUntil: '2026-07-25T00:01:00.000Z' }, { now }), 15000);
+});
+
+
+test('event standby prebuffer requests its own bounded-quality stream purpose', () => {
+  const scheduler = readFileSync(resolve(root, 'backend/src/services/recording/RecordingScheduler.js'), 'utf8');
+  assert.match(scheduler, /purpose: 'prebuffer'/);
+  assert.doesNotMatch(scheduler, /quality: desired\.quality[\s\S]{0,100}purpose: 'recording'/);
 });
