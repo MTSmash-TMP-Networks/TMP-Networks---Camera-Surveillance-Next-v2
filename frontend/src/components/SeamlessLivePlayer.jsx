@@ -33,12 +33,11 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const [clock, setClock] = useState(() => new Date());
   const [fullscreen, setFullscreen] = useState(false);
   const automaticQuality = qualityForWidth(viewportWidth || 1280);
-  // Full Live Auto must stay "auto" all the way to the backend so it can
-  // attach to the already warm permanent preview publisher immediately.
-  // Kiosk may still resolve its tile size locally because it always uses ingest.
-  const requestedQuality = quality === 'auto' ? (compact ? automaticQuality : 'auto') : quality;
-  const connectionViewportWidth = requestedQuality === 'low' ? 640 : requestedQuality === 'high' ? 1920 : 1280;
-  const waitingForAdaptiveMeasurement = compact && quality === 'auto' && viewportWidth === null;
+  // Kiosk is a pure reader of the backend-owned central preview. Tile size,
+  // browser resize and UI quality must never create another camera session.
+  const requestedQuality = compact ? 'low' : (quality === 'auto' ? 'auto' : quality);
+  const connectionViewportWidth = compact ? 640 : requestedQuality === 'low' ? 640 : requestedQuality === 'high' ? 1920 : 1280;
+  const waitingForAdaptiveMeasurement = false;
 
   useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
 
