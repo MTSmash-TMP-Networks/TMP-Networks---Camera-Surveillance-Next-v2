@@ -116,6 +116,13 @@ export function prioritizeStableProfile(attempts, profileToken = null) {
   return [...preferred, ...attempts.filter((attempt) => String(attempt?.profile?.token || '') !== String(profileToken))];
 }
 
+export function prioritizeStableCandidate(attempts, stableKey = null) {
+  if (!stableKey) return attempts;
+  const preferred = attempts.filter((attempt) => candidateKey(attempt?.candidate, attempt?.profile?.token) === stableKey);
+  if (!preferred.length) return attempts;
+  return [...preferred, ...attempts.filter((attempt) => candidateKey(attempt?.candidate, attempt?.profile?.token) !== stableKey)];
+}
+
 const SOURCE_FAILURE_COOLDOWN_MS = 2 * 60 * 1000;
 export function prioritizeRequestedSource(attempts, requestedToken = null) {
   const sourceId = String(requestedToken || '').startsWith('source:') ? Number(String(requestedToken).slice(7)) : null;
@@ -237,7 +244,8 @@ class StreamOrchestrator {
         encoder,
       });
       let audioConfigured = false;
-      if (profile?.audioCodec) {
+      const videoOnlyPreview = Boolean(session.permanent || ['motion', 'prebuffer'].includes(session.purpose || ''));
+      if (profile?.audioCodec && !videoOnlyPreview) {
         const audioSource = optionalAudioSource(paths.raw, 20, encoder);
         try {
           await go2RtcClient.upsertStream(paths.audio, audioSource);
@@ -251,6 +259,11 @@ class StreamOrchestrator {
         } catch (error) {
           this.log(session, 'warn', 'go2rtc', 'GO2RTC_OPTIONAL_AUDIO_SKIPPED', 'Optionaler Audiopfad konnte nicht angelegt werden; Video bleibt davon unberührt', { error: error?.message });
         }
+      } else if (profile?.audioCodec && videoOnlyPreview) {
+        this.log(session, 'debug', 'go2rtc', 'GO2RTC_PREVIEW_AUDIO_DISABLED', 'Permanenter Preview-/Motion-/Prebuffer-Pfad bleibt bewusst video-only; kein zusaetzlicher AAC-Transcode wird gestartet', {
+          profile: profile.name,
+          purpose: session.purpose || null,
+        });
       }
       const nextRefs = alreadyOwned ? Math.max(1, inheritedRefs) : inheritedRefs + 1;
       this.brokerRefs.set(paths.video, { refs: nextRefs, raw: paths.raw, video: paths.video, audio: audioConfigured ? paths.audio : null, audioConfigured });
@@ -407,7 +420,16 @@ class StreamOrchestrator {
     session.lastRequestedAt = Date.now();
     session.codecPreference = permanentCodecPreference;
     session.sourcePolicy = camera.sourcePolicy || 'auto';
-    if (!session.startPromise || ['failed', 'stopped'].includes(session.state)) {
+    if (session.state === 'failed') {
+      // Browser session/heartbeat requests are leases, never restart orders.
+      // A failed permanent publisher must only be restarted by scheduleRestart(),
+      // otherwise every browser reconnect bypasses exponential backoff/circuit breaking.
+      if (!session.restartTimer && !this.deferredPermanentRestartKeys.has(session.key)) this.scheduleRestart(session);
+      this.log(session, 'debug', 'stream', 'PERMANENT_RESTART_BACKOFF_RESPECTED', 'Browseranfrage respektiert den geplanten Backend-Restart statt einen parallelen Neuaufbau zu erzwingen', {
+        restartCount: session.restartCount,
+        restartAt: session.restartAt ? new Date(session.restartAt).toISOString() : null,
+      });
+    } else if (!session.startPromise || session.state === 'stopped') {
       session.startFailure = null;
       session.startPromise = this.startSerialized(session, camera, viewportWidth).catch((error) => {
         session.state = 'failed';
@@ -446,7 +468,7 @@ class StreamOrchestrator {
       lastProgressAt: null, lastStreamBrokerAliveAt: null, lastProgressSource: null, restartCount: 0, connectedAt: null, startPromise: null, cacheBuster: Date.now(),
       attemptIndex: 0, attemptCount: 0, currentAttempt: null, ffmpegPid: null, startFailure: null,
       lastLoggedStderrLine: null, lastLoggedStderrAt: 0, recordingRefs: 0, brokerRefKey: null, brokerEncoder: null,
-      stableProfileToken: null, stableProfileRole: null, stableProfileName: null,
+      stableProfileToken: null, stableProfileRole: null, stableProfileName: null, stableCandidateKey: null, restartAt: null,
     };
   }
 
@@ -480,7 +502,8 @@ class StreamOrchestrator {
     }
     const ordered = sortMediaAttempts(attempts, session.sourcePolicy || 'auto');
     const requestedFirst = prioritizeRequestedSource(ordered, session.requestedProfileToken);
-    return prioritizeStableProfile(requestedFirst, session.stableProfileToken);
+    const stableProfileFirst = prioritizeStableProfile(requestedFirst, session.stableProfileToken);
+    return prioritizeStableCandidate(stableProfileFirst, session.stableCandidateKey);
   }
 
   async start(session, camera, viewportWidth) {
@@ -645,10 +668,12 @@ class StreamOrchestrator {
           session.activeCandidateKey = candidateKey(candidate, profile.token);
           session.failedCandidates.delete(session.activeCandidateKey);
           const previousStableProfile = session.stableProfileToken;
+          const previousStableCandidate = session.stableCandidateKey;
           session.stableProfileToken = profile.token || null;
+          session.stableCandidateKey = session.activeCandidateKey;
           session.stableProfileRole = profile.role || null;
           session.stableProfileName = profile.name || null;
-          if (previousStableProfile !== session.stableProfileToken) {
+          if (previousStableProfile !== session.stableProfileToken || previousStableCandidate !== session.stableCandidateKey) {
             const requestedProfile = session.requestedProfileToken
               ? profiles.find((item) => item.token === session.requestedProfileToken)
               : null;
@@ -662,6 +687,8 @@ class StreamOrchestrator {
                 requestedQuality: session.quality,
                 activeProfile: profile.name,
                 activeRole: profile.role || null,
+                activeTransport: candidate.transport || null,
+                stableCandidateChanged: previousStableCandidate !== session.stableCandidateKey,
               });
           }
           session.connectedAt = Date.now();
@@ -1293,6 +1320,7 @@ class StreamOrchestrator {
       : baseDelay;
     const jitter = config.streamRestartJitterMs > 0 ? Math.floor(Math.random() * config.streamRestartJitterMs) : 0;
     const delay = Math.max(reasonDelay, circuitOpen ? config.streamRestartCircuitCooldownMs : 0) + jitter;
+    session.restartAt = Date.now() + delay;
     session.restartCount += 1;
     this.log(session, 'warn', 'stream', circuitOpen ? 'AUTO_RESTART_CIRCUIT_OPEN' : 'AUTO_RESTART_SCHEDULED',
       circuitOpen
@@ -1306,8 +1334,12 @@ class StreamOrchestrator {
       });
     session.restartTimer = setTimeout(() => {
       session.restartTimer = null;
+      session.restartAt = null;
       const camera = cameraRepository.getWithCredentials(session.cameraId);
       if (!camera || (!session.permanent && session.recordingRefs === 0 && Date.now() - session.lastRequestedAt >= config.streamIdleSeconds * 1000)) return;
+      session.state = 'starting';
+      session.phase = 'restart_queued';
+      session.phaseMessage = 'Automatischer Wiederaufbau wartet auf die globale Kamera-Warteschlange';
       session.startPromise = this.startSerialized(session, camera, widthForQuality(session.quality)).catch((error) => {
         session.state = 'failed';
         session.phase = 'failed';
@@ -1714,6 +1746,7 @@ class StreamOrchestrator {
       cacheBuster: session.cacheBuster || session.connectedAt || session.createdAt,
       lastError: session.lastError,
       restartCount: session.restartCount,
+      restartAt: session.restartAt ? new Date(session.restartAt).toISOString() : null,
       ffmpegRunning: this.isSessionProcessAlive(session),
       retainedByRecordings: session.recordingRefs,
       permanent: Boolean(session.permanent),

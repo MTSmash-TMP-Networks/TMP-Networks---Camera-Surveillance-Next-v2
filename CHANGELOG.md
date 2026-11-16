@@ -1,3 +1,14 @@
+## 2.20.55 – Stabiler Live-Reconnect ohne Browser-Reconnect-Sturm
+
+- Browser-Session- und Heartbeat-Abfragen duerfen einen fehlgeschlagenen permanenten Kamera-Publisher nicht mehr sofort neu starten.
+- Der Backend-Backoff/Circuit-Breaker bleibt nun autoritativ; Browser-Polls warten auf den geplanten Restart statt weitere globale Kamera-Starts anzustossen.
+- Der geplante Restart-Zeitpunkt wird als `restartAt` an Status/Browser ausgegeben.
+- Live/Kiosk warten bei permanenten Publishern bis zu 300 Sekunden auf den kontrollierten Wiederaufbau, statt frueh `LIVE_CONNECT_FAILED` zu melden.
+- Der zuletzt funktionierende Kandidat wird als Profil + Transport gepinnt, nicht nur als Profil.
+- Permanente Preview-, Motion- und Prebuffer-Pfade sind video-only und erzeugen keinen optionalen AAC-Transcode mehr.
+- Die Auto-Profil-First-Frame-Grenze wurde von 8 auf 12 Sekunden angehoben, damit langsam startende, aber stabile Kamera-Streams nicht vorschnell verworfen werden.
+- Update-Basis bleibt 2.20.32.
+
 ## 2.20.54 – Stream Resource Guard gegen CPU-Runaway und Recovery-Leaks
 
 - go2rtc-Broker-Referenzen werden bei Stream-Recovery nicht mehr mehrfach hochgezaehlt; Profil-/Encoderwechsel geben den alten Broker vor dem Wechsel frei.

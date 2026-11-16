@@ -24,6 +24,13 @@ describe('Stable Live/Kiosk playback concept', () => {
     expect(source).toContain('Snapshot-Livemodus');
   });
 
+  it('waits through backend-controlled permanent publisher recovery instead of reconnecting it', () => {
+    expect(source).toContain("const permanentRecovery = session.state === 'failed' && session.permanent");
+    expect(source).toContain("if (matching.permanent) continue");
+    expect(source).toContain("usesPermanentPreview ? 300000 : 180000");
+    expect(source).toContain("matching.restartAt");
+  });
+
   it('keeps HLS request diagnostics available for fatal recovery', () => {
     expect(hlsSource).toContain('responseCode');
     expect(hlsSource).toContain('data.context?.url');
