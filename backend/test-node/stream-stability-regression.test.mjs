@@ -308,14 +308,19 @@ test('stable reconnect pins the exact profile and transport candidate', () => {
   assert.match(orchestrator, /activeTransport: candidate\.transport/);
 });
 
-test('permanent preview skips optional AAC transcode and stays video-only', () => {
-  assert.match(orchestrator, /videoOnlyPreview/);
-  assert.match(orchestrator, /GO2RTC_PREVIEW_AUDIO_DISABLED/);
-  assert.match(orchestrator, /session\.permanent \|\| \['motion', 'prebuffer'\]\.includes/);
+test('permanent preview preserves camera audio; dedicated auxiliary workers remain video-only', () => {
+  assert.match(orchestrator, /const videoOnlyPreview = !session\.permanent && \['motion', 'prebuffer'\]\.includes/);
+  assert.match(orchestrator, /GO2RTC_AUXILIARY_AUDIO_DISABLED/);
+  assert.doesNotMatch(orchestrator, /GO2RTC_PREVIEW_AUDIO_DISABLED/);
+  assert.match(orchestrator, /startRing\(broker\.audio, true\)/);
 });
 
-test('automatic profile first-frame grace is twelve seconds', () => {
+test('automatic profile initial grace is twelve seconds, extended only with active media progress', () => {
   assert.match(config, /STREAM_AUTO_PROFILE_FIRST_FRAME_TIMEOUT_MS', 12000/);
+  assert.match(config, /STREAM_ACTIVE_MEDIA_START_MAX_MS', 60000/);
+  assert.match(orchestrator, /shouldContinueHlsStartup/);
+  assert.match(orchestrator, /LOCAL_HLS_ACTIVE_MEDIA_GRACE/);
+  assert.match(orchestrator, /expectedChild: child/);
 });
 
 

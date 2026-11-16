@@ -119,7 +119,7 @@ export function buildLocalHlsRingArgs({ sourceUri, outputDir, includeAudio = fal
     ...(isRtspInput ? ['-rtsp_transport', 'tcp'] : []),
     '-thread_queue_size', '1024',
     '-fflags', '+genpts+discardcorrupt', '-flags', 'low_delay',
-    '-use_wallclock_as_timestamps', '1',
+    // Keep original RTSP/go2rtc MPEG-TS timestamps; wallclock caused zero-duration packets.
     '-analyzeduration', '5000000', '-probesize', '5000000',
     '-i', sourceUri,
     '-map', '0:v:0',

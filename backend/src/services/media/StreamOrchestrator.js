@@ -23,6 +23,7 @@ import { createStreamProgressTracker, consumeFfmpegProgress } from './StreamProg
 import { isBenignFfmpegDiagnostic } from './FfmpegDiagnostics.js';
 import { CameraStartLimiter } from './CameraStartLimiter.js';
 import { inspectLocalHlsRing } from './LocalHlsHealth.js';
+import { shouldContinueHlsStartup } from './LocalHlsStartupGrace.js';
 import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, parseFfprobeVideoCodec } from './BrokerPipeline.js';
 
 const execFileAsync = promisify(execFile);
@@ -258,7 +259,7 @@ class StreamOrchestrator {
         encoder,
       });
       let audioConfigured = false;
-      const videoOnlyPreview = Boolean(session.permanent || ['motion', 'prebuffer'].includes(session.purpose || ''));
+      const videoOnlyPreview = !session.permanent && ['motion', 'prebuffer'].includes(session.purpose || '');
       if (profile?.audioCodec && !videoOnlyPreview) {
         const audioSource = optionalAudioSource(paths.raw, 20, encoder);
         try {
@@ -274,7 +275,7 @@ class StreamOrchestrator {
           this.log(session, 'warn', 'go2rtc', 'GO2RTC_OPTIONAL_AUDIO_SKIPPED', 'Optionaler Audiopfad konnte nicht angelegt werden; Video bleibt davon unberührt', { error: error?.message });
         }
       } else if (profile?.audioCodec && videoOnlyPreview) {
-        this.log(session, 'debug', 'go2rtc', 'GO2RTC_PREVIEW_AUDIO_DISABLED', 'Permanenter Preview-/Motion-/Prebuffer-Pfad bleibt bewusst video-only; kein zusaetzlicher AAC-Transcode wird gestartet', {
+        this.log(session, 'debug', 'go2rtc', 'GO2RTC_AUXILIARY_AUDIO_DISABLED', 'Nur dedizierter Motion-/Prebuffer-Pfad bleibt video-only; zentraler Preview behaelt die Audiospur', {
           profile: profile.name,
           purpose: session.purpose || null,
         });
@@ -857,15 +858,26 @@ class StreamOrchestrator {
     return this.localHlsHealth(session).ready;
   }
 
-  async waitUntilLocalHlsReady(session, { timeoutMs = config.startTimeoutMs, intervalMs = 250 } = {}) {
+  async waitUntilLocalHlsReady(session, { timeoutMs = config.startTimeoutMs, intervalMs = 250, maxActiveMediaMs = timeoutMs, expectedChild = null } = {}) {
     const started = Date.now();
     let polls = 0;
-    while (Date.now() - started < timeoutMs) {
+    let graceLogged = false;
+    while (shouldContinueHlsStartup({
+      elapsedMs: Date.now() - started, baseTimeoutMs: timeoutMs, maxTimeoutMs: maxActiveMediaMs,
+      progressUpdates: session.progressTracker?.updates || 0,
+      lastProgressAgeMs: Date.now() - Number(session.lastProgressAt || 0),
+    })) {
       polls += 1;
-      if (session.process && (session.process.exitCode !== null || session.process.killed)) {
-        return { ready: false, polls, processExited: true };
-      }
+      const child = expectedChild || session.process;
+      if (child && (child.exitCode !== null || child.killed)) return { ready: false, polls, processExited: true };
       if (this.localHlsReady(session)) return { ready: true, polls, processExited: false };
+      if (!graceLogged && Date.now() - started >= timeoutMs) {
+        graceLogged = true;
+        this.log(session, 'info', 'stream', 'LOCAL_HLS_ACTIVE_MEDIA_GRACE',
+          'FFmpeg verarbeitet Medien; langsame WLAN-/GOP-Segmente erhalten eine begrenzte Startnachfrist', {
+            maxActiveMediaMs, progressUpdates: session.progressTracker?.updates || 0,
+          });
+      }
       if (polls === 1 || polls % 12 === 0) {
         this.log(session, 'info', 'stream', 'LOCAL_HLS_READINESS_POLL', 'Lokaler HLS-Ring wird vor der Browserfreigabe geprüft', { polls, playlist: this.localHlsPlaylist(session) });
       }
@@ -948,7 +960,12 @@ class StreamOrchestrator {
       const firstFrameTimeoutMs = autoProfileSelection
         ? Math.min(config.startTimeoutMs, config.streamAutoProfileFirstFrameTimeoutMs)
         : config.startTimeoutMs;
-      const outcome = await this.waitUntilLocalHlsReady(session, { timeoutMs: firstFrameTimeoutMs, intervalMs: 250 });
+      const outcome = await this.waitUntilLocalHlsReady(session, {
+        timeoutMs: firstFrameTimeoutMs,
+        maxActiveMediaMs: Math.max(firstFrameTimeoutMs, config.streamActiveMediaStartMaxMs),
+        expectedChild: child,
+        intervalMs: 250,
+      });
       return { child, outcome, details: sanitize(session.stderr), brokerName, includeAudio, firstFrameTimeoutMs };
     };
 
