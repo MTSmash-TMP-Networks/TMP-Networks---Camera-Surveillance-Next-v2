@@ -324,6 +324,12 @@ class RecordingCompressionService {
   }
 
   criticalBusyReason() {
+    // Previously the PAUSE_WHILE_RECORDING config option was never consulted.
+    // Give live recording/motion/preview priority over offline x264 recompress.
+    if (config.recordingCompressionPauseWhileRecording
+      && db.prepare("SELECT 1 FROM recordings WHERE status='recording' LIMIT 1").get()) {
+      return 'Mindestens eine Kamera nimmt gerade auf';
+    }
     if (config.recordingCompressionPauseDuringPtz) {
       const ptz = ptzAutomationInterlock.status().find((state) => state.active || state.settling);
       if (ptz) return `PTZ-Aktivitaet an Kamera ${ptz.cameraId}`;
@@ -338,16 +344,24 @@ class RecordingCompressionService {
     return null;
   }
 
+  systemLoadBusyReason() {
+    const loadRatio = os.loadavg()[0] / Math.max(1, os.cpus().length);
+    if (Number.isFinite(loadRatio) && loadRatio > config.recordingCompressionMaxLoadRatio) {
+      return `Systemlast ${(loadRatio * 100).toFixed(0)} % ueber Grenzwert`;
+    }
+    return null;
+  }
+
   startGuardReason() {
     const critical = this.criticalBusyReason();
     if (critical) {
       this.lastBusyAt = Date.now();
       return critical;
     }
-    const loadRatio = os.loadavg()[0] / Math.max(1, os.cpus().length);
-    if (Number.isFinite(loadRatio) && loadRatio > config.recordingCompressionMaxLoadRatio) {
+    const loadGuard = this.systemLoadBusyReason();
+    if (loadGuard) {
       this.lastBusyAt = Date.now();
-      return `Systemlast ${(loadRatio * 100).toFixed(0)} % ueber Grenzwert`;
+      return loadGuard;
     }
     const graceRemaining = Number(config.recordingCompressionIdleGraceMs || 0) - (Date.now() - this.lastBusyAt);
     if (graceRemaining > 0) return `Stabilisierungsphase (${Math.ceil(graceRemaining / 1000)} s)`;
@@ -420,7 +434,7 @@ class RecordingCompressionService {
       fs.rmSync(temporary, { force: true });
       await runFfmpeg(source, temporary, {
         onChild: (child) => { this.child = child; },
-        shouldDefer: () => this.running ? this.criticalBusyReason() : 'Backend wird beendet',
+        shouldDefer: () => this.running ? (this.criticalBusyReason() || this.systemLoadBusyReason()) : 'Backend wird beendet',
       });
       this.child = null;
       const compressedBytes = fileSize(temporary);

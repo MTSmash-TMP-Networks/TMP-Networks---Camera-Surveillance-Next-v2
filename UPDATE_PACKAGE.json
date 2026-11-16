@@ -1,11 +1,11 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.60",
+  "version": "2.20.61",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.60",
-  "summary": "Protect recording watchdog from block rename races and decouple kiosk heartbeat from heavy archive queries.",
+  "title": "TMP Camera Surveillance Next 2.20.61",
+  "summary": "Emergency stability fix: bound go2rtc/backend memory during kiosk and recording, share motion media and avoid duplicate H264 encoders.",
   "createdAt": "2026-11-16T20:52:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.60.md",
+  "changelogFile": "UPDATE_NOTES_2.20.61.md",
   "changes": [
     "Graceful single-pass Docker upgrade and recording finalization",
     "Bound camera connection starts and do not block recording scheduler",
@@ -20,7 +20,11 @@
     "Use a 3-second browser HLS target for interactive Live, maintain 8-second kiosk buffer, and seek only lagged PTZ Live players",
     "Guard recording watchdog against atomic file-rename races and prevent duplicate finalization scans",
     "Use lightweight in-memory recording status for kiosk polling instead of database queries per recording",
-    "Suppress transient kiosk API status errors; bounded requests preserve existing last-good camera status"
+    "Suppress transient kiosk API status errors; bounded requests preserve existing last-good camera status",
+    "Read fresh local HLS segments already produced by backend preview for motion, before starting a separate RTSP/HLS reader",
+    "Pause offline x264 compression while recording or host load is high; preserve recording copy and fallback functionality",
+    "Container memory caps and orphaned go2rtc producer cleanup protect VM during kiosk/recording overload",
+    "H264 audio transcode copies video and motion migrates to central low-bandwidth ingest"
   ],
   "preserve": [
     ".env",
@@ -40,14 +44,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.60.md",
+  "changelog": "UPDATE_NOTES_2.20.61.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.60",
-  "packageId": "tmp-camera-surveillance-next-2.20.60",
+  "name": "TMP Camera Surveillance Next v2.20.61",
+  "packageId": "tmp-camera-surveillance-next-2.20.61",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Crash guard for recording startup and lightweight fault-tolerant kiosk status.",
+  "description": "Reuse recent central HLS segments for motion and prevent x264 recompression from starving live recording or HLS streams.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32: recording watcher tolerates concurrent block rename; Kiosk heartbeat stays lightweight and survives transient API failures.",
-  "fileCount": 469
+  "releaseNotes": "Preserves upgrade compatibility from 2.20.32. Motion prefers local completed HLS media, falls back to prior RTSP path; background compression pauses for recording and high system load.",
+  "fileCount": 474
 }
