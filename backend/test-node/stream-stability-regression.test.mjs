@@ -319,7 +319,7 @@ test('Kiosk and Live Auto consume a read-only backend-owned central preview', ()
   assert.match(livePool, /api\.streamPreview\(entry\.cameraId\)/);
   assert.match(livePool, /isCentralPreviewRequest/);
   assert.match(livePool, /return waitForCentralPreview\(entry, isStale\)/);
-  assert.match(livePool, /centralPreview \? await api\.streamPreview\(entry\.cameraId\)/);
+  assert.match(livePool, /centralPreview\s*\?\s*await api\.streamPreview\(entry\.cameraId\)/);
 });
 
 test('central preview consumers cannot start or restart a camera publisher', () => {
