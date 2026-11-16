@@ -176,7 +176,6 @@ export function KioskPage() {
   const cameras = useMemo(() => cameraItems.filter((camera) => camera.enabled !== false), [cameraItems]);
   const pageRef = useRef(null);
   const [refreshEpoch, setRefreshEpoch] = useState(0);
-  const [streamQuality, setStreamQuality] = useState('low');
   const [fullscreen, setFullscreen] = useState(Boolean(document.fullscreenElement));
   const [runtimeStatus, setRuntimeStatus] = useState({});
   const [statusError, setStatusError] = useState('');
@@ -276,7 +275,7 @@ export function KioskPage() {
         {statusError && <small>{statusError}</small>}
       </div>
       <div className="kiosk-actions">
-        <label><Radio/><select value={streamQuality} onChange={(event) => setStreamQuality(event.target.value)}><option value="low">{t('kiosk.quality.low')}</option><option value="auto">{t('kiosk.quality.auto')}</option><option value="balanced">{t('kiosk.quality.balanced')}</option><option value="high">{t('kiosk.quality.high')}</option></select></label>
+        <span className="kiosk-central-preview"><Radio/> Zentraler Preview</span>
         <label><Grid2X2/><select value={activeLayoutId} onChange={(event) => selectLayout(event.target.value)}><option value="auto">{t('kiosk.layout.automatic')}</option>{layouts.map((layout) => <option key={layout.id} value={layout.id}>{layout.name}</option>)}</select></label>
         <button onClick={openLayoutEditor}><LayoutDashboard/> {t('kiosk.action.manageGrid')}</button>
         <button onClick={() => setRefreshEpoch((value) => value + 1)}><RefreshCw/> {t('kiosk.action.reconnectAll')}</button>
@@ -291,7 +290,7 @@ export function KioskPage() {
           key={`${item.id}:${camera?.id || 'empty'}`}
           camera={camera}
           refreshEpoch={refreshEpoch}
-          quality={streamQuality}
+          quality="low"
           runtimeStatus={camera ? runtimeStatus[camera.id] : null}
           startDelayMs={camera ? Math.min(index * 900, 4500) : 0}
           style={{ gridColumn: `${item.column} / span ${item.columnSpan}`, gridRow: `${item.row} / span ${item.rowSpan}` }}
