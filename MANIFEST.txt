@@ -25,6 +25,7 @@ UPDATE_NOTES_2.20.56.md
 UPDATE_NOTES_2.20.57.md
 UPDATE_NOTES_2.20.58.md
 UPDATE_NOTES_2.20.59.md
+UPDATE_NOTES_2.20.60.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -185,6 +186,7 @@ backend/test-node/ptz-discovery-regression.test.mjs
 backend/test-node/ptz-responsive-regression.test.mjs
 backend/test-node/ptz-service-evidence-regression.cjs
 backend/test-node/recording-compression-command.test.mjs
+backend/test-node/recording-kiosk-crashguard.test.mjs
 backend/test-node/recording-recovery-policy.test.mjs
 backend/test-node/recording-storage-integrity-regression.test.mjs
 backend/test-node/reolink-onvif-port-8000.test.mjs

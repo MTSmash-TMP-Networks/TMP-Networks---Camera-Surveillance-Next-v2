@@ -177,7 +177,7 @@ export const api = {
   createRecordingEvent: (input) => request('/recordings/events', { method: 'POST', body: input }),
   recordingSchedulerStatus: () => request('/recordings/scheduler/status'),
   motionDetectionStatus: () => request('/recordings/motion/status'),
-  kioskStatus: () => request('/recordings/kiosk/status', { cache: 'no-store' }),
+  kioskStatus: () => request('/recordings/kiosk/status', { cache: 'no-store', timeoutMs: 5000 }),
   runRecordingScheduler: () => request('/recordings/scheduler/run', { method: 'POST' }),
   retentionStatus: () => request('/recordings/retention/status'),
   cleanupRecordings: (input = {}) => request('/recordings/cleanup', { method: 'POST', body: input }),

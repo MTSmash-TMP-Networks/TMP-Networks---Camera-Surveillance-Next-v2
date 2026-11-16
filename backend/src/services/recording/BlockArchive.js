@@ -187,14 +187,29 @@ export async function finalizeBlock({ tempPath, finalPath, damagedPath, ffprobeP
 }
 
 export function scanSessionBlocks(sessionDir) {
-  if (!fs.existsSync(sessionDir)) return [];
-  return fs.readdirSync(sessionDir, { withFileTypes: true })
+  let entries;
+  try {
+    // A recording can be stopped or relocated while a watchdog is scanning.
+    entries = fs.readdirSync(sessionDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  }
+  return entries
     .filter((entry) => entry.isFile())
     .map((entry) => {
       const index = blockIndexFromName(entry.name);
       if (!index) return null;
       const filePath = path.join(sessionDir, entry.name);
-      const stat = fs.statSync(filePath);
+      let stat;
+      try {
+        // Block finalization atomically renames *.partial -> *.ts.
+        // Disappearing entries are a normal scan/rename race, not a crash.
+        stat = fs.statSync(filePath);
+      } catch (error) {
+        if (error?.code === 'ENOENT') return null;
+        throw error;
+      }
       const kind = entry.name.endsWith('.partial') ? 'partial' : entry.name.endsWith('.damaged') ? 'damaged' : 'final';
       return { index, filePath, filename: entry.name, kind, sizeBytes: stat.size, mtime: stat.mtime };
     })

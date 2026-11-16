@@ -256,7 +256,7 @@ recordingsRouter.get('/capabilities', (_req, res) => res.json({
 }));
 
 recordingsRouter.get('/kiosk/status', (_req, res) => {
-  const activeRecordings = recordingService.activeList().map((recording) => ({
+  const activeRecordings = recordingService.kioskActiveList().map((recording) => ({
     id: recording.id,
     cameraId: recording.cameraId,
     startedAt: recording.startedAt,

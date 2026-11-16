@@ -1,3 +1,10 @@
+## 2.20.60 – Aufnahme-Watchdog und Kioskstatus stabilisiert
+
+- Atomare Blockumbenennungen loesen im laufenden Aufnahmescanner keinen unbehandelten ENOENT-Fehler mehr aus.
+- Leichtgewichtige Kiosk-Aufnahmestatusabfrage vermeidet teure SQL-/Segmentabfragen alle paar Sekunden.
+- Kiosk meldet kurzzeitige API-Fehler nicht sofort als Verbindungsverlust; Stream-/Audio-/PTZ-Konfiguration bleiben unangetastet.
+- Kompatibel ab 2.20.32, keine Migration.
+
 ## 2.20.59 – PTZ-Steuerung reagiert schneller
 
 - Vorwaermen separater ONVIF-Verbindungen fuer Move und Stop, ohne die Bedienung zu blockieren.
