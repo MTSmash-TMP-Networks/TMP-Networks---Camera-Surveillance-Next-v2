@@ -3,7 +3,7 @@
   "version": "2.20.57",
   "minimumVersion": "2.20.32",
   "title": "TMP Camera Surveillance Next 2.20.57",
-  "summary": "Recording-safe single-pass upgrades, authenticated HLS media, bounded camera startup, and verified preview freshness.",
+  "summary": "Recording-safe single-pass upgrades, authenticated HLS, bounded camera starts, verified preview freshness and restored snapshot fallback.",
   "createdAt": "2026-11-16T20:52:00+00:00",
   "changelogFile": "UPDATE_NOTES_2.20.57.md",
   "changes": [
@@ -11,7 +11,8 @@
     "Bound camera connection starts and do not block recording scheduler",
     "Reject stale/frozen HLS previews and recover their backend publishers",
     "Authenticate local HLS playlists and MPEG-TS segments",
-    "Isolate simultaneous kiosk tile players and extend CI regression tests"
+    "Isolate simultaneous kiosk tile players and extend CI regression tests",
+    "Restore low-connectivity snapshot H.264 fallback for permanent, recording, motion and prebuffer paths"
   ],
   "preserve": [
     ".env",

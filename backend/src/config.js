@@ -236,6 +236,7 @@ export const config = Object.freeze({
   recordingCompressionBackfill: boolean('RECORDING_COMPRESSION_BACKFILL', true),
   recordingCompressionBackfillLimit: integer('RECORDING_COMPRESSION_BACKFILL_LIMIT', 250, { min: 1, max: 1000000 }),
   snapshotVideoFps: number('SNAPSHOT_VIDEO_FPS', 5),
+  snapshotVideoMaxWidth: integer('SNAPSHOT_VIDEO_MAX_WIDTH', 960, { min: 320, max: 1920 }),
   snapshotRefreshMs: number('SNAPSHOT_REFRESH_MS', 1000),
   probeTimeoutMs: number('PROBE_TIMEOUT_MS', 9000),
   startTimeoutMs: number('STREAM_START_TIMEOUT_MS', 15000),

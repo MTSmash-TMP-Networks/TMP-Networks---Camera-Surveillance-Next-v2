@@ -10,6 +10,8 @@ const compression = readFileSync(resolve(root, 'backend/src/services/recording/R
 const config = readFileSync(resolve(root, 'backend/src/config.js'), 'utf8');
 const ptzBackend = readFileSync(resolve(root, 'backend/src/services/ptz/PtzService.js'), 'utf8');
 const orchestrator = readFileSync(resolve(root, 'backend/src/services/media/StreamOrchestrator.js'), 'utf8');
+const recordingService = readFileSync(resolve(root, 'backend/src/services/RecordingService.js'), 'utf8');
+const motionService = readFileSync(resolve(root, 'backend/src/services/recording/MotionDetectionService.js'), 'utf8');
 const ptzFrontend = readFileSync(resolve(root, 'frontend/src/components/PtzControls.jsx'), 'utf8');
 const livePool = readFileSync(resolve(root, 'frontend/src/services/liveStreamPool.js'), 'utf8');
 const player = readFileSync(resolve(root, 'frontend/src/components/SeamlessLivePlayer.jsx'), 'utf8');
@@ -265,11 +267,18 @@ test('short-lived ready streams keep exponential restart history and open a circ
   assert.doesNotMatch(orchestrator, /session\.connectedAt = Date\.now\(\);[\s\S]{0,250}session\.restartCount = 0/);
 });
 
-test('permanent and retained media paths never fall back to CPU snapshot video', () => {
-  assert.match(orchestrator, /SNAPSHOT_VIDEO_FALLBACK_SKIPPED/);
-  assert.match(orchestrator, /session\.permanent/);
-  assert.match(orchestrator, /\['ingest', 'recording', 'motion', 'prebuffer'\]/);
-  assert.match(orchestrator, /\['snapshot', 'snapshot-video'\]\.includes\(session\.mode\)/);
+test('snapshot H.264 recovery serves permanent, recording and motion without a purpose blacklist', () => {
+  assert.doesNotMatch(orchestrator, /SNAPSHOT_VIDEO_FALLBACK_SKIPPED|syntheticFallbackForbidden|SNAPSHOT_MODE_NOT_RECORDABLE/);
+  assert.match(orchestrator, /SNAPSHOT_VIDEO_FALLBACK_ATTEMPT/);
+  assert.match(orchestrator, /GO2RTC_UNAVAILABLE_SNAPSHOT_FALLBACK/);
+  assert.match(orchestrator, /PROFILES_UNAVAILABLE_SNAPSHOT_FALLBACK/);
+  assert.match(orchestrator, /pathToFileURL\(this\.localHlsPlaylist\(session\)\)\.href/);
+  assert.match(orchestrator, /retainedMediaPath\(session\)/);
+  assert.match(orchestrator, /\['local-hls-ring', 'snapshot-video'\]\.includes\(session\.mode\)/);
+  assert.match(recordingService, /Snapshot-HLS lokal/);
+  assert.match(recordingService, /streamOrchestrator\.retainedMediaPath\(session\)/);
+  assert.match(motionService, /snapshot-local-hls/);
+  assert.match(config, /SNAPSHOT_VIDEO_MAX_WIDTH', 960/);
 });
 
 test('sticky CPU fallback remains available for permanent previews', () => {

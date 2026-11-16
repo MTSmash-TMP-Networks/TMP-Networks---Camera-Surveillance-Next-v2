@@ -61,6 +61,11 @@ function recordingSourceDescriptor(mediaPath, protocol = 'hls') {
 }
 
 function recordingSourceCandidates(mediaPath) {
+  // The emergency snapshot publisher is a local HLS file, not a go2rtc stream.
+  // Read it directly with FFmpeg even if a legacy RTSP-only preference is set.
+  if (/^file:\/\//i.test(String(mediaPath || ''))) {
+    return [{ uri: mediaPath, protocol: 'hls', label: 'Snapshot-HLS lokal', needsMediaToken: false }];
+  }
   const raw = String(config.recordingSourceProtocol || 'auto').trim().toLowerCase();
   const rtsp = recordingSourceDescriptor(mediaPath, 'rtsp');
   const hls = recordingSourceDescriptor(mediaPath, 'hls');
@@ -719,7 +724,7 @@ class RecordingService {
     this.ensureStorage();
     const session = retained || await this.resolveRecordingSession(state);
     state.automationPermit?.assert('after-recording-session');
-    const mediaPath = retained?.path || session.paths?.hls;
+    const mediaPath = retained?.path || streamOrchestrator.retainedMediaPath(session);
     if (!mediaPath) throw new Error('Der unabhaengige Aufnahme-Medienpfad ist nicht verfuegbar');
 
     const sources = recordingSourceCandidates(mediaPath);

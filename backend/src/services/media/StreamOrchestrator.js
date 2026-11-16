@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { cameraRepository } from '../cameraRepository.js';
@@ -68,6 +69,10 @@ export function streamPathBase(cameraId, quality, profileToken = null, purpose =
 
 function widthForQuality(quality) {
   return quality === 'low' ? 640 : quality === 'balanced' ? 1280 : 1920;
+}
+
+function snapshotFallbackWidth(quality) {
+  return Math.min(widthForQuality(quality), config.snapshotVideoMaxWidth);
 }
 
 
@@ -546,7 +551,9 @@ class StreamOrchestrator {
       const info = await go2RtcClient.info();
       this.log(session, 'info', 'go2rtc', 'GO2RTC_READY', 'go2rtc-API ist erreichbar', { version: info?.version || null });
     } catch (error) {
-      throw new AppError(502, 'GO2RTC_UNAVAILABLE', 'go2rtc ist über die interne Control-API nicht erreichbar', error.message);
+      // The emergency snapshot publisher writes a local HLS ring; it does not
+      // require go2rtc. Let ordinary sources fail over instead of aborting early.
+      this.log(session, 'warn', 'go2rtc', 'GO2RTC_UNAVAILABLE_SNAPSHOT_FALLBACK', 'go2rtc ist nicht erreichbar; lokale Snapshot-HLS-Notversorgung bleibt zulaessig', errorDetails(error));
     }
 
     const directStream = camera.connectionType === 'stream';
@@ -563,9 +570,11 @@ class StreamOrchestrator {
           profiles: profiles.map((profile) => ({ name: profile.name, videoCodec: profile.videoCodec, audioCodec: profile.audioCodec, width: profile.width, height: profile.height, role: profile.role })),
         });
       } catch (error) {
-        if (!mediaSources.some((source) => source.enabled)) throw error;
+        const hasAlternatives = mediaSources.some((source) => source.enabled);
         profiles = [];
-        this.log(session, 'warn', 'onvif', 'PROFILES_UNAVAILABLE_USING_ALTERNATIVES', 'ONVIF-Profile sind nicht erreichbar; alternative Medienquellen werden trotzdem geprüft', errorDetails(error));
+        this.log(session, 'warn', 'onvif', hasAlternatives ? 'PROFILES_UNAVAILABLE_USING_ALTERNATIVES' : 'PROFILES_UNAVAILABLE_SNAPSHOT_FALLBACK',
+          hasAlternatives ? 'ONVIF-Profile sind nicht erreichbar; alternative Medienquellen und Snapshot-Fallback werden geprueft'
+            : 'ONVIF-Profile sind nicht erreichbar; Snapshot-Fallback wird trotzdem geprueft', errorDetails(error));
       }
     }
     const failures = [];
@@ -752,26 +761,26 @@ class StreamOrchestrator {
         }
       }
     }
-    const syntheticFallbackForbidden = Boolean(session.permanent
-      || ['ingest', 'recording', 'motion', 'prebuffer'].includes(session.purpose || '')
-      || ['recording', 'motion', 'prebuffer'].includes(session.consumerPurpose || '')
-      || Number(session.recordingRefs || 0) > 0);
-    if (syntheticFallbackForbidden) {
-      this.log(session, 'warn', 'stream', 'SNAPSHOT_VIDEO_FALLBACK_SKIPPED', 'CPU-intensiver Snapshot-H.264-Fallback ist fuer permanente/Recording/Motion-Pfade gesperrt', {
-        purpose: session.purpose || null,
-        consumerPurpose: session.consumerPurpose || null,
-        permanent: Boolean(session.permanent),
-        recordingRefs: Number(session.recordingRefs || 0),
-      });
-      throw new AppError(502, 'STREAM_START_FAILED', 'Keine echte Videoquelle konnte ressourcenschonend gestartet werden', failures.slice(-25));
-    }
+    // Snapshot-H.264 is an emergency source for every consumer, including
+    // permanent previews, recording, motion and prebuffer. Resource control is
+    // provided by the output width/FPS rather than a hard purpose blacklist.
+    this.assertStartCurrent(session, startEpoch);
+    this.log(session, 'warn', 'stream', 'SNAPSHOT_VIDEO_FALLBACK_ATTEMPT', 'Alle Videoquellen fehlgeschlagen; lokaler Snapshot-HLS-Fallback wird auch fuer Dauerstream/Aufnahme/Motion versucht', {
+      purpose: session.purpose || null,
+      consumerPurpose: session.consumerPurpose || null,
+      permanent: Boolean(session.permanent),
+      recordingRefs: Number(session.recordingRefs || 0),
+    });
 
     try {
       this.phase(session, 'snapshot_fallback', 'Bewegte Streamquellen sind nicht erreichbar; Snapshot-Video-Fallback wird aufgebaut', null, 'warn');
-      const initialSnapshot = await snapshotService.capture(camera.id, session.requestedProfileToken);
+      // Manual source:ID selections are not ONVIF profile tokens. Snapshot
+      // discovery must remain possible even when the requested RTSP source died.
+      const snapshotProfileToken = String(session.requestedProfileToken || '').startsWith('source:') ? null : session.requestedProfileToken;
+      const initialSnapshot = await snapshotService.capture(camera.id, snapshotProfileToken);
       const fallbackProfile = { token: 'snapshot-video-fallback', name: 'Snapshot-Video-Fallback', role: 'fallback' };
       const fallbackProbe = {
-        video: { codec: 'mjpeg', width: widthForQuality(session.quality), height: Math.round(widthForQuality(session.quality) * 9 / 16), fps: config.snapshotVideoFps },
+        video: { codec: 'mjpeg', width: snapshotFallbackWidth(session.quality), height: Math.round(snapshotFallbackWidth(session.quality) * 9 / 16), fps: config.snapshotVideoFps },
         audio: null,
         bitRate: null,
       };
@@ -782,7 +791,7 @@ class StreamOrchestrator {
         outputVideoCodec: 'h264',
         reason: 'Snapshots werden serverseitig wiederholt und als kontinuierlicher H.264-Stream ausgegeben.',
       };
-      session.outputs = await this.launchSnapshotVideo(session, camera, initialSnapshot, fallbackProfile, fallbackProbe, fallbackPolicy);
+      session.outputs = await this.launchSnapshotVideo(session, camera, initialSnapshot, fallbackProfile, fallbackProbe, fallbackPolicy, snapshotProfileToken);
       this.assertStartCurrent(session, startEpoch);
       session.state = 'ready';
       session.phase = 'ready';
@@ -1054,11 +1063,11 @@ class StreamOrchestrator {
     return outputs;
   }
 
-  async launchSnapshotVideo(session, camera, initialSnapshot, profile, probe, policy) {
+  async launchSnapshotVideo(session, camera, initialSnapshot, profile, probe, policy, snapshotProfileToken = null) {
     this.cleanLocalHls(session);
     const outputDir = this.localHlsDirectory(session);
     fs.mkdirSync(outputDir, { recursive: true });
-    const width = widthForQuality(session.quality);
+    const width = snapshotFallbackWidth(session.quality);
     const height = Math.round(width * 9 / 16);
     const args = buildSnapshotLocalHlsArgs({
       outputDir,
@@ -1083,7 +1092,7 @@ class StreamOrchestrator {
     session.snapshotPump = startSnapshotFramePump({
       child,
       initialBuffer: initialSnapshot.buffer,
-      capture: () => snapshotService.capture(camera.id, session.requestedProfileToken),
+      capture: () => snapshotService.capture(camera.id, snapshotProfileToken),
       fps: config.snapshotVideoFps,
       refreshMs: config.snapshotRefreshMs,
       onFetchError: (error, consecutiveErrors) => {
@@ -1229,7 +1238,7 @@ class StreamOrchestrator {
 
   isSessionStalled(session, now = Date.now()) {
     if (!session || session.state !== 'ready' || !session.lastProgressAt) return false;
-    if (session.mode === 'local-hls-ring') {
+    if (['local-hls-ring', 'snapshot-video'].includes(session.mode)) {
       const health = this.localHlsHealth(session, now);
       const lastRealMediaAt = Number(health.newestSegmentAt || session.connectedAt || session.createdAt || now);
       return !health.ready && now - lastRealMediaAt > config.localHlsFreshnessSeconds * 1000;
@@ -1271,7 +1280,7 @@ class StreamOrchestrator {
       const stalledForMs = Date.now() - Number(session.lastProgressAt || 0);
       const processAlive = this.isSessionProcessAlive(session) || ['snapshot', 'snapshot-video'].includes(session.mode);
       const hardStallMs = Math.max(config.streamHardStallSeconds * 1000, config.streamStallSeconds * 2000);
-      const confirmedLocalHlsStall = session.mode === 'local-hls-ring' && !this.localHlsReady(session);
+      const confirmedLocalHlsStall = ['local-hls-ring', 'snapshot-video'].includes(session.mode) && !this.localHlsReady(session);
       if (processAlive && !confirmedLocalHlsStall && await this.refreshStreamBrokerLiveness(session, reason)) {
         this.log(session, 'debug', 'stream', 'STREAM_SOFT_STALL_IGNORED', 'FFmpeg-Fortschritt war alt, aber go2rtc oder der Browserpfad ist weiterhin lebendig; kein harter Neuaufbau', {
           reason,
@@ -1385,6 +1394,15 @@ class StreamOrchestrator {
     session.restartTimer.unref?.();
   }
 
+  retainedMediaPath(session) {
+    // Snapshot video is published directly into the backend's local HLS ring.
+    // Recordings and motion must read that playlist rather than a nonexistent
+    // go2rtc stream name. This URI stays internal and is never a browser URL.
+    if (session?.mode === 'snapshot-video') return pathToFileURL(this.localHlsPlaylist(session)).href;
+    if (session?.mode === 'local-hls-ring') return session.paths.recording || session.paths.video || session.paths.webrtc;
+    return session?.paths?.hls || null;
+  }
+
   findReusableReadySession(cameraId, requestedProfile = null, preferredQuality = null, consumerPurpose = 'recording') {
     const purpose = normalizeConsumerPurpose(consumerPurpose);
     const candidates = [...this.sessions.entries()]
@@ -1401,6 +1419,17 @@ class StreamOrchestrator {
         if (purpose === 'prebuffer') return session.quality === preferredQuality || (preferredQuality === 'low' && session.purpose === 'ingest');
         return true;
       });
+    if (!candidates.length && ['motion', 'prebuffer'].includes(purpose)) {
+      // Reuse the warm low-bandwidth snapshot publisher instead of starting a
+      // second software H.264 encoder for the same camera and quality.
+      return [...this.sessions.entries()].find(([, session]) => session.cameraId === cameraId
+        && session.state === 'ready'
+        && session.mode === 'snapshot-video'
+        && (session.requestedProfileToken || null) === (requestedProfile || null)
+        && session.quality === preferredQuality
+        && this.isSessionProcessAlive(session)
+        && this.localHlsReady(session)) || null;
+    }
     if (!candidates.length) return null;
     return candidates.sort(([, left], [, right]) => {
       const leftPermanent = Number(left.purpose === 'ingest');
@@ -1436,7 +1465,7 @@ class StreamOrchestrator {
           pathType: consumerPurpose === 'motion' ? 'shared-substream-hls' : 'shared-mainstream-hls',
           quality: session.quality,
         });
-        return { key, path: session.mode === 'local-hls-ring' ? (session.paths.recording || session.paths.video || session.paths.webrtc) : session.paths.hls, purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
+        return { key, path: this.retainedMediaPath(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
       } catch (error) {
         this.log(session, 'warn', consumerPurpose === 'motion' ? 'motion-detection' : 'recording', 'STREAM_RETAIN_REUSE_FAILED', 'Vorhandener Publisher konnte nicht weiterverwendet werden', errorDetails(error));
       }
@@ -1448,7 +1477,6 @@ class StreamOrchestrator {
       : sessionKey(cameraId, ready.quality, ready.requestedProfileToken || null, consumerPurpose);
     const session = this.sessions.get(key);
     if (!session || session.state !== 'ready') throw new AppError(502, 'STREAM_NOT_READY', 'Kamerastream ist fuer den Medienverbrauch nicht bereit');
-    if (['snapshot', 'snapshot-video'].includes(session.mode)) throw new AppError(409, 'SNAPSHOT_MODE_NOT_RECORDABLE', 'Ein synthetischer Snapshot-Livemodus kann nicht als Recording/Motion-Videoquelle verwendet werden');
     await this.ensureRetainedHls(session);
     session.recordingRefs += 1;
     session.lastRequestedAt = Date.now();
@@ -1460,12 +1488,12 @@ class StreamOrchestrator {
       recordingRefs: session.recordingRefs,
       pathType: consumerPurpose === 'motion' ? 'motion-substream-hls' : 'recording-mainstream-hls',
     });
-    return { key, path: session.mode === 'local-hls-ring' ? (session.paths.recording || session.paths.video || session.paths.webrtc) : session.paths.hls, purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
+    return { key, path: this.retainedMediaPath(session), purpose: session.purpose || consumerPurpose, quality: session.quality, profile: session.profile, media: session.probe };
   }
 
   async ensureRetainedHls(session) {
     if (!session) throw new AppError(502, 'STREAM_NOT_READY', 'Kamerastream ist fuer den Medienverbrauch nicht bereit');
-    if (session.mode === 'local-hls-ring') {
+    if (['local-hls-ring', 'snapshot-video'].includes(session.mode)) {
       if (!this.localHlsReady(session)) {
         const ready = await this.waitUntilLocalHlsReady(session, { timeoutMs: Math.min(8000, config.startTimeoutMs), intervalMs: 250 });
         session.outputs.hls = Boolean(ready.ready);
@@ -1542,7 +1570,7 @@ class StreamOrchestrator {
     if (!session) return null;
     const ready = session.state === 'ready' && Boolean(session.outputs?.hls)
       && this.isSessionProcessAlive(session)
-      && (session.mode !== 'local-hls-ring' || this.localHlsReady(session));
+      && (!['local-hls-ring', 'snapshot-video'].includes(session.mode) || this.localHlsReady(session));
     return {
       ready,
       state: session.state,
