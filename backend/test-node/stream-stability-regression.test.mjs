@@ -184,7 +184,7 @@ test('failed source memory is isolated per ONVIF profile', () => {
 
 
 test('auto mode downgrades when a preferred profile produces no normalized media frames', () => {
-  assert.match(config, /STREAM_AUTO_PROFILE_FIRST_FRAME_TIMEOUT_MS', 8000/);
+  assert.match(config, /STREAM_AUTO_PROFILE_FIRST_FRAME_TIMEOUT_MS', 12000/);
   assert.match(orchestrator, /autoProfileSelection = !session\.requestedProfileToken && !session\.stableProfileToken/);
   assert.match(orchestrator, /Math\.min\(config\.startTimeoutMs, config\.streamAutoProfileFirstFrameTimeoutMs\)/);
   assert.match(orchestrator, /PROFILE_MEDIA_TIMEOUT/);
