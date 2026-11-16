@@ -12,6 +12,8 @@ APPLICATIONS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 BIN="${HOME}/.local/bin"
 RUNTIME="$DEST/runtime/node"
 NODE_RELEASE_URL="https://nodejs.org/dist/latest-v24.x"
+ELECTRON_VERSION="35.7.5"
+ELECTRON_RELEASE_URL="https://github.com/electron/electron/releases/download/v$ELECTRON_VERSION"
 
 say() { printf '[TMP Camera Desktop] %s\n' "$*"; }
 fail() { printf '[TMP Camera Desktop] FEHLER: %s\n' "$*" >&2; exit 1; }
@@ -48,6 +50,47 @@ fetch() {
   else
     fail 'curl oder wget wird benoetigt, um Node.js herunterzuladen.'
   fi
+}
+
+install_electron_runtime() {
+  command -v sha256sum >/dev/null 2>&1 || fail 'sha256sum wird zur sicheren Electron-Download-Pruefung benoetigt.'
+  work=$(mktemp -d "$DEST/.electron-download.XXXXXXXX") || fail 'Temporäres Electron-Downloadverzeichnis konnte nicht erstellt werden.'
+  trap 'rm -rf "$work"' EXIT HUP INT TERM
+
+  archive="electron-v$ELECTRON_VERSION-linux-$NODE_ARCH.zip"
+  say "Lade Electron $ELECTRON_VERSION fuer Linux $NODE_ARCH direkt und verifiziert nach ..."
+  fetch "$ELECTRON_RELEASE_URL/SHASUMS256.txt" "$work/SHASUMS256.txt" || fail 'Electron-Pruefsummen konnten nicht geladen werden. Internet/TLS pruefen.'
+  expected=$(awk -v file="$archive" '$2 == file || $2 == "*" file {print $1; exit}' "$work/SHASUMS256.txt")
+  case "$expected" in *[!0-9a-fA-F]*|'') fail "Keine gueltige SHA-256-Pruefsumme fuer $archive gefunden." ;; esac
+  [ "${#expected}" -eq 64 ] || fail "Ungueltige SHA-256-Laenge fuer $archive."
+
+  fetch "$ELECTRON_RELEASE_URL/$archive" "$work/$archive" || fail 'Electron-Laufzeit konnte nicht direkt heruntergeladen werden.'
+  (cd "$work" && printf '%s  %s\n' "$expected" "$archive" | sha256sum -c - >/dev/null) || fail 'Electron-Download hat die SHA-256-Pruefung nicht bestanden.'
+
+  rm -rf "$DEST/node_modules/electron/dist"
+  mkdir -p "$DEST/node_modules/electron/dist"
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -q "$work/$archive" -d "$DEST/node_modules/electron/dist" || fail 'Electron-Archiv konnte mit unzip nicht entpackt werden.'
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 - "$work/$archive" "$DEST/node_modules/electron/dist" <<'PY'
+import pathlib, sys, zipfile
+archive = pathlib.Path(sys.argv[1])
+target = pathlib.Path(sys.argv[2]).resolve()
+with zipfile.ZipFile(archive) as zf:
+    for member in zf.infolist():
+        resolved = (target / member.filename).resolve()
+        if target != resolved and target not in resolved.parents:
+            raise SystemExit("Unsicherer Pfad im Electron-Archiv")
+    zf.extractall(target)
+PY
+  else
+    fail 'Zum Entpacken der Electron-Laufzeit wird unzip oder python3 benoetigt.'
+  fi
+
+  chmod 755 "$DEST/node_modules/electron/dist/electron" 2>/dev/null || true
+  printf '%s\n' electron > "$DEST/node_modules/electron/path.txt"
+  rm -rf "$work"
+  trap - EXIT HUP INT TERM
 }
 
 install_local_node() {
@@ -105,16 +148,22 @@ say 'Installiere den Electron-Client ...'
 npm install --omit=dev --no-audit --no-fund --ignore-scripts=false || fail 'Electron konnte nicht installiert werden. Internetzugang und npm-Protokoll pruefen.'
 ELECTRON="$DEST/node_modules/electron/dist/electron"
 ELECTRON_MARKER="$DEST/node_modules/electron/path.txt"
-# If a prior npm run skipped the native download, reinstall the approved
-# Electron binary without deleting user settings or unrelated packages.
+# npm/Node combinations can report a successful Electron rebuild even when
+# the native ZIP was only partially extracted and path.txt was never written.
+# Try the normal approved rebuild once, then fall back to Electron's official
+# release ZIP with SHA-256 verification instead of looping through npm.
 if [ ! -x "$ELECTRON" ] || [ ! -s "$ELECTRON_MARKER" ]; then
   say 'Electron-Laufzeit ist unvollstaendig. Fuehre das freigegebene Electron-Installationsskript erneut aus ...'
-  npm rebuild electron --ignore-scripts=false --no-audit --no-fund || fail 'Electron-Laufzeit konnte nicht nachinstalliert werden.'
+  npm rebuild electron --ignore-scripts=false --no-audit --no-fund || true
 fi
-[ -x "$ELECTRON" ] && [ -s "$ELECTRON_MARKER" ] || fail 'Electron ist nicht startbereit. Bitte npm/Electron-Protokoll pruefen; Installation nicht abgeschlossen.'
+if [ ! -x "$ELECTRON" ] || [ ! -s "$ELECTRON_MARKER" ]; then
+  say 'npm hat keine vollstaendige Electron-Laufzeit bereitgestellt. Nutze den verifizierten Direkt-Fallback ...'
+  install_electron_runtime
+fi
+[ -x "$ELECTRON" ] && [ -s "$ELECTRON_MARKER" ] || fail 'Electron ist auch nach dem verifizierten Direkt-Fallback nicht startbereit.'
 # Prevent a stale unpacked Electron from appearing as a successful install.
 INSTALLED_ELECTRON_VERSION=$(node -p 'require("./node_modules/electron/package.json").version' 2>/dev/null || true)
-[ "$INSTALLED_ELECTRON_VERSION" = '35.7.5' ] || fail "Falsche Electron-Version: ${INSTALLED_ELECTRON_VERSION:-nicht gefunden}; erwartet 35.7.5."
+[ "$INSTALLED_ELECTRON_VERSION" = "$ELECTRON_VERSION" ] || fail "Falsche Electron-Version: ${INSTALLED_ELECTRON_VERSION:-nicht gefunden}; erwartet $ELECTRON_VERSION."
 
 missing_libraries() {
   command -v ldd >/dev/null 2>&1 || return 0
