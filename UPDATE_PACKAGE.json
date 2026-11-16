@@ -1,18 +1,20 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.57",
+  "version": "2.20.58",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.57",
-  "summary": "Recording-safe single-pass upgrades, authenticated HLS, bounded camera starts, verified preview freshness and restored snapshot fallback.",
+  "title": "TMP Camera Surveillance Next 2.20.58",
+  "summary": "WiFi RTSP startup and restored central preview audio with conservative HLS timestamp handling.",
   "createdAt": "2026-11-16T20:52:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.57.md",
+  "changelogFile": "UPDATE_NOTES_2.20.58.md",
   "changes": [
     "Graceful single-pass Docker upgrade and recording finalization",
     "Bound camera connection starts and do not block recording scheduler",
     "Reject stale/frozen HLS previews and recover their backend publishers",
     "Authenticate local HLS playlists and MPEG-TS segments",
     "Isolate simultaneous kiosk tile players and extend CI regression tests",
-    "Restore low-connectivity snapshot H.264 fallback for permanent, recording, motion and prebuffer paths"
+    "Restore low-connectivity snapshot H.264 fallback for permanent, recording, motion and prebuffer paths",
+    "Restore central Live preview audio and bounded startup for slow WiFi RTSP sources",
+    "Preserve original MPEG-TS timestamps during local HLS remux"
   ],
   "preserve": [
     ".env",
@@ -32,14 +34,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.57.md",
+  "changelog": "UPDATE_NOTES_2.20.58.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.57",
-  "packageId": "tmp-camera-surveillance-next-2.20.57",
+  "name": "TMP Camera Surveillance Next v2.20.58",
+  "packageId": "tmp-camera-surveillance-next-2.20.58",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Central preview and upgrade hardening with preserved legacy update contract.",
+  "description": "WiFi RTSP media progress startup grace, HLS timestamp fixes and Live preview audio restored.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Upgrade compatible from 2.20.32, no database migrations, protected runtime data and stable stream URLs.",
-  "fileCount": 462
+  "releaseNotes": "Compatible from 2.20.32; audio-enabled central preview and bounded HLS startup grace for weak WiFi camera links.",
+  "fileCount": 465
 }

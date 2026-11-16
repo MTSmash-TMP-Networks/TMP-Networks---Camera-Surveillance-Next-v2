@@ -1,3 +1,11 @@
+## 2.20.58 – WLAN-RTSP und Ton im zentralen Live-Preview
+
+- Der permanente zentrale Live-Preview-Publisher behaelt Audio (G.711 nach AAC fuer HLS), statt den Audiopfad pauschal abzuschalten.
+- Bei tatsaechlichem FFmpeg-Medienfortschritt erhalten lange WLAN-/GOP-Anlaeufe bis zu 60 Sekunden fuer den ersten HLS-Ring; tote Quellen bleiben durch die Standardfrist begrenzt.
+- MPEG-TS wird ohne erzwungene Wallclock-Zeitstempel nach HLS umgepackt.
+- Snapshot-H.264 bleibt Notversorgung, Audio-freie Kiosk-Autoplay-Kacheln bleiben initial stumm, direkte Live-Ansicht kann Ton aktivieren.
+- Update-Basis bleibt 2.20.32, bestehende Konfiguration und Daten bleiben unangetastet.
+
 ## 2.20.56 – Zentraler Preview-Publisher strikt vom Frontend getrennt
 
 - Kiosk und Live-Auto lesen ausschließlich den serverseitig gehaltenen zentralen Preview-Publisher über einen read-only Preview-Endpunkt.

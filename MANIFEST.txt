@@ -23,6 +23,7 @@ UPDATE_NOTES_2.20.54.md
 UPDATE_NOTES_2.20.55.md
 UPDATE_NOTES_2.20.56.md
 UPDATE_NOTES_2.20.57.md
+UPDATE_NOTES_2.20.58.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -96,6 +97,7 @@ backend/src/services/media/FfmpegInputOptions.js
 backend/src/services/media/FfmpegProbe.js
 backend/src/services/media/Go2RtcClient.js
 backend/src/services/media/LocalHlsHealth.js
+backend/src/services/media/LocalHlsStartupGrace.js
 backend/src/services/media/MediaReadAuth.js
 backend/src/services/media/MediaSource.js
 backend/src/services/media/MediaSourceService.js
@@ -172,6 +174,7 @@ backend/test-node/intel-vaapi-deployment.test.mjs
 backend/test-node/local-hls-command.test.mjs
 backend/test-node/local-hls-health.test.mjs
 backend/test-node/local-hls-http-runtime.test.mjs
+backend/test-node/local-hls-startup-grace.test.mjs
 backend/test-node/network-recording-storage-regression.test.mjs
 backend/test-node/notification-template-locales.test.mjs
 backend/test-node/onvif-setup-probe-regression.test.mjs

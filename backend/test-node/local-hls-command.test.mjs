@@ -10,6 +10,7 @@ test('local HLS video path consumes go2rtc HTTP MPEG-TS and publishes atomic seg
   assert.doesNotMatch(value, /-rtsp_transport/);
   assert.match(value, /api\/stream\.ts\?src=cam_video/);
   assert.match(value, /-map 0:v:0/);
+  assert.doesNotMatch(value, /-use_wallclock_as_timestamps/);
   assert.match(value, /-c:v copy/);
   assert.match(value, /-an/);
   assert.match(value, /-hls_segment_type mpegts/);
