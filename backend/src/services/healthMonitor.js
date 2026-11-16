@@ -13,13 +13,17 @@ class HealthMonitor {
   async run() {
     for (const camera of cameraRepository.list().filter((item) => item.enabled)) {
       const privateCamera = cameraRepository.getWithCredentials(camera.id);
-      let nextStatus = 'online';
-      let statusError = null;
-      try {
-        await new OnvifClient(privateCamera).deviceInfo();
-      } catch (error) {
-        if (streamOrchestrator.hasReady(camera.id)) statusError = `ONVIF-Steuerung voruebergehend nicht erreichbar: ${error.message}`;
-        else { nextStatus = 'offline'; statusError = error.message; }
+      const preview = streamOrchestrator.centralPreviewStatus(camera.id);
+      // ONVIF reachability alone is not video readiness.
+      let nextStatus = preview?.ready ? 'online' : preview?.state === 'failed' ? 'stream_error' : 'activating';
+      let statusError = preview?.ready ? null : (preview?.lastError || preview?.phaseMessage || 'Zentraler Vorschau-Stream noch nicht bereit');
+      if (!preview?.ready && privateCamera?.connectionType !== 'stream') {
+        try {
+          await new OnvifClient(privateCamera).deviceInfo();
+        } catch (error) {
+          if (nextStatus === 'activating') nextStatus = 'offline';
+          statusError = error.message;
+        }
       }
       cameraRepository.updateStatus(camera.id, nextStatus, statusError);
       if (camera.status !== nextStatus) {

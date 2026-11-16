@@ -67,9 +67,9 @@ const server = app.listen(config.port, config.host, () => {
       }
       networkRecordingStorageService.start();
       discoveryJobService.bootstrap();
-      // Finish the permanent preview bootstrap first. Motion and recording
-      // automation must not create extra camera sessions while startup is still running.
-      await streamOrchestrator.startPermanentIngestForAll({ wait: true });
+      // Offline preview cameras cannot delay the recording scheduler.
+      // Media startup remains bounded and owned by the backend.
+      void streamOrchestrator.startPermanentIngestForAll({ wait: false });
       motionDetectionService.start();
       recordingScheduler.start();
       // Retention starts last. It must never delete archive rows before local,
@@ -88,7 +88,7 @@ async function shutdown(signal) {
   const forceExit = setTimeout(() => {
     logger.fatal({ signal }, 'Erzwungenes Serverende nach Ablauf des Shutdown-Zeitlimits');
     process.exit(1);
-  }, 10_000);
+  }, 85_000);
   forceExit.unref();
 
   healthMonitor.stop?.();

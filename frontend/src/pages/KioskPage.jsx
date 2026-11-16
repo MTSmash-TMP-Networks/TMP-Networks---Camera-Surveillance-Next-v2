@@ -192,7 +192,10 @@ export function KioskPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false;
     async function loadRuntimeStatus() {
+      if (cancelled || inFlight) return;
+      inFlight = true;
       try {
         const result = await api.kioskStatus();
         if (cancelled) return;
@@ -200,6 +203,8 @@ export function KioskPage() {
         setStatusError('');
       } catch {
         if (!cancelled) setStatusError(t('kiosk.status.unavailable'));
+      } finally {
+        inFlight = false;
       }
     }
     loadRuntimeStatus();

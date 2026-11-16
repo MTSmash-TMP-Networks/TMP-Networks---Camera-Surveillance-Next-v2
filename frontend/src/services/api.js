@@ -32,7 +32,12 @@ export async function request(path, options = {}) {
   const headers = new Headers(options.headers || {});
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
   if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
-  const response = await fetchApi(`${API}${path}`, { cache: options.cache || 'no-store', ...options, headers, body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body });
+  const { timeoutMs = 20_000, ...fetchOptions } = options;
+  const deadline = AbortSignal.timeout(Math.max(1000, Number(timeoutMs) || 20_000));
+  const signal = fetchOptions.signal && AbortSignal.any
+    ? AbortSignal.any([fetchOptions.signal, deadline])
+    : deadline;
+  const response = await fetchApi(`${API}${path}`, { cache: options.cache || 'no-store', ...fetchOptions, signal, headers, body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body });
   if (!response.ok) {
     let payload = {};
     try { payload = await response.json(); } catch { /* ignore */ }

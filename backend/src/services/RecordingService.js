@@ -1501,7 +1501,11 @@ class RecordingService {
   }
 
   async shutdown() {
-    for (const state of [...this.active.values()]) await this.stop(state.id).catch(() => {});
+    // Independent camera recordings finalize concurrently; tasks for one
+    // camera remain serialized by the recording-control coordinator.
+    const results = await Promise.allSettled([...this.active.values()].map((state) => this.stop(state.id)));
+    const failed = results.filter((item) => item.status === 'rejected');
+    if (failed.length) throw new AggregateError(failed.map((item) => item.reason), `${failed.length} Aufnahme(n) konnten nicht abgeschlossen werden`);
   }
 }
 

@@ -30,6 +30,27 @@ function localHlsUrl(paths, cacheBuster = Date.now()) {
   return `${config.publicLocalHlsBase.replace(/\/$/, '')}/${key}/index.m3u8?v=${encodeURIComponent(cacheBuster || Date.now())}`;
 }
 
+function issueHlsToken(req, res, session, paths) {
+  if (!session.outputs?.hls) return null;
+  const localHls = isLocalHlsSession(session);
+  const streamName = paths.localHls || paths.hls;
+  const token = authService.signMediaToken({
+    userId: req.user.sub,
+    path: localHls ? `local-hls:${streamName}` : paths.hls,
+    action: 'read',
+  });
+  if (localHls) {
+    res.cookie('tmp_hls_media', token, {
+      path: `${config.publicLocalHlsBase.replace(/\/$/, '')}/${encodeURIComponent(streamName)}/`,
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: Boolean(req.secure || req.get('x-forwarded-proto') === 'https'),
+      maxAge: config.mediaTokenTtlSeconds * 1000,
+    });
+  }
+  return token;
+}
+
 function hlsUrlForSession(session, paths, publicSession) {
   if (!session.outputs?.hls) return null;
   if (isLocalHlsSession(session)) return session.localHlsUrl ? `${session.localHlsUrl}?v=${encodeURIComponent(publicSession.cacheBuster || Date.now())}` : localHlsUrl(paths, publicSession.cacheBuster);
@@ -73,7 +94,7 @@ streamsRouter.get('/:id/preview', (req, res) => {
   }
   return res.json({
     ...publicSession,
-    tokens: { webrtc: null, hls: null },
+    tokens: { webrtc: null, hls: issueHlsToken(req, res, session, paths) },
     expiresIn: config.mediaTokenTtlSeconds,
     webrtcUrl: null,
     hlsUrl: hlsUrlForSession(session, paths, publicSession),
@@ -101,7 +122,7 @@ streamsRouter.post('/:id/session', sessionLimiter, asyncHandler(async (req, res)
   }
   const exposeWebRtc = canExposeWebRtc(session.outputs);
   const webrtcToken = exposeWebRtc ? authService.signMediaToken({ userId: req.user.sub, path: paths.webrtc, action: 'read' }) : null;
-  const hlsToken = session.outputs.hls && !isLocalHlsSession(session) ? authService.signMediaToken({ userId: req.user.sub, path: paths.hls, action: 'read' }) : null;
+  const hlsToken = issueHlsToken(req, res, session, paths);
   return res.json({
     ...publicSession,
     tokens: { webrtc: webrtcToken, hls: hlsToken },
@@ -124,7 +145,7 @@ streamsRouter.post('/:id/heartbeat', sessionLimiter, asyncHandler(async (req, re
   const { paths, ...publicSession } = heartbeat.session;
   const exposeWebRtc = canExposeWebRtc(publicSession.outputs);
   const webrtcToken = exposeWebRtc ? authService.signMediaToken({ userId: req.user.sub, path: paths.webrtc, action: 'read' }) : null;
-  const hlsToken = publicSession.outputs?.hls && !isLocalHlsSession(publicSession) ? authService.signMediaToken({ userId: req.user.sub, path: paths.hls, action: 'read' }) : null;
+  const hlsToken = issueHlsToken(req, res, publicSession, paths);
   return res.json({
     serverTime: heartbeat.serverTime,
     session: publicSession,

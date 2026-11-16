@@ -59,6 +59,8 @@ services:
     build:
       context: ./backend
     restart: unless-stopped
+    # Supported by Compose v1/v2. Allow the backend to flush recording blocks.
+    stop_grace_period: 100s
     env_file:
       - ${PROJECT_DIR:-.}/.env
     environment:

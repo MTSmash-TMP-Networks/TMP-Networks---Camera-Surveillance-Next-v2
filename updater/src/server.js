@@ -1207,12 +1207,9 @@ async function composeServiceContainerIds(context, service) {
 }
 
 async function replaceComposeService(context, service, options = {}) {
-  const ids = await composeServiceContainerIds(context, service);
-  if (ids.length) {
-    await appendStatusLog(`${service}: ${ids.length} alter Compose-Container wird vor dem Neustart entfernt`);
-    await execute('docker', ['rm', '-f', ...ids], { cwd: PROJECT_DIR, timeoutMs: 180_000, env: context.composeEnv });
-  }
-  const args = [...(options.profile ? ['--profile', options.profile] : []), 'up', '-d', '--no-deps', ...(options.noBuild ? ['--no-build'] : []), service];
+  // Honor Compose stop_grace_period and let the backend finalize recordings.
+  await appendStatusLog(`${service}: kontrollierter Compose-Neustart mit SIGTERM und Stop-Frist`);
+  const args = [...(options.profile ? ['--profile', options.profile] : []), 'up', '-d', '--no-deps', '--force-recreate', ...(options.noBuild ? ['--no-build'] : []), service];
   return compose(args, context, { timeoutMs: options.timeoutMs || 10 * 60_000 });
 }
 
@@ -1309,7 +1306,9 @@ async function performInstall(input) {
     const backendHealth = await waitForUrl(BACKEND_HEALTH_ENDPOINT.url, 150_000, 'Backend');
     const backendPayload = await backendHealth.json().catch(() => ({}));
     if (backendPayload.version !== inspected.version) throw new Error(`Backend meldet Version ${backendPayload.version || 'unbekannt'}, erwartet wurde ${inspected.version}`);
-    await regularApplicationRestart(context, runningServices);
+    // Services were already recreated above. A second cycle disrupts fresh HLS
+    // publishers and can truncate recording segments.
+    await appendStatusLog('Einmaliger kontrollierter Neustart abgeschlossen');
     const versionAfterInstall = currentVersion();
     if (versionAfterInstall !== inspected.version) throw new Error(`Installierte VERSION ist ${versionAfterInstall}, erwartet wurde ${inspected.version}`);
     await updateStatus({ phase: 'cleanup', progress: 99, message: 'Nicht mehr benötigte Docker-Images und Build-Caches werden entfernt' });
