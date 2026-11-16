@@ -17,17 +17,14 @@ describe('Browserstream-Ressourcensteuerung', () => {
     expect(poolSource).toContain('if (!PREWARM_ENABLED || !options?.cameraId) return null');
   });
 
-  it('behaelt die optionale zentrale Synchronisierung fuer Altinstallationen', () => {
-    expect(shellSource).toContain('liveStreamPool.syncPersistentCameras(cameras)');
+  it('ueberlaesst permanente Kamera-Publisher vollstaendig dem Backend', () => {
+    expect(shellSource).not.toContain('liveStreamPool.syncPersistentCameras(cameras)');
     expect(shellSource).toContain('destroyAll({ force: true })');
-    expect(poolSource).toContain("purpose: 'kiosk'");
-    expect(poolSource).toContain("quality: 'low'");
+    expect(addSource).not.toContain('liveStreamPool.prewarm');
   });
 
-  it('kann eine neue Kamera weiterhin vor dem Wechsel in die Liveansicht vorbereiten', () => {
-    const prewarm = addSource.indexOf('liveStreamPool.prewarm');
-    const navigation = addSource.indexOf('navigate(`/live?camera=${result.camera.id}`)');
-    expect(prewarm).toBeGreaterThan(-1);
-    expect(navigation).toBeGreaterThan(prewarm);
+  it('navigiert nach dem Anlegen direkt zur read-only Liveansicht', () => {
+    expect(addSource).toContain('navigate(`/live?camera=${result.camera.id}`)');
+    expect(addSource).not.toContain('liveStreamPool.prewarm');
   });
 });
