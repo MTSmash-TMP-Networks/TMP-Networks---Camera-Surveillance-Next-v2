@@ -21,6 +21,7 @@ export class PtzClientPool {
   constructor({ idleMs = config.ptzClientIdleMs, disableSweep = false } = {}) {
     this.idleMs = Math.max(10_000, Number(idleMs) || 300_000);
     this.clients = new Map();
+    this.prewarmJobs = new Map();
     this.timer = disableSweep ? null : setInterval(() => this.sweep(), Math.min(60_000, Math.max(10_000, Math.round(this.idleMs / 3))));
     this.timer?.unref?.();
   }
@@ -38,6 +39,32 @@ export class PtzClientPool {
     const client = new OnvifClient(camera, { timeoutMs: config.ptzCommandTimeoutMs });
     this.clients.set(key, { cameraId, channel: safeChannel, client, fingerprint: currentFingerprint, lastUsedAt: Date.now() });
     return client;
+  }
+
+  prewarm(camera) {
+    // Move and Stop use independent ONVIF clients. Serial warming avoids
+    // simultaneous authentication handshakes on weak WiFi cameras.
+    const cameraId = String(camera?.id || '');
+    const signature = fingerprint(camera);
+    const current = this.prewarmJobs.get(cameraId);
+    if (current?.fingerprint === signature) return current.promise;
+    const promise = (async () => {
+      for (const channel of ['move', 'stop']) {
+        const client = this.get(camera, channel);
+        try {
+          await client.open();
+        } catch {
+          // A failed warmup must never prevent a later ordinary PTZ command.
+          this.invalidate(cameraId, channel);
+        }
+      }
+      return { ok: true };
+    })();
+    this.prewarmJobs.set(cameraId, { fingerprint: signature, promise });
+    void promise.finally(() => {
+      if (this.prewarmJobs.get(cameraId)?.promise === promise) this.prewarmJobs.delete(cameraId);
+    });
+    return promise;
   }
 
   invalidate(cameraId, channel = null) {
@@ -63,6 +90,7 @@ export class PtzClientPool {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.clients.clear();
+    this.prewarmJobs.clear();
   }
 }
 

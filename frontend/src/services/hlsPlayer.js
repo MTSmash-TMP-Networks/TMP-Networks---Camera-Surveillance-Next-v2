@@ -4,6 +4,11 @@ const RECOVERY_WATCHDOG_MS = 15000;
 const WAITING_GRACE_MS = 5000;
 const TARGET_LIVE_DELAY_SECONDS = 8;
 const MAX_LIVE_LATENCY_SECONDS = 20;
+const ptzSeekers = new WeakMap();
+
+export function nudgeHlsForPtz(video) {
+  ptzSeekers.get(video)?.();
+}
 const MAX_NETWORK_RECOVERIES = 3;
 const MAX_MEDIA_RECOVERIES = 2;
 
@@ -38,7 +43,7 @@ function bufferedAhead(video) {
   return 0;
 }
 
-function seekToLiveEdge(hls, video) {
+function seekToLiveEdge(hls, video, targetDelay = TARGET_LIVE_DELAY_SECONDS) {
   try {
     const livePosition = Number(hls?.liveSyncPosition);
     if (Number.isFinite(livePosition) && Math.abs(Number(video.currentTime || 0) - livePosition) > 1.5) {
@@ -48,7 +53,7 @@ function seekToLiveEdge(hls, video) {
     const ranges = video.seekable;
     if (ranges?.length) {
       const end = ranges.end(ranges.length - 1);
-      if (Number.isFinite(end) && end - Number(video.currentTime || 0) > TARGET_LIVE_DELAY_SECONDS + 2) video.currentTime = Math.max(0, end - TARGET_LIVE_DELAY_SECONDS);
+      if (Number.isFinite(end) && end - Number(video.currentTime || 0) > targetDelay + 2) video.currentTime = Math.max(0, end - targetDelay);
     }
   } catch { /* ignored */ }
 }
@@ -135,7 +140,7 @@ function nativeHls({ url, video, onState }) {
   };
 }
 
-export function connectHls({ url, tokenRef, video, onState }) {
+export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySeconds = TARGET_LIVE_DELAY_SECONDS }) {
   if (!Hls.isSupported()) {
     const nativeSupported = video.canPlayType('application/vnd.apple.mpegurl') || video.canPlayType('application/x-mpegURL');
     if (!nativeSupported) throw new Error('HLS wird von diesem Browser nicht ueber Media Source Extensions unterstuetzt');
@@ -152,11 +157,12 @@ export function connectHls({ url, tokenRef, video, onState }) {
   let lastRecoveryDetails = null;
   let activeSourceUrl = cacheBustUrl(url);
 
+  const liveDelay = Math.max(2.5, Number(targetLiveDelaySeconds) || TARGET_LIVE_DELAY_SECONDS);
   const hls = new Hls({
     lowLatencyMode: false,
-    liveSyncDuration: TARGET_LIVE_DELAY_SECONDS,
-    liveMaxLatencyDuration: MAX_LIVE_LATENCY_SECONDS,
-    maxLiveSyncPlaybackRate: 1.05,
+    liveSyncDuration: liveDelay,
+    liveMaxLatencyDuration: liveDelay < TARGET_LIVE_DELAY_SECONDS ? 12 : MAX_LIVE_LATENCY_SECONDS,
+    maxLiveSyncPlaybackRate: liveDelay < TARGET_LIVE_DELAY_SECONDS ? 1.08 : 1.05,
     backBufferLength: 15,
     maxBufferLength: 30,
     maxMaxBufferLength: 60,
@@ -179,6 +185,24 @@ export function connectHls({ url, tokenRef, video, onState }) {
       xhr.setRequestHeader('Pragma', 'no-cache');
     },
   });
+
+  let lastPtzSeekAt = 0;
+  const nudgeForControl = () => {
+    if (destroyed || Date.now() - lastPtzSeekAt < 2500) return;
+    try {
+      const ranges = video.seekable;
+      if (!ranges?.length) return;
+      const last = ranges.length - 1;
+      const end = ranges.end(last);
+      const target = Math.max(ranges.start(last), end - liveDelay);
+      // Never tear down the established backend publisher or HLS decoder.
+      if (Number.isFinite(target) && target - Number(video.currentTime || 0) > 2.5) {
+        video.currentTime = target;
+        lastPtzSeekAt = Date.now();
+      }
+    } catch { /* live seek ranges can change during HLS recovery */ }
+  };
+  ptzSeekers.set(video, nudgeForControl);
 
   const clearRecoveryTimer = () => {
     if (recoveryTimer) clearTimeout(recoveryTimer);
@@ -232,7 +256,7 @@ export function connectHls({ url, tokenRef, video, onState }) {
     activeSourceUrl = cacheBustUrl(url);
     hls.loadSource(activeSourceUrl);
     hls.startLoad(-1);
-    seekToLiveEdge(hls, video);
+    seekToLiveEdge(hls, video, liveDelay);
     safePlay(video);
   };
   const resumeLiveLoad = () => {
@@ -240,7 +264,7 @@ export function connectHls({ url, tokenRef, video, onState }) {
     hls.startLoad(-1);
     // Keep already buffered surveillance video playing. Only jump when there
     // is no usable buffer left after a real fatal network recovery.
-    if (bufferedAhead(video) < 0.25) seekToLiveEdge(hls, video);
+    if (bufferedAhead(video) < 0.25) seekToLiveEdge(hls, video, liveDelay);
     safePlay(video);
   };
   const recoverNetwork = (details) => {
@@ -265,7 +289,7 @@ export function connectHls({ url, tokenRef, video, onState }) {
       return;
     }
     beginRecovery({ ...details, attempt: mediaRecoveries, stage: mediaRecoveries === 1 ? 'recover-media' : 'swap-audio-codec' }, () => {
-      seekToLiveEdge(hls, video);
+      seekToLiveEdge(hls, video, liveDelay);
       if (mediaRecoveries > 1) hls.swapAudioCodec();
       hls.recoverMediaError();
       safePlay(video);
@@ -332,6 +356,7 @@ export function connectHls({ url, tokenRef, video, onState }) {
 
   return () => {
     destroyed = true;
+    if (ptzSeekers.get(video) === nudgeForControl) ptzSeekers.delete(video);
     clearRecoveryTimer();
     clearWaitingTimer();
     video.removeEventListener('playing', onPlaying);

@@ -101,6 +101,14 @@ class PtzService {
     };
   }
 
+  prepare(cameraId, input = {}) {
+    const { camera, profile } = cameraAndProfile(cameraId, input.profileToken);
+    if (config.ptzPrewarmEnabled) void ptzClientPool.prewarm(camera).catch((error) => {
+      logger.debug({ cameraId, err: error }, 'PTZ-Verbindungen konnten nicht vorgewaermt werden');
+    });
+    return { ok: true, warming: Boolean(config.ptzPrewarmEnabled), profileToken: profile.token };
+  }
+
   async move(cameraId, input = {}, actorContext = {}) {
     const { camera, profile } = cameraAndProfile(cameraId, input.profileToken);
     streamOrchestrator.cancelControlResync(cameraId, 'ptz-move');

@@ -24,6 +24,7 @@ UPDATE_NOTES_2.20.55.md
 UPDATE_NOTES_2.20.56.md
 UPDATE_NOTES_2.20.57.md
 UPDATE_NOTES_2.20.58.md
+UPDATE_NOTES_2.20.59.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -181,6 +182,7 @@ backend/test-node/onvif-setup-probe-regression.test.mjs
 backend/test-node/ptz-automation-interlock.test.mjs
 backend/test-node/ptz-command-runtime.test.mjs
 backend/test-node/ptz-discovery-regression.test.mjs
+backend/test-node/ptz-responsive-regression.test.mjs
 backend/test-node/ptz-service-evidence-regression.cjs
 backend/test-node/recording-compression-command.test.mjs
 backend/test-node/recording-recovery-policy.test.mjs

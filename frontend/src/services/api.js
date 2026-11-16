@@ -151,6 +151,7 @@ export const api = {
   streamHeartbeat: (id, input) => request(`/streams/${id}/heartbeat`, { method: 'POST', cache: 'no-store', body: input }),
   streamClientEvent: (id, input) => request(`/streams/${id}/client-event`, { method: 'POST', body: input }),
   restartStream: (id) => request(`/streams/${id}/restart`, { method: 'POST' }),
+  ptzPrepare: (id, input = {}) => request(`/ptz/${id}/prepare`, { method: 'POST', body: input, timeoutMs: 5000 }),
   ptzMove: (id, input) => request(`/ptz/${id}/move`, { method: 'POST', body: input }),
   ptzHeartbeat: (id, input) => request(`/ptz/${id}/heartbeat`, { method: 'POST', cache: 'no-store', body: input }),
   ptzStop: (id, input = {}) => request(`/ptz/${id}/stop`, { method: 'POST', cache: 'no-store', body: typeof input === 'string' ? { profileToken: input } : input }),

@@ -1,11 +1,11 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.58",
+  "version": "2.20.59",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.58",
-  "summary": "WiFi RTSP startup and restored central preview audio with conservative HLS timestamp handling.",
+  "title": "TMP Camera Surveillance Next 2.20.59",
+  "summary": "Lower PTZ response latency by warming ONVIF clients and reducing interactive Live HLS delay.",
   "createdAt": "2026-11-16T20:52:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.58.md",
+  "changelogFile": "UPDATE_NOTES_2.20.59.md",
   "changes": [
     "Graceful single-pass Docker upgrade and recording finalization",
     "Bound camera connection starts and do not block recording scheduler",
@@ -14,7 +14,10 @@
     "Isolate simultaneous kiosk tile players and extend CI regression tests",
     "Restore low-connectivity snapshot H.264 fallback for permanent, recording, motion and prebuffer paths",
     "Restore central Live preview audio and bounded startup for slow WiFi RTSP sources",
-    "Preserve original MPEG-TS timestamps during local HLS remux"
+    "Preserve original MPEG-TS timestamps during local HLS remux",
+    "Warm ONVIF PTZ Move and Stop connections when opening PTZ controls without waiting for camera auth on pointer down",
+    "Reduce redundant ContinuousMove pulses while preserving separate prioritized Stop",
+    "Use a 3-second browser HLS target for interactive Live, maintain 8-second kiosk buffer, and seek only lagged PTZ Live players"
   ],
   "preserve": [
     ".env",
@@ -34,14 +37,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.58.md",
+  "changelog": "UPDATE_NOTES_2.20.59.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.58",
-  "packageId": "tmp-camera-surveillance-next-2.20.58",
+  "name": "TMP Camera Surveillance Next v2.20.59",
+  "packageId": "tmp-camera-surveillance-next-2.20.59",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "WiFi RTSP media progress startup grace, HLS timestamp fixes and Live preview audio restored.",
+  "description": "More responsive safe PTZ movement and stop commands without changing backend camera ingest or kiosk playback.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32; audio-enabled central preview and bounded HLS startup grace for weak WiFi camera links.",
-  "fileCount": 465
+  "releaseNotes": "Compatible from 2.20.32. PTZ connection warmup, fewer redundant move pulses and a shorter live PTZ preview delay; existing kiosk HLS buffer unchanged.",
+  "fileCount": 467
 }

@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { connectWhep } from './whep.js';
-import { connectHls } from './hlsPlayer.js';
+import { connectHls, nudgeHlsForPtz } from './hlsPlayer.js';
 import { runStreamCleanup } from '../utils/asyncCleanup.js';
 
 function positiveSeconds(value, fallback) {
@@ -522,6 +522,7 @@ class LiveStreamPool {
       entry.update({ state: 'connecting', protocol: forceLocalHls ? 'Local-HLS' : 'LL-HLS', message: forceLocalHls ? 'Lokaler HLS-Ring wird verbunden …' : preferHlsFirst ? 'Low-Latency-HLS wird gestartet …' : 'WebRTC nicht verfügbar – Low-Latency-HLS wird gestartet …' });
       const cleanup = connectHls({
         url: hlsSourceUrl, tokenRef: entry.hlsTokenRef, video: entry.video,
+        targetLiveDelaySeconds: entry.purpose === 'live' ? 3 : 8,
         onState: (state, details = {}) => {
           if (stale()) return;
           if (state === 'connected') {
@@ -715,6 +716,10 @@ class LiveStreamPool {
   markControlActivity(cameraId, reason = 'ptz-move') {
     const until = Date.now() + Math.max(PTZ_BROWSER_RESYNC_MS, 1500);
     for (const entry of this.activeCameraEntries(cameraId)) {
+      // PTZ latency is mostly the playback distance to the HLS live edge.
+      // Only interactive Live readers seek forward; kiosk readers retain
+      // their larger jitter-buffer and never lose decoder continuity.
+      if (entry.purpose === 'live' && reason === 'ptz-move') nudgeHlsForPtz(entry.video);
       entry.controlActiveUntil = until;
       if (entry.controlWatchTimer) clearTimeout(entry.controlWatchTimer);
       entry.controlWatchTimer = null;
