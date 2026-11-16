@@ -280,3 +280,29 @@ test('event prebuffer no longer forces recording-mainstream semantics', () => {
   assert.match(orchestrator, /purpose === 'prebuffer' \? 'prebuffer' : 'recording'/);
   assert.match(orchestrator, /purpose === 'prebuffer'\) return session\.quality === preferredQuality/);
 });
+
+
+test('browser leases cannot bypass permanent ingest restart backoff', () => {
+  assert.match(orchestrator, /PERMANENT_RESTART_BACKOFF_RESPECTED/);
+  assert.match(orchestrator, /if \(session\.state === 'failed'\)/);
+  assert.match(orchestrator, /if \(!session\.restartTimer && !this\.deferredPermanentRestartKeys\.has\(session\.key\)\) this\.scheduleRestart\(session\)/);
+  assert.match(orchestrator, /restartAt/);
+  assert.doesNotMatch(orchestrator, /if \(!session\.startPromise \|\| \['failed', 'stopped'\]\.includes\(session\.state\)\)[\s\S]{0,800}PERMANENT_INGEST_START_FAILED/);
+});
+
+test('stable reconnect pins the exact profile and transport candidate', () => {
+  assert.match(orchestrator, /prioritizeStableCandidate/);
+  assert.match(orchestrator, /stableCandidateKey/);
+  assert.match(orchestrator, /candidateKey\(attempt\?\.candidate, attempt\?\.profile\?\.token\)/);
+  assert.match(orchestrator, /activeTransport: candidate\.transport/);
+});
+
+test('permanent preview skips optional AAC transcode and stays video-only', () => {
+  assert.match(orchestrator, /videoOnlyPreview/);
+  assert.match(orchestrator, /GO2RTC_PREVIEW_AUDIO_DISABLED/);
+  assert.match(orchestrator, /session\.permanent \|\| \['motion', 'prebuffer'\]\.includes/);
+});
+
+test('automatic profile first-frame grace is twelve seconds', () => {
+  assert.match(config, /STREAM_AUTO_PROFILE_FIRST_FRAME_TIMEOUT_MS', 12000/);
+});
