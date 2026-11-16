@@ -140,6 +140,7 @@ export const api = {
   refreshProfiles: (id) => request(`/cameras/${id}/profiles/refresh`, { method: 'POST' }),
   testMediaSources: (id) => request(`/cameras/${id}/sources/test`, { method: 'POST' }),
   discoverMediaSources: (id, input = {}) => request(`/cameras/${id}/sources/discover`, { method: 'POST', body: input }),
+  streamPreview: (id) => request(`/streams/${id}/preview`, { cache: 'no-store' }),
   streamSession: (id, input) => request(`/streams/${id}/session`, { method: 'POST', body: input }),
   streamStatus: (id) => request(`/streams/${id}/status`, { cache: 'no-store' }),
   streamHeartbeat: (id, input) => request(`/streams/${id}/heartbeat`, { method: 'POST', cache: 'no-store', body: input }),
