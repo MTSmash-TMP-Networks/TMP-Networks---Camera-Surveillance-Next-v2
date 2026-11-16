@@ -43,6 +43,45 @@ const clientEventSchema = z.object({
   details: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
+streamsRouter.get('/:id/preview', (req, res) => {
+  res.set({ 'Cache-Control': 'private, no-store, max-age=0', Pragma: 'no-cache', Expires: '0' });
+  const session = streamOrchestrator.centralPreview(req.params.id, { includePaths: true });
+  if (!session) {
+    return res.status(202).json({
+      state: 'starting',
+      phase: 'backend_preview_pending',
+      phaseMessage: 'Zentraler Kamera-Publisher wird vom Backend vorbereitet',
+      permanent: true,
+      purpose: 'ingest',
+      tokens: { webrtc: null, hls: null },
+      webrtcUrl: null,
+      hlsUrl: null,
+      browserTransport: 'local-hls',
+    });
+  }
+  const { paths, ...publicSession } = session;
+  if (session.state !== 'ready' || !session.outputs?.hls) {
+    return res.status(202).json({
+      ...publicSession,
+      tokens: { webrtc: null, hls: null },
+      expiresIn: 0,
+      webrtcUrl: null,
+      hlsUrl: null,
+      browserTransport: 'local-hls',
+      cacheBuster: publicSession.cacheBuster || Date.now(),
+    });
+  }
+  return res.json({
+    ...publicSession,
+    tokens: { webrtc: null, hls: null },
+    expiresIn: config.mediaTokenTtlSeconds,
+    webrtcUrl: null,
+    hlsUrl: hlsUrlForSession(session, paths, publicSession),
+    browserTransport: 'local-hls',
+    cacheBuster: publicSession.cacheBuster || Date.now(),
+  });
+});
+
 streamsRouter.post('/:id/session', sessionLimiter, asyncHandler(async (req, res) => {
   res.set({ 'Cache-Control': 'private, no-store, max-age=0', Pragma: 'no-cache', Expires: '0' });
   const input = sessionSchema.parse(req.body || {});
