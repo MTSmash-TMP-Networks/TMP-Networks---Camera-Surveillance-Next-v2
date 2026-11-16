@@ -17,6 +17,11 @@ const ffmpegCommand = readFileSync(resolve(root, 'backend/src/services/media/Ffm
 const hlsPlayer = readFileSync(resolve(root, 'frontend/src/services/hlsPlayer.js'), 'utf8');
 const livePage = readFileSync(resolve(root, 'frontend/src/pages/LivePage.jsx'), 'utf8');
 const server = readFileSync(resolve(root, 'backend/src/server.js'), 'utf8');
+const streamRoutes = readFileSync(resolve(root, 'backend/src/routes/streams.js'), 'utf8');
+const cameraRoutes = readFileSync(resolve(root, 'backend/src/routes/cameras.js'), 'utf8');
+const appShell = readFileSync(resolve(root, 'frontend/src/components/AppShell.jsx'), 'utf8');
+const addCameraPage = readFileSync(resolve(root, 'frontend/src/pages/AddCameraPage.jsx'), 'utf8');
+const kioskPage = readFileSync(resolve(root, 'frontend/src/pages/KioskPage.jsx'), 'utf8');
 
 test('compression backfill cannot bypass the configured startup delay', () => {
   assert.match(compression, /this\.backfill\(\{ schedule: false \}\)/);
@@ -305,4 +310,43 @@ test('permanent preview skips optional AAC transcode and stays video-only', () =
 
 test('automatic profile first-frame grace is twelve seconds', () => {
   assert.match(config, /STREAM_AUTO_PROFILE_FIRST_FRAME_TIMEOUT_MS', 12000/);
+});
+
+
+test('Kiosk and Live Auto consume a read-only backend-owned central preview', () => {
+  assert.match(streamRoutes, /get\('\/:id\/preview'/);
+  assert.match(streamRoutes, /streamOrchestrator\.centralPreview\(req\.params\.id/);
+  assert.match(livePool, /api\.streamPreview\(entry\.cameraId\)/);
+  assert.match(livePool, /isCentralPreviewRequest/);
+  assert.match(livePool, /return waitForCentralPreview\(entry, isStale\)/);
+  assert.match(livePool, /centralPreview \? await api\.streamPreview\(entry\.cameraId\)/);
+});
+
+test('central preview consumers cannot start or restart a camera publisher', () => {
+  assert.match(orchestrator, /centralPreview\(cameraId/);
+  assert.match(orchestrator, /findPermanentIngestSession/);
+  assert.match(orchestrator, /reconcilePermanentIngestSessions/);
+  assert.doesNotMatch(streamRoutes.match(/get\('\/:id\/preview'[\s\S]*?\n\}\);/)?.[0] || '', /\.ensure\(|startPermanentIngest|scheduleRestart/);
+  assert.doesNotMatch(appShell, /syncPersistentCameras\(/);
+  assert.doesNotMatch(addCameraPage, /liveStreamPool\.prewarm/);
+});
+
+test('Kiosk uses one canonical central preview regardless of tile size or UI quality', () => {
+  assert.match(livePool, /central-preview\|local-hls/);
+  assert.match(player, /const requestedQuality = compact \? 'low'/);
+  assert.match(kioskPage, /quality="low"/);
+  assert.doesNotMatch(kioskPage, /setStreamQuality/);
+});
+
+test('camera overview green state means the central preview is actually ready', () => {
+  assert.match(cameraRoutes, /centralPreviewStatus\(camera\.id\)/);
+  assert.match(cameraRoutes, /if \(preview\?\.ready\) return \{ \.\.\.camera, status: 'online'/);
+  assert.match(orchestrator, /hasReadyPermanent/);
+  assert.doesNotMatch(cameraRoutes.match(/function withRuntimeCameraStatus[\s\S]*?\n\}/)?.[0] || '', /hasReady\(camera\.id\)/);
+});
+
+test('central preview backend recovery does not tear down the kiosk browser player', () => {
+  assert.match(livePool, /if \(centralPreview\) \{/);
+  assert.match(livePool, /Zentraler Stream wird im Backend wiederhergestellt/);
+  assert.match(livePool, /if \(!centralPreview\) this\.reconnect\(entry, 'Backend-Heartbeat fordert Neuverbindung an/);
 });
