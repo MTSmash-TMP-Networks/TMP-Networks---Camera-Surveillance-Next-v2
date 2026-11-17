@@ -17,8 +17,8 @@ test('H264 camera audio uses AAC with copied video, no second x264 encoder', () 
 
 test('VM is protected by per-container cgroup memory caps', () => {
   const compose = read('docker-compose.yml');
-  assert.match(compose, /mem_limit: \$\{GO2RTC_MEMORY_LIMIT:-768m\}/);
-  assert.match(compose, /mem_limit: \$\{BACKEND_MEMORY_LIMIT:-1024m\}/);
+  assert.match(compose, /mem_limit: \$\{GO2RTC_MEMORY_LIMIT:-1536m\}/);
+  assert.match(compose, /mem_limit: \$\{BACKEND_MEMORY_LIMIT:-1536m\}/);
 });
 
 test('orphan cleanup cannot delete non-application go2rtc streams', () => {

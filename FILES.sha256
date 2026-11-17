@@ -179,7 +179,7 @@ b6219b10ca0077cefd821ed4d3ad1c634e0fef83c3cd36b97ef93c62958f9e0f  backend/test-n
 f57615000db75f5a482dd7af4f72556e6d8eaa7fbd88c826af3e6ff91fe952c4  backend/test-node/go2rtc-control-api.test.mjs
 66de7a2ca687e130bc02f1c92d5aa97e0c76941133cd902b9d38274605a65b77  backend/test-node/hls-recovery-stability.test.mjs
 0a6cb666dd770f19a075b114e0a40f6ac204b653c18e93998a4dce9a6cbb1d51  backend/test-node/intel-vaapi-deployment.test.mjs
-f9fd1ccd0459a47d8552b15ad608e45265ac7cdff44f1516ae6ba9e2c0d547ff  backend/test-node/kiosk-broker-oom-guard.test.mjs
+8ef1556976bfe6b747031d268808db0d6ded693499f0a7d27e4193b1d39f0074  backend/test-node/kiosk-broker-oom-guard.test.mjs
 2ca1eb190b144f5675aad4dc4e0fd4633f015d19387ee078c29dcd5193bfed1d  backend/test-node/local-hls-command.test.mjs
 fe21db1e39e3d368eed07c8ec94d6c16be1de451a6b660274b2ce0bd827edbc8  backend/test-node/local-hls-health.test.mjs
 6d4d3f4c00fa59c886530100c002ca27f872419bea746f4fb6facd415280a9ce  backend/test-node/local-hls-http-runtime.test.mjs
