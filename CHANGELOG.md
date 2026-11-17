@@ -1,3 +1,11 @@
+## 2.20.63 – Originalstreams aus Snapshot-Notfallmodus automatisch wiederherstellen
+
+- Erfolgreiche Snapshot-HLS-Notversorgung blockiert die native RTSP-/ONVIF-Wiederherstellung nicht mehr.
+- Realer Videostream wird periodisch und nur fuer eine Kamera gleichzeitig geprueft. Snapshot bleibt bei fehlgeschlagener Pruefung aktiv.
+- Nach Rueckkehr des Originalstreams synchronisiert der Kiosk seinen Decoder mit dem neuen Backend-Modus.
+- Standardmaessig 1536 MB Containerlimits fuer Backend und go2rtc mit FFmpeg-Kindern; vorhandene .env-Werte bleiben erhalten.
+- Unveraenderte Audio-/Aufnahme-/PTZ-Logik und Updatevertrag ab 2.20.32.
+
 ## 2.20.62 – HLS-Puffer im Kiosk stabilisiert
 
 - HLS-Netzwerkfehler werden im Hintergrund repariert, solange der Browser noch Frames abspielt.

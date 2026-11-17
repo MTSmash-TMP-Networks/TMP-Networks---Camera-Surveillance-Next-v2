@@ -347,7 +347,7 @@ class LiveStreamPool {
     const entry = {
       key: options.poolKey || keyOf(options), cameraId: options.cameraId, quality: options.quality, profileToken: options.profileToken || '', purpose: options.purpose || 'live', transportMode: options.transportMode || 'auto', viewportWidth: options.viewportWidth || 1280,
       video, refs: 0, pins: new Set(), subscribers: new Set(), host: null, cleanup: null, abort: null,
-      connectPromise: null, generation: 0, idleTimer: null, reconnectTimer: null, heartbeat: null, monitor: null, hlsRecoveryTimer: null, hlsRecoveryNoticeTimer: null, hlsRecoveryStartedAt: 0, lastHlsRecoveryAt: 0,
+      connectPromise: null, generation: 0, idleTimer: null, reconnectTimer: null, heartbeat: null, monitor: null, hlsRecoveryTimer: null, hlsRecoveryNoticeTimer: null, hlsRecoveryStartedAt: 0, lastHlsRecoveryAt: 0, backendSessionMode: null,
       reconnectAttempt: 0, forceTranscode: false, hlsTokenRef: { current: '' }, lastCurrentTime: 0, lastFrameAt: Date.now(), lastProgressSource: 'created', lastDecodedFrames: 0, frameCounterObserved: false, frameCallbackObserved: false, frameCallbackId: null, frameVersion: 0, lastStatsFramesDecoded: 0, lastStatsBytesReceived: 0, lastStatsPacketsReceived: 0, lastStatsProgressAt: 0, controlWatchTimer: null, controlActiveUntil: 0, lastUsedAt: Date.now(), lastBackendSoftStallReportAt: 0,
       state: { state: 'starting', protocol: null, message: 'Live-Stream wird vorbereitet …', hasAudio: null, snapshotMode: false },
       update: (patch) => {
@@ -540,6 +540,7 @@ class LiveStreamPool {
 
   async connectSession(entry, session, stale, forceTranscode) {
     entry.forceTranscode = Boolean(forceTranscode);
+    entry.backendSessionMode = session.mode || null;
     entry.hlsTokenRef.current = session.tokens?.hls || '';
     entry.update({ hasAudio: Boolean(session.media?.audio) });
     if (session.mode === 'snapshot') {
@@ -655,6 +656,20 @@ class LiveStreamPool {
           : await api.streamHeartbeat(entry.cameraId, { quality: entry.quality, viewportWidth: entry.viewportWidth, profileToken: entry.profileToken || null, purpose: entry.purpose || 'live', forceTranscode: entry.forceTranscode });
         const session = centralPreview ? heartbeat : (heartbeat.session || heartbeat);
         entry.hlsTokenRef.current = heartbeat.tokens?.hls || session?.tokens?.hls || entry.hlsTokenRef.current;
+        // A shared backend publisher can change from synthetic snapshots
+        // back to a real ONVIF/RTSP source without changing the camera ID.
+        // Restart only the browser decoder once when that media mode changes.
+        const emergencyModeChanged = centralPreview && session?.state === 'ready'
+          && entry.backendSessionMode && session.mode !== entry.backendSessionMode
+          && (session.mode === 'snapshot-video' || entry.backendSessionMode === 'snapshot-video');
+        if (emergencyModeChanged && hasActiveConsumer(entry)) {
+          entry.backendSessionMode = session.mode;
+          this.report(entry, 'info', 'SNAPSHOT_NATIVE_MODE_CHANGED',
+            'Originaler Kamerastream und Snapshot-Modus wurden im Kiosk synchronisiert',
+            entry.state.protocol || 'HLS', { mode: session.mode });
+          this.reconnect(entry, 'Kamera-Livebild wird auf den aktuellen Stream umgestellt …', 0);
+          return;
+        }
         const backendFailed = session?.state === 'failed' || session?.ffmpegRunning === false;
         const backendSoftStall = Boolean(session?.stalled || Number(session?.progressAgeMs || 0) > STALL_MS * 1.5);
         if (backendFailed) {

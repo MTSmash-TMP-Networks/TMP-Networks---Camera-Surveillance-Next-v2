@@ -1,11 +1,11 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.62",
+  "version": "2.20.63",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.62",
-  "summary": "Keep buffered kiosk HLS playback stable during short WiFi interruptions without repeated repair warnings and player rebuilds.",
+  "title": "TMP Camera Surveillance Next 2.20.63",
+  "summary": "Restore native RTSP/ONVIF video automatically after a shared broker outage without pinning all cameras to snapshot fallback.",
   "createdAt": "2026-11-16T20:52:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.62.md",
+  "changelogFile": "UPDATE_NOTES_2.20.63.md",
   "changes": [
     "Graceful single-pass Docker upgrade and recording finalization",
     "Bound camera connection starts and do not block recording scheduler",
@@ -26,7 +26,9 @@
     "Container memory caps and orphaned go2rtc producer cleanup protect VM during kiosk/recording overload",
     "H264 audio transcode copies video and motion migrates to central low-bandwidth ingest",
     "Keep Kiosk HLS recovery hidden while decoded video continues; show repair only when playback actually stalls",
-    "Align outer reconnect timeout with hls.js retries, prevent duplicate recovery timers and repeated soft-stall loader resets"
+    "Align outer reconnect timeout with hls.js retries, prevent duplicate recovery timers and repeated soft-stall loader resets",
+    "Automatically retry original ONVIF/RTSP source behind snapshot fallback with serial, staggered media probes",
+    "Allow 1536MB each for go2rtc and backend by default while retaining VM cgroup limits"
   ],
   "preserve": [
     ".env",
@@ -46,14 +48,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.62.md",
+  "changelog": "UPDATE_NOTES_2.20.63.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.62",
-  "packageId": "tmp-camera-surveillance-next-2.20.62",
+  "name": "TMP Camera Surveillance Next v2.20.63",
+  "packageId": "tmp-camera-surveillance-next-2.20.63",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Staged background HLS recovery, buffered playback priority, single-flight and bounded escalation for genuine stalls.",
+  "description": "Serial native media re-probing and controlled recovery from snapshot-video emergency mode; safer memory headroom for go2rtc and FFmpeg.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32: normal HLS buffering remains continuous; short network retries are silent; only actual long frame stalls rebuild player. Central streams/recordings remain unchanged.",
-  "fileCount": 477
+  "releaseNotes": "Compatible from 2.20.32. Snapshot fallback remains available; native streams are probed every 90s with stagger and restored once verified. Existing camera/audio/recording settings are preserved.",
+  "fileCount": 480
 }

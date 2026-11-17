@@ -58,7 +58,7 @@ services:
     image: tmp-camera-surveillance-next-backend:latest
     # Constrain the backend and its child FFmpeg processes. An OOM restart of
     # this one container is preferable to killing the entire VM.
-    mem_limit: ${BACKEND_MEMORY_LIMIT:-1024m}
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-1536m}
     build:
       context: ./backend
     restart: unless-stopped
@@ -71,7 +71,7 @@ services:
       PGID: ${PGID:-1000}
       API_HOST: 0.0.0.0
       API_PORT: 3000
-      APP_VERSION: "2.20.62"
+      APP_VERSION: "2.20.63"
       APP_DATA_DIR: /data
       SYSTEM_PROC_ROOT: ${SYSTEM_PROC_ROOT:-/host/proc}
       SYSTEM_SYS_ROOT: ${SYSTEM_SYS_ROOT:-/host/sys}
@@ -150,7 +150,7 @@ services:
     image: alexxit/go2rtc:1.9.14
     # Bound go2rtc + its spawned FFmpeg transcoders inside one Docker cgroup.
     # This prevents a broker/decoder memory surge from exhausting the VM.
-    mem_limit: ${GO2RTC_MEMORY_LIMIT:-768m}
+    mem_limit: ${GO2RTC_MEMORY_LIMIT:-1536m}
     restart: unless-stopped
     environment:
       GO2RTC_WEBRTC_CANDIDATE: ${GO2RTC_WEBRTC_CANDIDATE:-stun:8189}

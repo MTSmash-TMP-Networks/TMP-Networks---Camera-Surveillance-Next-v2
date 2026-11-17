@@ -13,7 +13,7 @@ import { injectCredentials, safePathPart } from '../../utils/url.js';
 import { AppError } from '../../utils/errors.js';
 import { logger } from '../../utils/logger.js';
 import { go2RtcClient, go2RtcStreamReady } from './Go2RtcClient.js';
-import { sanitize } from './FfmpegProbe.js';
+import { probeMedia, sanitize } from './FfmpegProbe.js';
 import { buildFfmpegArgs, buildSnapshotLocalHlsArgs, buildLocalHlsRingArgs } from './FfmpegCommand.js';
 import { manualStreamAttempts, sortMediaAttempts } from './MediaSourceService.js';
 import { inferMediaSourceKind } from './MediaSource.js';
@@ -24,6 +24,7 @@ import { isBenignFfmpegDiagnostic } from './FfmpegDiagnostics.js';
 import { CameraStartLimiter } from './CameraStartLimiter.js';
 import { inspectLocalHlsRing } from './LocalHlsHealth.js';
 import { shouldContinueHlsStartup } from './LocalHlsStartupGrace.js';
+import { nextSnapshotNativeRecheckAt, shouldReprobeSnapshotNative } from './SnapshotNativeRecoveryPolicy.js';
 import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, parseFfprobeVideoCodec } from './BrokerPipeline.js';
 
 const execFileAsync = promisify(execFile);
@@ -152,6 +153,7 @@ class StreamOrchestrator {
     this.deferredPermanentRestartKeys = new Set();
     this.brokerRefs = new Map();
     this.maintenanceRunning = false;
+    this.snapshotNativeProbeRunning = false;
     // Encoder fallback is intentionally sticky per camera/profile/source.
     // Once copy or VAAPI failed and a more conservative encoder took over,
     // do not probe the failed path again during this backend lifetime.
@@ -495,6 +497,7 @@ class StreamOrchestrator {
       attemptIndex: 0, attemptCount: 0, currentAttempt: null, ffmpegPid: null, startFailure: null,
       lastLoggedStderrLine: null, lastLoggedStderrAt: 0, recordingRefs: 0, brokerRefKey: null, brokerEncoder: null,
       stableProfileToken: null, stableProfileRole: null, stableProfileName: null, stableCandidateKey: null, restartAt: null,
+      lastNativeSource: null, snapshotNativeRecheckAt: 0,
     };
   }
 
@@ -702,6 +705,9 @@ class StreamOrchestrator {
           session.sourceLabel = candidate.sourceLabel || profile.name;
           session.activeCandidateKey = candidateKey(candidate, profile.token);
           session.failedCandidates.delete(session.activeCandidateKey);
+          // Remember the last working source in memory only, for read-only recovery probes.
+          session.lastNativeSource = { uri: candidate.uri, transport: candidate.transport || 'tcp' };
+          session.snapshotNativeRecheckAt = 0;
           const previousStableProfile = session.stableProfileToken;
           const previousStableCandidate = session.stableCandidateKey;
           session.stableProfileToken = profile.token || null;
@@ -812,6 +818,7 @@ class StreamOrchestrator {
       session.sourceType = 'snapshot';
       session.sourceLabel = 'Snapshot-Video-Fallback';
       session.activeCandidateKey = 'snapshot-video-fallback';
+      session.snapshotNativeRecheckAt = nextSnapshotNativeRecheckAt(camera.id, Date.now(), config.snapshotNativeRecheckSeconds);
       session.connectedAt = Date.now();
       session.cacheBuster = session.connectedAt;
       session.lastProgressAt = Date.now();
@@ -1921,6 +1928,119 @@ class StreamOrchestrator {
       && (this.isSessionProcessAlive(session) || ['snapshot', 'snapshot-video'].includes(session.mode)));
   }
 
+  async restoreNativeFromSnapshot(session) {
+    // A running emergency HLS publisher is a temporary fallback, not a
+    // permanent successful media choice. Probe without closing it first.
+    if (!shouldReprobeSnapshotNative(session, Date.now(), { closed: this.closed })) return false;
+    const epoch = Number(session.startEpoch || 0);
+    const camera = cameraRepository.getWithCredentials(session.cameraId);
+    if (!camera || !camera.enabled) return false;
+    const stillSnapshot = () => !this.closed && this.sessions.get(session.key) === session
+      && Number(session.startEpoch || 0) === epoch
+      && session.state === 'ready' && session.mode === 'snapshot-video'
+      && Number(session.recordingRefs || 0) === 0;
+    // Reserve the next probe time immediately, even when the common broker is
+    // down. The global probe flag serializes simultaneous camera recovery.
+    session.snapshotNativeRecheckAt = nextSnapshotNativeRecheckAt(
+      camera.id, Date.now(), config.snapshotNativeRecheckSeconds,
+    );
+    let verified = false;
+    let attempts = 0;
+    const seen = new Set();
+    const check = async ({ uri, transport = 'tcp' } = {}) => {
+      if (!stillSnapshot() || !uri || attempts >= 4) return false;
+      const id = `${uri}|${transport}`;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      attempts += 1;
+      try {
+        const sourceUri = injectCredentials(uri, camera.username, camera.password);
+        const media = await probeMedia(sourceUri, transport);
+        return Boolean(media?.video?.codec);
+      } catch {
+        // Weak WiFi or temporarily unavailable camera: keep the snapshot.
+        return false;
+      }
+    };
+    try {
+      // A broker outage affects every camera. Never switch to a native source
+      // just because RTSP is reachable while go2rtc is still restarting.
+      await go2RtcClient.info();
+      if (!stillSnapshot()) return false;
+      if (session.lastNativeSource) verified = await check(session.lastNativeSource);
+      if (!verified) {
+        const manual = manualStreamAttempts(cameraRepository.mediaSources(camera.id));
+        if (camera.sourcePolicy === 'manual-first') {
+          for (const x of manual) {
+            if (await check({ uri: x.candidate.uri, transport: x.candidate.transport })) { verified = true; break; }
+          }
+        }
+        if (!verified && camera.connectionType !== 'stream' && attempts < 4 && stillSnapshot()) {
+          const profiles = chooseProfiles(cameraRepository.profiles(camera.id), session.quality,
+            widthForQuality(session.quality), session.codecPreference);
+          const preferred = profiles.find((p) => p.token === session.stableProfileToken)
+            || profiles.find((p) => p.token === session.requestedProfileToken) || profiles[0];
+          if (preferred) {
+            try {
+              const candidates = await new OnvifClient(camera)
+                .streamCandidates(preferred.token, undefined, preferred.mediaService);
+              for (const source of candidates) {
+                if (await check({ uri: source.uri, transport: source.transport || 'tcp' })) { verified = true; break; }
+              }
+            } catch (error) {
+              this.log(session, 'debug', 'onvif', 'SNAPSHOT_NATIVE_ONVIF_RECHECK_FAILED',
+                'Die ONVIF-Medienadresse ist noch nicht wieder erreichbar',
+                { reason: sanitize(error?.message || String(error)) });
+            }
+          }
+        }
+        if (!verified && camera.sourcePolicy !== 'manual-first') {
+          for (const x of manual) {
+            if (await check({ uri: x.candidate.uri, transport: x.candidate.transport })) { verified = true; break; }
+          }
+        }
+      }
+      if (!verified || !stillSnapshot()) return false;
+      this.log(session, 'info', 'stream', 'SNAPSHOT_NATIVE_MEDIA_VERIFIED',
+        'Echte Videospur wieder empfangbar; nativer Publisher wird kontrolliert neu aufgebaut',
+        { attempts });
+      // Only now stop the synthetic publisher. If full native startup fails,
+      // start() can still rebuild the same Snapshot-HLS emergency source.
+      await this.kill(session);
+      if (this.closed || this.sessions.get(session.key) !== session
+        || Number(session.startEpoch || 0) !== epoch) return false;
+      session.state = 'stopped';
+      session.phase = 'native_restore';
+      session.phaseMessage = 'Originaler Kamera-Videostream wird wiederhergestellt';
+      session.startFailure = null;
+      session.startPromise = this.startSerialized(session, camera, widthForQuality(session.quality))
+        .catch((error) => {
+          if (error?.code === 'STREAM_START_CANCELLED') return null;
+          session.state = 'failed';
+          session.phase = 'failed';
+          session.phaseMessage = error.message;
+          session.lastError = error.message;
+          this.log(session, 'error', 'stream', 'SNAPSHOT_NATIVE_RESTORE_FAILED',
+            'Nach positivem Videoprobe war der native Verbindungsaufbau noch nicht stabil',
+            { code: error?.code || null, reason: sanitize(error?.message || String(error)) });
+          this.scheduleRestart(session);
+          return null;
+        });
+      await session.startPromise;
+      if (session.state === 'ready' && session.mode !== 'snapshot-video') {
+        this.log(session, 'info', 'stream', 'SNAPSHOT_NATIVE_STREAM_RESTORED',
+          'Originaler Kamerastream hat den Snapshot-Fallback abgeloest',
+          { mode: session.mode, audioEnabled: Boolean(session.audioEnabled) });
+        return true;
+      }
+    } catch (error) {
+      this.log(session, 'debug', 'stream', 'SNAPSHOT_NATIVE_RECHECK_DEFERRED',
+        'Snapshot bleibt aktiv; Broker oder native Kameraquelle noch nicht stabil',
+        { reason: sanitize(error?.message || String(error)) });
+    }
+    return false;
+  }
+
   async reconcilePermanentIngestSessions() {
     if (!config.permanentIngestEnabled) return;
     const enabled = cameraRepository.listEnabled();
@@ -2014,6 +2134,19 @@ class StreamOrchestrator {
     }
     await this.reconcilePermanentIngestSessions();
     await this.reconcileBrokerRefs();
+    if (!this.snapshotNativeProbeRunning) {
+      const candidate = [...this.sessions.values()].find((session) =>
+        shouldReprobeSnapshotNative(session, Date.now(), { closed: this.closed }));
+      if (candidate) {
+        // The whole camera fleet may have fallen back after a shared broker
+        // restart. Only one camera is probed/reconnected at a time.
+        this.snapshotNativeProbeRunning = true;
+        void this.restoreNativeFromSnapshot(candidate)
+          .catch((error) => logger.warn({ cameraId: candidate.cameraId, err: error },
+            'Originalstream-Wiederherstellung konnte nicht abgeschlossen werden'))
+          .finally(() => { this.snapshotNativeProbeRunning = false; });
+      }
+    }
     } finally {
       this.maintenanceRunning = false;
     }
