@@ -64,8 +64,8 @@ globalThis.window = { location: { origin: 'http://localhost' } };
 const file = process.argv[2] || new URL('../frontend/src/services/hlsPlayer.js', import.meta.url);
 let source = await readFile(file, 'utf8');
 source = source.replace("import Hls from 'hls.js';", 'const Hls = globalThis.__FakeHls;');
-source = source.replace('const RECOVERY_WATCHDOG_MS = 8000;', 'const RECOVERY_WATCHDOG_MS = 60;');
-source = source.replace('const WAITING_GRACE_MS = 3000;', 'const WAITING_GRACE_MS = 10;');
+source = source.replace('const RECOVERY_WATCHDOG_MS = 25000;', 'const RECOVERY_WATCHDOG_MS = 60;');
+source = source.replace('const WAITING_GRACE_MS = 6000;', 'const WAITING_GRACE_MS = 10;');
 source = source.replace('Math.min(250 * networkRecoveries, 750)', '5');
 const mod = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 

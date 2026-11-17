@@ -2,6 +2,7 @@ import { api } from './api.js';
 import { connectWhep } from './whep.js';
 import { connectHls, nudgeHlsForPtz } from './hlsPlayer.js';
 import { runStreamCleanup } from '../utils/asyncCleanup.js';
+import { bufferedHlsSeconds, shouldAnnounceHlsRecovery, shouldEscalateHlsRecovery } from './hlsRecoveryPolicy.js';
 
 function positiveSeconds(value, fallback) {
   const parsed = Number(value ?? fallback);
@@ -17,7 +18,9 @@ const TRANSCODE_FALLBACK = String(import.meta.env.VITE_BROWSER_TRANSCODE_FALLBAC
 const PLAYBACK_ORDER = String(import.meta.env.VITE_STREAM_PLAYBACK_ORDER || 'hls-first').trim().toLowerCase();
 const STALL_MS = Math.max(8000, positiveSeconds(import.meta.env.VITE_STREAM_BROWSER_STALL_SECONDS, 30) * 1000);
 const HEARTBEAT_MS = Math.max(8000, positiveSeconds(import.meta.env.VITE_STREAM_HEARTBEAT_SECONDS, 15) * 1000);
-const HLS_RECOVERY_ESCALATION_MS = Math.max(6000, positiveSeconds(import.meta.env.VITE_HLS_RECOVERY_ESCALATION_SECONDS, 10) * 1000);
+// Do not pre-empt the hls.js watchdog while a WLAN fragment is retrying.
+const HLS_RECOVERY_ESCALATION_MS = Math.max(30000, positiveSeconds(import.meta.env.VITE_HLS_RECOVERY_ESCALATION_SECONDS, 30) * 1000);
+const HLS_RECOVERY_NOTICE_GRACE_MS = 6500;
 const PTZ_BROWSER_RESYNC_MS = Math.max(500, Number(import.meta.env.VITE_PTZ_BROWSER_RESYNC_MS || import.meta.env.PTZ_BROWSER_RESYNC_MS || 3500));
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
@@ -257,17 +260,23 @@ class LiveStreamPool {
   clearHlsRecovery(entry) {
     if (!entry) return;
     if (entry.hlsRecoveryTimer) clearTimeout(entry.hlsRecoveryTimer);
+    if (entry.hlsRecoveryNoticeTimer) clearTimeout(entry.hlsRecoveryNoticeTimer);
     entry.hlsRecoveryTimer = null;
+    entry.hlsRecoveryNoticeTimer = null;
     entry.hlsRecoveryStartedAt = 0;
   }
 
   finishHlsRecovery(entry, source = 'media-progress', details = {}) {
     if (!entry) return;
-    const wasRecovering = entry.state.state === 'recovering' || Boolean(entry.hlsRecoveryTimer);
+    const wasVisible = entry.state.state === 'recovering';
+    const hadPendingRecovery = wasVisible || Boolean(entry.hlsRecoveryStartedAt);
     this.clearHlsRecovery(entry);
-    if (!wasRecovering) return;
+    if (!hadPendingRecovery) return;
+    // Keep an uninterrupted Kiosk image uninterrupted: a hidden transient
+    // network retry should not reset the monitor or flash a success message.
+    if (!wasVisible) return;
     markBrowserProgress(entry, `hls-recovered-${source}`);
-    entry.update({ state: 'ready', message: `${entry.state.protocol || 'HLS'} \u00b7 Verbindung automatisch wiederhergestellt` });
+    entry.update({ state: 'ready', message: `${entry.state.protocol || 'HLS'} · Verbindung automatisch wiederhergestellt` });
     entry.video.play?.().catch(() => {});
     this.startMonitor(entry);
     this.report(entry, 'info', 'HLS_PLAYER_RECOVERED', 'HLS-Wiedergabe wurde ohne Seitenwechsel wiederhergestellt', entry.state.protocol || 'HLS', { source, recoveryMs: Date.now() - Number(entry.lastHlsRecoveryAt || Date.now()), ...details });
@@ -275,18 +284,47 @@ class LiveStreamPool {
 
   beginHlsRecovery(entry, details = {}) {
     if (!entry || !this.entries.has(entry.key)) return;
-    if (entry.state.state !== 'recovering') {
-      entry.lastHlsRecoveryAt = Date.now();
-      entry.hlsRecoveryStartedAt = entry.lastHlsRecoveryAt;
-    }
-    entry.update({ state: 'recovering', message: 'HLS-Puffer wird automatisch repariert \u2026' });
-    if (entry.hlsRecoveryTimer) return;
+    if (!['ready', 'recovering'].includes(entry.state.state)) return;
+    if (entry.hlsRecoveryTimer) return; // one pending repair per player
+    const startedAt = Date.now();
+    const generation = entry.generation;
+    const confirmedFrameStall = details.source === 'browser-frame-watchdog';
+    entry.lastHlsRecoveryAt = startedAt;
+    entry.hlsRecoveryStartedAt = startedAt;
+    const isCurrent = () => this.entries.get(entry.key) === entry
+      && entry.generation === generation && Boolean(entry.hlsRecoveryStartedAt);
+    entry.hlsRecoveryNoticeTimer = setTimeout(() => {
+      entry.hlsRecoveryNoticeTimer = null;
+      if (!isCurrent() || !entry.hlsRecoveryTimer) return;
+      const now = Date.now();
+      if (!shouldAnnounceHlsRecovery({
+        elapsedMs: now - startedAt,
+        frameAgeMs: now - Number(entry.lastFrameAt || 0),
+        bufferSeconds: bufferedHlsSeconds(entry.video),
+        active: hasActiveConsumer(entry),
+        visible: browserVisible(),
+        paused: Boolean(entry.video.paused),
+        graceMs: confirmedFrameStall ? 0 : HLS_RECOVERY_NOTICE_GRACE_MS,
+      })) return;
+      entry.update({ state: 'recovering', message: 'HLS-Puffer wird automatisch repariert …' });
+      this.report(entry, 'info', 'HLS_REPAIR_VISIBLE', 'HLS-Puffer wird nach bestaetigtem Bildstillstand repariert', entry.state.protocol || 'HLS', { source: details.source || details.details || null, frameAgeMs: now - Number(entry.lastFrameAt || 0) });
+    }, confirmedFrameStall ? 0 : HLS_RECOVERY_NOTICE_GRACE_MS);
     entry.hlsRecoveryTimer = setTimeout(() => {
-      entry.hlsRecoveryTimer = null;
-      if (!this.entries.has(entry.key) || entry.state.state !== 'recovering') return;
-      this.report(entry, 'warn', 'HLS_RECOVERY_ESCALATED', 'HLS-Puffer konnte nicht rechtzeitig repariert werden; Stream-Sitzung wird neu aufgebaut', entry.state.protocol || 'HLS', { recoveryMs: Date.now() - Number(entry.hlsRecoveryStartedAt || Date.now()), ...details });
-      this.reconnect(entry, 'HLS-Wiederherstellung dauert zu lange \u2013 Stream wird neu verbunden \u2026', 0);
-    }, HLS_RECOVERY_ESCALATION_MS);
+      if (!isCurrent()) return;
+      const now = Date.now();
+      const frameAgeMs = now - Number(entry.lastFrameAt || 0);
+      if (!shouldEscalateHlsRecovery({
+        frameAgeMs,
+        active: hasActiveConsumer(entry),
+        visible: browserVisible(),
+        paused: Boolean(entry.video.paused),
+      })) {
+        this.finishHlsRecovery(entry, 'playback-continues', { frameAgeMs });
+        return;
+      }
+      this.report(entry, 'warn', 'HLS_RECOVERY_ESCALATED', 'HLS-Puffer liefert auch nach der Wartefrist keine neuen Browserframes; Player wird neu aufgebaut', entry.state.protocol || 'HLS', { recoveryMs: now - startedAt, frameAgeMs, ...details });
+      this.reconnect(entry, 'HLS-Wiederherstellung dauert zu lange – Stream wird neu verbunden …', 0);
+    }, confirmedFrameStall ? 15000 : HLS_RECOVERY_ESCALATION_MS);
   }
 
   stagingRoot() {
@@ -309,7 +347,7 @@ class LiveStreamPool {
     const entry = {
       key: options.poolKey || keyOf(options), cameraId: options.cameraId, quality: options.quality, profileToken: options.profileToken || '', purpose: options.purpose || 'live', transportMode: options.transportMode || 'auto', viewportWidth: options.viewportWidth || 1280,
       video, refs: 0, pins: new Set(), subscribers: new Set(), host: null, cleanup: null, abort: null,
-      connectPromise: null, generation: 0, idleTimer: null, reconnectTimer: null, heartbeat: null, monitor: null, hlsRecoveryTimer: null, hlsRecoveryStartedAt: 0, lastHlsRecoveryAt: 0,
+      connectPromise: null, generation: 0, idleTimer: null, reconnectTimer: null, heartbeat: null, monitor: null, hlsRecoveryTimer: null, hlsRecoveryNoticeTimer: null, hlsRecoveryStartedAt: 0, lastHlsRecoveryAt: 0,
       reconnectAttempt: 0, forceTranscode: false, hlsTokenRef: { current: '' }, lastCurrentTime: 0, lastFrameAt: Date.now(), lastProgressSource: 'created', lastDecodedFrames: 0, frameCounterObserved: false, frameCallbackObserved: false, frameCallbackId: null, frameVersion: 0, lastStatsFramesDecoded: 0, lastStatsBytesReceived: 0, lastStatsPacketsReceived: 0, lastStatsProgressAt: 0, controlWatchTimer: null, controlActiveUntil: 0, lastUsedAt: Date.now(), lastBackendSoftStallReportAt: 0,
       state: { state: 'starting', protocol: null, message: 'Live-Stream wird vorbereitet …', hasAudio: null, snapshotMode: false },
       update: (patch) => {
@@ -675,10 +713,15 @@ class LiveStreamPool {
         entry.lastMonitorStatsProgressAt = Number(entry.lastStatsProgressAt || 0);
         markBrowserProgress(entry, frameAdvanced ? 'decoded-frames' : statsAdvanced ? 'webrtc-stats' : 'media-timeline');
       } else if (!entry.video.paused && Date.now() - entry.lastFrameAt > STALL_MS) {
-        this.report(entry, 'warn', 'BROWSER_STREAM_STALLED', 'Browserstream lieferte keine neuen Frames', entry.state.protocol || 'browser', { decodedFrames: frames, currentTime: current, hasReliableFrameSignal, lastProgressSource: entry.lastProgressSource });
         const central = isCentralPreviewRequest({ purpose: entry.purpose, quality: entry.quality, profileToken: entry.profileToken, forceTranscode: entry.forceTranscode });
-        if (central && wantsLocalHls(entry)) this.beginHlsRecovery(entry, { source: 'browser-frame-watchdog' });
-        else this.reconnect(entry, 'Stillstehenden Stream erkannt – Verbindung wird erneuert …', 0);
+        if (central && wantsLocalHls(entry)) {
+          // Avoid a log/request storm every 2.5 seconds while the same
+          // HLS player is still carrying out its single recovery attempt.
+          if (!entry.hlsRecoveryTimer) {
+            this.report(entry, 'warn', 'BROWSER_STREAM_STALLED', 'Browserstream liefert laenger keine neuen Frames', entry.state.protocol || 'browser', { decodedFrames: frames, currentTime: current, hasReliableFrameSignal, lastProgressSource: entry.lastProgressSource });
+            this.beginHlsRecovery(entry, { source: 'browser-frame-watchdog' });
+          }
+        } else this.reconnect(entry, 'Stillstehenden Stream erkannt – Verbindung wird erneuert …', 0);
       }
     }, 2500);
   }

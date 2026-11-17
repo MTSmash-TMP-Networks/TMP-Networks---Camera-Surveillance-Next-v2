@@ -1,11 +1,11 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.61",
+  "version": "2.20.62",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.61",
-  "summary": "Emergency stability fix: bound go2rtc/backend memory during kiosk and recording, share motion media and avoid duplicate H264 encoders.",
+  "title": "TMP Camera Surveillance Next 2.20.62",
+  "summary": "Keep buffered kiosk HLS playback stable during short WiFi interruptions without repeated repair warnings and player rebuilds.",
   "createdAt": "2026-11-16T20:52:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.61.md",
+  "changelogFile": "UPDATE_NOTES_2.20.62.md",
   "changes": [
     "Graceful single-pass Docker upgrade and recording finalization",
     "Bound camera connection starts and do not block recording scheduler",
@@ -24,7 +24,9 @@
     "Read fresh local HLS segments already produced by backend preview for motion, before starting a separate RTSP/HLS reader",
     "Pause offline x264 compression while recording or host load is high; preserve recording copy and fallback functionality",
     "Container memory caps and orphaned go2rtc producer cleanup protect VM during kiosk/recording overload",
-    "H264 audio transcode copies video and motion migrates to central low-bandwidth ingest"
+    "H264 audio transcode copies video and motion migrates to central low-bandwidth ingest",
+    "Keep Kiosk HLS recovery hidden while decoded video continues; show repair only when playback actually stalls",
+    "Align outer reconnect timeout with hls.js retries, prevent duplicate recovery timers and repeated soft-stall loader resets"
   ],
   "preserve": [
     ".env",
@@ -44,14 +46,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.61.md",
+  "changelog": "UPDATE_NOTES_2.20.62.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.61",
-  "packageId": "tmp-camera-surveillance-next-2.20.61",
+  "name": "TMP Camera Surveillance Next v2.20.62",
+  "packageId": "tmp-camera-surveillance-next-2.20.62",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Reuse recent central HLS segments for motion and prevent x264 recompression from starving live recording or HLS streams.",
+  "description": "Staged background HLS recovery, buffered playback priority, single-flight and bounded escalation for genuine stalls.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Preserves upgrade compatibility from 2.20.32. Motion prefers local completed HLS media, falls back to prior RTSP path; background compression pauses for recording and high system load.",
-  "fileCount": 474
+  "releaseNotes": "Compatible from 2.20.32: normal HLS buffering remains continuous; short network retries are silent; only actual long frame stalls rebuild player. Central streams/recordings remain unchanged.",
+  "fileCount": 477
 }
