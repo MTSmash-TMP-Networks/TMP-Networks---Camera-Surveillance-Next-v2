@@ -15,6 +15,10 @@ jobs:
         run: node scripts/check-update-compatibility.mjs
       - name: Validate updater compatibility regressions
         run: node --test backend/test-node/update-compatibility.test.mjs
+      - name: Validate delayed browser HLS recovery and kiosk buffering
+        run: |
+          node --test backend/test-node/hls-recovery-stability.test.mjs
+          node scripts/hls-recovery-smoke-test.mjs
       - name: Validate HLS buffering and stream status regressions
         run: |
           node --test backend/test-node/local-hls-command.test.mjs

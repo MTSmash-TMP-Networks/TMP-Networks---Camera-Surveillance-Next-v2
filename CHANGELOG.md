@@ -1,3 +1,11 @@
+## 2.20.62 – HLS-Puffer im Kiosk stabilisiert
+
+- HLS-Netzwerkfehler werden im Hintergrund repariert, solange der Browser noch Frames abspielt.
+- Reparaturstatus erst nach nachweislichem anhaltendem Bildstillstand; ein einziger Recovery-Timer pro Player.
+- HLS-Reconnect eskaliert erst nach interner Retry-Frist und nur ohne aktuellen Videofortschritt.
+- Soft-Stall-Nachladen wird gedrosselt, um keine wiederholten Loader-Resets auszulösen.
+- Kein Eingriff in Kamerastreams, Audio, Aufnahme, PTZ, Kiosk-Puffergröße oder Datenbank; kompatibel ab 2.20.32.
+
 ## 2.20.61 - CPU-Last durch Motion und Aufnahmen senken
 
 - Bewegungserkennung liest fertige frische HLS-Segmente des zentralen Publishers, bevor eine zusaetzliche RTSP-/HLS-Verbindung gestartet wird.

@@ -1,7 +1,9 @@
 import Hls from 'hls.js';
 
-const RECOVERY_WATCHDOG_MS = 15000;
-const WAITING_GRACE_MS = 5000;
+// Allow the HLS internal retry to finish before the outer player gives up.
+const RECOVERY_WATCHDOG_MS = 25000;
+const WAITING_GRACE_MS = 6000;
+const SOFT_STALL_RETRY_COOLDOWN_MS = 12000;
 const TARGET_LIVE_DELAY_SECONDS = 8;
 const MAX_LIVE_LATENCY_SECONDS = 20;
 const ptzSeekers = new WeakMap();
@@ -154,6 +156,7 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
   let networkRecoveries = 0;
   let mediaRecoveries = 0;
   let softRecoveries = 0;
+  let lastSoftStallRetryAt = 0;
   let lastRecoveryDetails = null;
   let activeSourceUrl = cacheBustUrl(url);
 
@@ -166,7 +169,7 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
     backBufferLength: 15,
     maxBufferLength: 30,
     maxMaxBufferLength: 60,
-    maxBufferHole: 1,
+    maxBufferHole: 1.5,
     manifestLoadingTimeOut: 10000,
     manifestLoadingMaxRetry: 4,
     manifestLoadingRetryDelay: 750,
@@ -289,20 +292,23 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
       return;
     }
     beginRecovery({ ...details, attempt: mediaRecoveries, stage: mediaRecoveries === 1 ? 'recover-media' : 'swap-audio-codec' }, () => {
-      seekToLiveEdge(hls, video, liveDelay);
+      // Keep playable buffered frames; recover the decoder without
+      // jumping forward unless the browser actually ran out of media.
+      if (bufferedAhead(video) < 0.25) seekToLiveEdge(hls, video, liveDelay);
       if (mediaRecoveries > 1) hls.swapAudioCodec();
       hls.recoverMediaError();
       safePlay(video);
     });
   };
   const nudgeSoftStall = (_reason) => {
-    if (destroyed) return;
+    if (destroyed || video.paused) return;
     softRecoveries += 1;
-    // hls.js can normally repair non-fatal buffer holes itself. Do not mark
-    // the camera as recovering and do not seek forward, because both actions
-    // make a healthy kiosk stream visibly jump. Keep loading and let the
-    // browser consume its existing buffer; the outer frame watchdog handles
-    // a genuine long-running stall.
+    // Non-fatal gaps are normally handled by hls.js. Repeated startLoad(-1)
+    // calls on every warning can reset its live loader and amplify buffering.
+    if (bufferedAhead(video) >= 0.75) return;
+    const now = Date.now();
+    if (now - lastSoftStallRetryAt < SOFT_STALL_RETRY_COOLDOWN_MS) return;
+    lastSoftStallRetryAt = now;
     try { hls.startLoad(-1); } catch { /* ignored */ }
     safePlay(video);
   };
