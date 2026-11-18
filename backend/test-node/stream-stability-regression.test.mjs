@@ -274,12 +274,12 @@ test('25-camera startup has faster bounded defaults and upgrades the previous .e
   assert.match(kioskPage, /startDelayMs=\{camera \? Math\.min\(index \* 120, 3000\) : 0\}/);
 });
 
-test('four camera start slots admit all 25 cameras without exceeding capacity', async () => {
+test('four camera start slots admit all 26 cameras without exceeding capacity', async () => {
   const limiter = new CameraStartLimiter(4);
   let active = 0;
   let maximum = 0;
   let completed = 0;
-  const tasks = Array.from({ length: 25 }, () => limiter.run(async () => {
+  const tasks = Array.from({ length: 26 }, () => limiter.run(async () => {
     active += 1;
     maximum = Math.max(maximum, active);
     await new Promise((resolve) => setTimeout(resolve, 5));
@@ -288,7 +288,7 @@ test('four camera start slots admit all 25 cameras without exceeding capacity', 
   }));
   await Promise.all(tasks);
   assert.equal(maximum, 4);
-  assert.equal(completed, 25);
+  assert.equal(completed, 26);
   assert.equal(limiter.status().active, 0);
   assert.equal(limiter.status().queued, 0);
 });
