@@ -172,12 +172,18 @@ class StreamOrchestrator {
     }
   }
 
-  async startSerialized(session, camera, viewportWidth) {
+  async startSerialized(session, camera, viewportWidth, { recovery = false } = {}) {
     const cameraId = String(camera?.id || session?.cameraId || 'camera');
     const expectedEpoch = Number(session.startEpoch || 0);
     const queuedAt = Date.now();
     const previous = this.cameraStartLocks.get(cameraId) || Promise.resolve();
-    this.log(session, 'debug', 'stream', 'CAMERA_START_QUEUED', 'Kamerastart wartet auf einen freien begrenzten Verbindungsplatz');
+    // Prioritize the cold-start preview and active recording/motion consumers,
+    // not the potentially long second-wave recovery of a failed camera.
+    const priority = recovery ? 0 : session.purpose === 'recording' || session.consumerPurpose === 'recording' || session.purpose === 'mainstream'
+      ? 3 : session.purpose === 'motion' || session.consumerPurpose === 'motion' ? 2 : session.permanent ? 2 : 1;
+    this.log(session, 'debug', 'stream', 'CAMERA_START_QUEUED', 'Kamerastart wartet auf einen freien begrenzten Verbindungsplatz', {
+      priority, recovery, ...this.cameraStarts.status(),
+    });
     const current = previous.catch(() => null).then(() => this.cameraStarts.run(async () => {
       this.assertStartCurrent(session, expectedEpoch);
       const latest = cameraRepository.getWithCredentials(cameraId);
@@ -195,7 +201,7 @@ class StreamOrchestrator {
           state: session.state,
         });
       }
-    }));
+    }, { priority }));
     this.cameraStartLocks.set(cameraId, current);
     try {
       return await current;
@@ -1037,7 +1043,10 @@ class StreamOrchestrator {
     };
 
     let ring = null;
-    if (broker.audioConfigured) {
+    // Permanent previews are video-only. Attempting optional audio first
+    // doubles startup time on cameras with unavailable/incompatible audio,
+    // and can keep a global connection slot busy for another 12-20 seconds.
+    if (broker.audioConfigured && !session.permanent) {
       ring = await startRing(broker.audio, true);
       if (!ring.outcome.ready) {
         await this.stopMediaChild(session, ring.child);
@@ -1465,7 +1474,7 @@ class StreamOrchestrator {
       session.state = 'starting';
       session.phase = 'restart_queued';
       session.phaseMessage = 'Automatischer Wiederaufbau wartet auf einen freien Kamera-Verbindungsplatz';
-      session.startPromise = this.startSerialized(session, camera, widthForQuality(session.quality)).catch((error) => {
+      session.startPromise = this.startSerialized(session, camera, widthForQuality(session.quality), { recovery: true }).catch((error) => {
         if (error?.code === 'STREAM_START_CANCELLED') return null;
         session.state = 'failed';
         session.phase = 'failed';

@@ -1,6 +1,6 @@
 {
   "name": "tmp-camera-backend",
-  "version": "2.20.77",
+  "version": "2.20.78",
   "private": true,
   "type": "module",
   "engines": {

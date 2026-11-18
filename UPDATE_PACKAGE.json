@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.77",
+  "version": "2.20.78",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.77",
-  "summary": "Gemeinsame Kiosk-Raster fuer Web und Linux-Client sowie Bewegungserkennung ohne Netzwerkspeicher-Startblockade.",
+  "title": "TMP Camera Surveillance Next 2.20.78",
+  "summary": "Schnellere Kamera-Kaltstarts durch priorisierte Verbindungswarteschlange und videobasierte permanente Vorschauen.",
   "createdAt": "2026-11-18T18:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.77.md",
+  "changelogFile": "UPDATE_NOTES_2.20.78.md",
   "changes": [
-    "Store shared kiosk layouts and active view in server SQLite for web and Linux desktop",
-    "Prevent stale-client overwrites with atomic revisions and legacy local-layout migration",
-    "Start automatic motion detection and recording scheduler before network storage reconciliation",
-    "Preserve existing recording files, camera settings, and all existing streams"
+    "Prioritize recording and central preview first camera connections over slow recovery starts",
+    "Maintain concurrency bound and use age-based fairness for long-waiting camera recoveries",
+    "Avoid a redundant optional audio start attempt for permanent video-only previews",
+    "Expose queue priority and current occupancy in startup diagnostics"
   ],
   "preserve": [
     ".env",
@@ -31,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.77.md",
+  "changelog": "UPDATE_NOTES_2.20.78.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.77",
-  "packageId": "tmp-camera-surveillance-next-2.20.77",
+  "name": "TMP Camera Surveillance Next v2.20.78",
+  "packageId": "tmp-camera-surveillance-next-2.20.78",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Server-authoritative cross-client kiosk layouts with safe migration plus recording startup sequencing.",
+  "description": "Faster, fair camera cold-start scheduling with fewer unnecessary media attempts.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.77 centralizes Kiosk layout selection in server SQLite and synchronizes it across browser and Electron every five seconds. Existing local layouts are migrated once if no shared settings exist, with optimistic conflict protection. Motion detection and recording scheduling now start after local recovery but before possibly slow SMB/SFTP media reconciliation; archive cleanup remains last. Existing recordings are preserved.",
-  "fileCount": 516
+  "releaseNotes": "2.20.78 prioritizes critical recording and initial camera preview starts above second-wave recovery, retains maximum concurrency and fairness, and removes the redundant optional audio attempt from permanent preview startup. No changes to recordings or camera configuration.",
+  "fileCount": 517
 }
