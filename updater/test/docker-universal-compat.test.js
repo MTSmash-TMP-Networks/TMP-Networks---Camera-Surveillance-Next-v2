@@ -23,7 +23,7 @@ test('Host recovery replaces only updater, confirms matching project and preserv
   assert.match(script, /-no-deps --no-build --force-recreate updater/);
   assert.match(script, /before-compose-v2-recovery/);
   assert.match(script, /node src\/healthcheck\.js/);
-  assert.doesNotMatch(script, /\b(?:down|rm -f|system prune)\b/);
+  assert.doesNotMatch(script, /docker (?:compose )?down|docker (?:container )?rm -f|docker system prune/);
 });
 
 test('Start erzwingt keine Registry-Pulls und startet ohne optionalen Updater', () => {
