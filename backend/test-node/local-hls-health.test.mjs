@@ -45,7 +45,7 @@ test('local HLS checks newest segments without statting all 60 fragments', () =>
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'camera-hls-many-segments-'));
   try {
     const names = Array.from({ length: 60 }, (_, i) => `seg_${String(i + 1).padStart(10, '0')}.ts`);
-    fs.writeFileSync(path.join(directory, 'index.m3u8'), '#EXTM3U\\n' + names.map((n) => `#EXTINF:1,\\n${n}\\n`).join(''));
+    fs.writeFileSync(path.join(directory, 'index.m3u8'), '#EXTM3U\n' + names.map((n) => `#EXTINF:1,\n${n}\n`).join(''));
     fs.writeFileSync(path.join(directory, names.at(-1)), Buffer.alloc(2000, 0x47));
     assert.equal(inspectLocalHlsRing(directory).ready, true);
     fs.unlinkSync(path.join(directory, names.at(-1)));
