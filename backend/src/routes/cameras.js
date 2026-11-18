@@ -193,13 +193,16 @@ camerasRouter.patch('/:id', authorize('admin'), asyncHandler(async (req, res) =>
   const streamAffecting = ['ip', 'port', 'username', 'password', 'preferredProfile', 'profilePolicy', 'codecPreference', 'sourcePolicy', 'mediaSources', 'rotation', 'enabled']
     .some((field) => patch[field] !== undefined);
   if (streamAffecting) await recordingService.stopCamera(req.params.id);
-  res.json(await cameraService.update(req.params.id, patch));
+  const updated = await cameraService.update(req.params.id, patch);
+  if (streamAffecting) await cameraThumbnailCache.discard(req.params.id);
+  res.json(updated);
 }));
 
 camerasRouter.delete('/:id', authorize('admin'), asyncHandler(async (req, res) => {
   await recordingService.stopCamera(req.params.id);
   await streamOrchestrator.stopCamera(req.params.id);
   if (!cameraRepository.remove(req.params.id)) throw new AppError(404, 'CAMERA_NOT_FOUND', 'Kamera nicht gefunden');
+  await cameraThumbnailCache.discard(req.params.id);
   res.status(204).end();
 }));
 
