@@ -6,6 +6,7 @@ import { cameraRepository } from '../services/cameraRepository.js';
 import { cameraService } from '../services/cameraService.js';
 import { NetworkCameraDiscovery, cameraDiscoveryDefaults } from '../services/NetworkCameraDiscovery.js';
 import { snapshotService } from '../services/media/SnapshotService.js';
+import { cameraThumbnailCache } from '../services/media/CameraThumbnailCache.js';
 import { streamOrchestrator } from '../services/media/StreamOrchestrator.js';
 import { AppError } from '../utils/errors.js';
 import { cameraEventLog } from '../services/CameraEventLog.js';
@@ -216,6 +217,21 @@ camerasRouter.post('/:id/sources/discover', authorize('operator'), asyncHandler(
 
 camerasRouter.post('/:id/profiles/refresh', authorize('operator'), asyncHandler(async (req, res) => {
   res.json({ items: await cameraService.refreshProfiles(req.params.id) });
+}));
+
+// The overview and layout editor read ONLY persisted preview JPEGs.
+// Browser navigation never starts an FFmpeg process or probes the camera.
+camerasRouter.get('/:id/thumbnail', asyncHandler(async (req, res) => {
+  const camera = cameraRepository.get(req.params.id);
+  if (!camera || camera.enabled === false) throw new AppError(404, 'CAMERA_NOT_FOUND', 'Kamera nicht gefunden oder deaktiviert');
+  const cached = await cameraThumbnailCache.read(camera.id);
+  if (!cached) return res.status(204).set('Cache-Control', 'private, no-store').end();
+  res.set({
+    'Content-Type': 'image/jpeg',
+    'Cache-Control': 'private, no-store, max-age=0',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Thumbnail-Updated-At': cached.updatedAt,
+  }).send(cached.buffer);
 }));
 
 camerasRouter.get('/:id/snapshot', asyncHandler(async (req, res) => {
