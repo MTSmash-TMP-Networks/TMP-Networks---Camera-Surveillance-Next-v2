@@ -22,7 +22,7 @@ import { startSnapshotFramePump } from './SnapshotVideoBridge.js';
 import { createStreamProgressTracker, consumeFfmpegProgress } from './StreamProgressTracker.js';
 import { isBenignFfmpegDiagnostic } from './FfmpegDiagnostics.js';
 import { CameraStartLimiter } from './CameraStartLimiter.js';
-import { inspectLocalHlsRing } from './LocalHlsHealth.js';
+import { inspectLocalHlsRing, effectiveLocalHlsListSize, withLocalHlsContinuity } from './LocalHlsHealth.js';
 import { shouldContinueHlsStartup } from './LocalHlsStartupGrace.js';
 import { nextSnapshotNativeRecheckAt, shouldReprobeSnapshotNative } from './SnapshotNativeRecoveryPolicy.js';
 import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, parseFfprobeVideoCodec } from './BrokerPipeline.js';
@@ -875,9 +875,19 @@ class StreamOrchestrator {
   }
 
   localHlsHealth(session, now = Date.now()) {
-    return inspectLocalHlsRing(this.localHlsDirectory(session), {
+    const health = inspectLocalHlsRing(this.localHlsDirectory(session), {
       now,
       maxAgeMs: config.localHlsFreshnessSeconds * 1000,
+    });
+    if (health.ready) session.lastLocalHlsReadyAt = now;
+    // Only established, still-running publishers get a short grace for a
+    // temporary playlist rotation. Start/readiness probes remain strict.
+    return withLocalHlsContinuity(health, {
+      now,
+      lastReadyAt: Number(session.lastLocalHlsReadyAt || 0),
+      graceMs: config.localHlsContinuityGraceMs,
+      processAlive: this.isSessionProcessAlive(session),
+      wasReady: session.state === 'ready' && Boolean(session.outputs?.hls),
     });
   }
 
@@ -939,6 +949,7 @@ class StreamOrchestrator {
 
     const startRing = async (brokerName, includeAudio) => {
       this.cleanLocalHls(session);
+      session.lastLocalHlsReadyAt = 0;
       fs.mkdirSync(outputDir, { recursive: true });
       session.stderr = '';
       session.stderrLines = [];
@@ -954,7 +965,7 @@ class StreamOrchestrator {
         outputDir,
         includeAudio,
         segmentSeconds: config.localHlsSegmentSeconds,
-        listSize: config.localHlsListSize,
+        listSize: effectiveLocalHlsListSize(config.localHlsListSize, config.localHlsStableMinSegments),
       });
       const child = spawn(config.ffmpegPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
       child.__tmpExpectedExit = false;
@@ -1109,6 +1120,7 @@ class StreamOrchestrator {
 
   async launchSnapshotVideo(session, camera, initialSnapshot, profile, probe, policy, snapshotProfileToken = null) {
     this.cleanLocalHls(session);
+    session.lastLocalHlsReadyAt = 0;
     const outputDir = this.localHlsDirectory(session);
     fs.mkdirSync(outputDir, { recursive: true });
     const width = snapshotFallbackWidth(session.quality);
@@ -1869,6 +1881,7 @@ class StreamOrchestrator {
     }
     if (session?.brokerRefKey) await this.releaseBroker(session);
     if (['local-hls-ring', 'snapshot-video'].includes(session?.mode)) this.cleanLocalHls(session);
+    if (session) session.lastLocalHlsReadyAt = 0;
   }
 
   publicSession(session, includePaths = false) {
