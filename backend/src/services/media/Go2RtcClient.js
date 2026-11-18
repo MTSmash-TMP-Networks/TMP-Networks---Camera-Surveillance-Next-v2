@@ -137,6 +137,31 @@ export class Go2RtcClient {
     this.configuredBaseUrl = baseUrl;
     this.configuredFallbackUrls = fallbackUrls;
     this.preferredBaseUrl = null;
+    // go2rtc v1.9.14/v1.9.15 use unguarded Go maps in /api/streams.
+    // 25 parallel camera startups must not overlap map reads and writes.
+    this.controlRequestTail = Promise.resolve();
+  }
+
+  async serializeControlRequest(task) {
+    const previous = this.controlRequestTail;
+    let release;
+    this.controlRequestTail = new Promise((resolve) => { release = resolve; });
+    await previous;
+    try { return await task(); } finally { release(); }
+  }
+
+  async bufferedControlResponse(response) {
+    // fetch() resolves as soon as headers arrive; the Go handler may still be
+    // JSON-encoding the mutable streams map. Drain the response before
+    // unlocking, not just the outgoing HTTP request.
+    if (typeof response?.arrayBuffer !== 'function') return response;
+    const buffer = await response.arrayBuffer();
+    const noBody = [204, 205, 304].includes(response.status);
+    return new Response(noBody ? null : buffer, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: { 'content-type': response.headers?.get?.('content-type') || 'application/json' },
+    });
   }
 
   baseUrls() {
@@ -168,7 +193,16 @@ export class Go2RtcClient {
     return this.requestTargets(path).map(({ url }) => url);
   }
 
-  async fetchResponse(path, init = {}, { timeoutMs = 2500, retryMs = 0, retryIntervalMs = 350 } = {}) {
+  async fetchResponse(path, init = {}, options = {}) {
+    const controlPath = /^\/api(?:$|\/streams(?:\?|$)|\/preload(?:\?|$))/.test(String(path));
+    if (!controlPath) return this.fetchResponseUnqueued(path, init, options);
+    return this.serializeControlRequest(async () => {
+      const response = await this.fetchResponseUnqueued(path, init, options);
+      return this.bufferedControlResponse(response);
+    });
+  }
+
+  async fetchResponseUnqueued(path, init = {}, { timeoutMs = 2500, retryMs = 0, retryIntervalMs = 350 } = {}) {
     const started = Date.now();
     let lastAttemptErrors = [];
     do {
