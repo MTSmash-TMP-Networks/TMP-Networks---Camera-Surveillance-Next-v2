@@ -296,9 +296,96 @@ export function KioskPage() {
   const [runtimeStatus, setRuntimeStatus] = useState({});
   const [statusError, setStatusError] = useState('');
   const kioskStatusFailures = useRef(0);
+  // Browser storage is only a one-time migration source/offline mirror.
+  // The server owns the canonical raster and selected view for every client.
   const [layouts, setLayouts] = useState(() => loadKioskLayouts());
   const [activeLayoutId, setActiveLayoutId] = useState(() => loadActiveKioskLayoutId());
   const [editorLayout, setEditorLayout] = useState(null);
+  const [layoutReady, setLayoutReady] = useState(false);
+  const [layoutSaving, setLayoutSaving] = useState(false);
+  const [layoutError, setLayoutError] = useState('');
+  const sharedRevision = useRef(0);
+  const layoutMutation = useRef(false);
+  const initialLocal = useRef({ layouts: loadKioskLayouts(), activeLayoutId: loadActiveKioskLayoutId() });
+
+  function applySharedLayout(remote) {
+    sharedRevision.current = remote.revision;
+    setLayouts(remote.layouts);
+    setActiveLayoutId(remote.activeLayoutId);
+    saveKioskLayouts(remote.layouts);
+    saveActiveKioskLayoutId(remote.activeLayoutId);
+    setLayoutReady(true);
+    setLayoutError('');
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    let fetching = false;
+    async function synchronize() {
+      if (cancelled || fetching || layoutMutation.current) return;
+      fetching = true;
+      try {
+        let remote = await api.kioskLayouts();
+        if (cancelled) return;
+        if (!remote.initialized && initialLocal.current.layouts.length) {
+          // Migrate ONE browser's legacy custom views exactly once. Conflicts
+          // are resolved by reading the authoritative server state, never
+          // overwriting another browser's freshly created configuration.
+          try {
+            remote = await api.saveKioskLayouts({
+              layouts: initialLocal.current.layouts,
+              activeLayoutId: initialLocal.current.activeLayoutId,
+              expectedRevision: 0,
+            });
+          } catch (error) {
+            if (error.status !== 409 && error.status !== 403) throw error;
+            remote = await api.kioskLayouts();
+          }
+        }
+        if (!cancelled && !layoutMutation.current && (!layoutReady || remote.revision !== sharedRevision.current)) {
+          applySharedLayout(remote);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setLayoutError(error.message || 'Kiosk-Einstellungen konnten nicht geladen werden');
+          setLayoutReady(false);
+        }
+      } finally { fetching = false; }
+    }
+    void synchronize();
+    const interval = window.setInterval(synchronize, 5000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, []);
+
+  async function persistSharedLayout(nextLayouts, nextActiveId, { closeEditor = false } = {}) {
+    if (!layoutReady || layoutMutation.current) return;
+    layoutMutation.current = true;
+    setLayoutSaving(true);
+    setLayoutError('');
+    try {
+      const result = await api.saveKioskLayouts({
+        layouts: nextLayouts,
+        activeLayoutId: nextActiveId,
+        expectedRevision: sharedRevision.current,
+      });
+      applySharedLayout(result);
+      if (closeEditor) setEditorLayout(null);
+    } catch (error) {
+      // Do not overwrite the other client's changes after a revision conflict.
+      setLayoutError(error.message || 'Kiosk-Einstellungen konnten nicht gespeichert werden');
+      try {
+        const current = await api.kioskLayouts();
+        sharedRevision.current = current.revision;
+        setLayouts(current.layouts);
+        setActiveLayoutId(current.activeLayoutId);
+        saveKioskLayouts(current.layouts);
+        saveActiveKioskLayoutId(current.activeLayoutId);
+      } catch { /* Keep the visible error and local draft for retry. */ }
+    } finally {
+      layoutMutation.current = false;
+      setLayoutSaving(false);
+    }
+  }
 
   useEffect(() => { if (!cameras.length) dispatch(loadCameras()); }, [dispatch, cameras.length]);
   useEffect(() => {
@@ -339,12 +426,7 @@ export function KioskPage() {
     ? automaticLayout
     : layouts.find((layout) => layout.id === activeLayoutId) || automaticLayout, [activeLayoutId, layouts, automaticLayout]);
 
-  useEffect(() => {
-    if (activeLayoutId !== 'auto' && !layouts.some((layout) => layout.id === activeLayoutId)) {
-      setActiveLayoutId('auto');
-      saveActiveKioskLayoutId('auto');
-    }
-  }, [activeLayoutId, layouts]);
+
 
   const camerasById = useMemo(() => new Map(cameras.map((camera) => [camera.id, camera])), [cameras]);
   const assignedCameraIds = useMemo(() => [...new Set(activeLayout.slots.map((item) => item.cameraId).filter((cameraId) => camerasById.has(cameraId)))], [activeLayout, camerasById]);
@@ -352,11 +434,11 @@ export function KioskPage() {
   const activeLayoutName = activeLayoutId === 'auto' ? t('kiosk.layout.automatic') : activeLayout.name;
 
   function selectLayout(layoutId) {
-    setActiveLayoutId(layoutId);
-    saveActiveKioskLayoutId(layoutId);
+    void persistSharedLayout(layouts, layoutId);
   }
 
   function openLayoutEditor() {
+    if (!layoutReady) return;
     const existing = activeLayoutId === 'auto' ? null : layouts.find((layout) => layout.id === activeLayoutId);
     setEditorLayout(existing || createKioskLayout({ templateId: cameras.length >= 5 ? 'focus-five' : cameras.length >= 4 ? 'quad' : 'single', cameras, name: t('kiosk.layout.defaultName', { number: layouts.length + 1 }) }));
   }
@@ -365,20 +447,13 @@ export function KioskPage() {
     const nextLayouts = layouts.some((item) => item.id === layout.id)
       ? layouts.map((item) => item.id === layout.id ? layout : item)
       : [...layouts, layout];
-    const safe = saveKioskLayouts(nextLayouts);
-    setLayouts(safe);
-    setActiveLayoutId(layout.id);
-    saveActiveKioskLayoutId(layout.id);
-    setEditorLayout(null);
+    void persistSharedLayout(nextLayouts, layout.id, { closeEditor: true });
   }
 
   function deleteLayout(layoutId) {
-    const nextLayouts = saveKioskLayouts(layouts.filter((item) => item.id !== layoutId));
-    setLayouts(nextLayouts);
-    if (activeLayoutId === layoutId) selectLayout('auto');
-    const replacement = nextLayouts[0] || null;
-    setEditorLayout(replacement);
-    if (!replacement) setEditorLayout(null);
+    const nextLayouts = layouts.filter((item) => item.id !== layoutId);
+    const nextActiveId = activeLayoutId === layoutId ? 'auto' : activeLayoutId;
+    void persistSharedLayout(nextLayouts, nextActiveId, { closeEditor: true });
   }
 
   async function toggleFullscreen() {
@@ -400,11 +475,12 @@ export function KioskPage() {
         <span className={statusSummary.motionCount ? 'is-motion' : ''}><Activity/>{statusSummary.motionCount} {t('kiosk.status.motion')}</span>
         <span className={statusSummary.recordingCount ? 'is-recording' : ''}><Video/>{statusSummary.recordingCount} {t('kiosk.status.recording')}</span>
         {statusError && <small>{statusError}</small>}
+        {layoutError && <small role="alert">{layoutError}</small>}
       </div>
       <div className="kiosk-actions">
         <span className="kiosk-central-preview"><Radio/> Zentraler Preview</span>
-        <label><Grid2X2/><select value={activeLayoutId} onChange={(event) => selectLayout(event.target.value)}><option value="auto">{t('kiosk.layout.automatic')}</option>{layouts.map((layout) => <option key={layout.id} value={layout.id}>{layout.name}</option>)}</select></label>
-        <button onClick={openLayoutEditor}><LayoutDashboard/> {t('kiosk.action.manageGrid')}</button>
+        <label><Grid2X2/><select value={activeLayoutId} disabled={!layoutReady || layoutSaving} onChange={(event) => selectLayout(event.target.value)}><option value="auto">{t('kiosk.layout.automatic')}</option>{layouts.map((layout) => <option key={layout.id} value={layout.id}>{layout.name}</option>)}</select></label>
+        <button disabled={!layoutReady || layoutSaving} onClick={openLayoutEditor}><LayoutDashboard/> {t('kiosk.action.manageGrid')}</button>
         <button onClick={() => setRefreshEpoch((value) => value + 1)}><RefreshCw/> {t('kiosk.action.reconnectAll')}</button>
         <button onClick={toggleFullscreen}>{fullscreen ? <Minimize/> : <Expand/>}{fullscreen ? t('kiosk.action.exitFullscreen') : t('kiosk.action.fullscreen')}</button>
         {!fullscreen && <Link to="/live"><Radio/> {t('kiosk.action.liveView')}</Link>}
@@ -425,6 +501,6 @@ export function KioskPage() {
         />;
       })}</section>
       : <div className="empty-panel"><Radio/><h2>{t('kiosk.empty.noCameras')}</h2></div>}
-    {editorLayout && <KioskLayoutEditor cameras={cameras} layouts={layouts} initialLayout={editorLayout} onClose={() => setEditorLayout(null)} onSave={saveLayout} onDelete={deleteLayout} t={t}/>} 
+    {editorLayout && !layoutSaving && <KioskLayoutEditor cameras={cameras} layouts={layouts} initialLayout={editorLayout} onClose={() => setEditorLayout(null)} onSave={saveLayout} onDelete={deleteLayout} t={t}/>} 
   </div>;
 }
