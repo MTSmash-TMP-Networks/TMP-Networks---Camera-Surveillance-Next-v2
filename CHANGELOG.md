@@ -1,3 +1,11 @@
+## 2.20.68 – Local-HLS Stabilität bei 25 Kameras
+
+- Backend prüft pro Kamera nur noch die neuesten vorhandenen, playlistreferenzierten TS-Segmente, statt bei jedem Healthcheck alle Segmente zu statten.
+- Ein gesunder, bereits laufender FFmpeg-Publisher behält bei kurzzeitigen Playlist-/Segmentlücken bis zu zehn Sekunden die Bereitschaft, ohne Erststart- oder echte Prozessaustritte zu maskieren.
+- Ein separater Minimalwert LOCAL_HLS_STABLE_MIN_SEGMENTS=60 schützt ältere Installationen mit LOCAL_HLS_LIST_SIZE=30 in .env vor zu kurz gehaltenen HLS-Ringen. Der Videostream bleibt reines H.264-Copy.
+- hls.js puffert zurückhaltender, behält mehr Reserven und versucht für kurzzeitige Netzwerkprobleme länger eine Decoder-interne Wiederherstellung, bevor er sichtbar neu verbindet.
+- Watchdog, Aufnahme, Motion, ONVIF, Startkonkurrenz und etablierte Benutzerberechtigungen bleiben erhalten.
+
 ## 2.20.67 – Voscam ONVIF-Port 888 erkennen
 
 - Kamera-Portkatalog, vollstaendiger IP-Scan und primärer Hostscan erkennen TCP 888 als moeglichen Voscam-ONVIF-Dienst.
