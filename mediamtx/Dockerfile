@@ -10,7 +10,7 @@ WORKDIR /src
 # Exact upstream revision for v1.9.14; no moving tags or master builds.
 RUN git init . \
  && git remote add origin https://github.com/AlexxIT/go2rtc.git \
- && git fetch --depth 1 origin b5948cfb25404cc5cb37b166ecaa2dca20b11d4b \
+ && git fetch --depth 1 origin refs/tags/v1.9.14 \
  && git checkout --detach FETCH_HEAD \
  && test "$(git rev-parse HEAD)" = "b5948cfb25404cc5cb37b166ecaa2dca20b11d4b"
 COPY patches/go2rtc-http-streams-races.patch /tmp/races.patch
