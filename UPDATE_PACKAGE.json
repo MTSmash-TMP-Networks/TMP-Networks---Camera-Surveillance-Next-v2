@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.64",
+  "version": "2.20.65",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.64",
-  "summary": "Bring up 25-camera fleets faster with four bounded parallel starts, 250 ms ingest staggering and faster kiosk tile attachment.",
-  "createdAt": "2026-11-18T09:30:00+00:00",
-  "changelogFile": "UPDATE_NOTES_2.20.64.md",
+  "title": "TMP Camera Surveillance Next 2.20.65",
+  "summary": "Repair the Docker Compose V1 updater crash and detect the live go2rtc API prefix, retaining faster 25-camera bootstrap.",
+  "createdAt": "2026-11-18T11:30:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.65.md",
   "changes": [
-    "Allow four concurrent independent camera starts while preserving per-camera serialization and bounded recovery",
-    "Reduce central preview start staggering from 1500 to 250 ms",
-    "Migrate only existing default .env startup values while retaining custom administrator settings",
-    "Shorten kiosk tile attachment staggering without requesting new camera sessions",
-    "Preserve recording, motion, stream fallback and browser HLS buffer behavior"
+    "Bundle Docker Compose V2 within the updater to prevent legacy ContainerConfig errors",
+    "Provide a safe host-side recovery for existing Compose V1 updater installations",
+    "Detect go2rtc root API when the configured prefixed API returns 404 and cache it for media reads",
+    "Keep four bounded parallel camera starts and 250ms ingest startup staggering",
+    "Preserve existing recording, motion, HLS and camera settings"
   ],
   "preserve": [
     ".env",
@@ -31,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.64.md",
+  "changelog": "UPDATE_NOTES_2.20.65.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.64",
-  "packageId": "tmp-camera-surveillance-next-2.20.64",
+  "name": "TMP Camera Surveillance Next v2.20.65",
+  "packageId": "tmp-camera-surveillance-next-2.20.65",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Faster bounded central camera bootstrap, kiosk playback attachment and migration of previous startup defaults.",
+  "description": "Compose V2 updater, host-side updater rescue before in-app upgrade, and automatic go2rtc root API fallback.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32. Central preview ingestion starts at up to four cameras at once with a 250 ms enqueue interval; previous default settings are migrated without overriding custom values. Existing camera, recording and motion configuration is preserved.",
-  "fileCount": 481
+  "releaseNotes": "Compatible from 2.20.32. Existing broken Compose V1 updaters MUST first run scripts/recover-updater-compose-v2.sh from the host before using Update Center. Preserves .env, recordings, cameras and database. Contains v2.20.64 faster start defaults.",
+  "fileCount": 483
 }
