@@ -34,8 +34,8 @@ function BrandedLoading({ messageKey }) {
 }
 
 function Protected() {
-  const { user, token, desktopRestoring } = useSelector((state) => state.auth);
-  if (desktopRestoring) return <BrandedLoading messageKey="app.loading" />;
+  const { user, token, desktopRestoring, desktopOffline } = useSelector((state) => state.auth);
+  if (desktopRestoring || (isDesktopKiosk() && desktopOffline && !user)) return <BrandedLoading messageKey="app.loading" />;
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return <BrandedLoading messageKey="app.loading" />;
   return <AppShell />;
