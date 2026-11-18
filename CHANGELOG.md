@@ -1,3 +1,11 @@
+## 2.20.76 – Globale Aufnahmeplanung und 24-Stunden-Zeitfenster
+
+- Aufnahmeplanung kann nach Bestätigung auf alle Kameras in einem atomaren Vorgang übertragen werden; Einzelkameraeinstellungen bleiben editierbar.
+- Aufbewahrungs- und Löschregeln werden nur bei explizit aktivierter Zusatzoption auf alle Kameras übernommen.
+- Die Zeitauswahl für geplante und ereignisgesteuerte Aufnahmen enthält eine 24-Stunden-Option für die jeweils ausgewählten Kalendertage.
+- Kameraübergreifende Kopien erhalten neue Plan-IDs, ONVIF-Profil-IDs anderer Kameras werden nicht übertragen; bestehende Aufnahmen bleiben unverändert.
+- Vorhandene Aufnahme-, Retention- und Upgrade-Pfade bleiben kompatibel mit Versionen ab 2.20.32.
+
 ## 2.20.75 – Persistente Kamera-Vorschau und Linux-Desktop-Anmeldung
 
 - Kameraübersicht und visueller Kiosk-Rastereditor lesen nur noch authentifizierte, auf dem Server gespeicherte JPEG-Vorschaubilder. Ein Browseraufruf startet keine neuen RTSP-, ONVIF- oder FFmpeg-Snapshot-Sitzungen.
