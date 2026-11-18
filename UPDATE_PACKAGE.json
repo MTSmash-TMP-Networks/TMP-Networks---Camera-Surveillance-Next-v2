@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.73",
+  "version": "2.20.74",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.73",
-  "summary": "Visual Kiosk grid editor with authenticated camera thumbnails, left-hand camera palette, drag-and-drop tile assignment and no extra live streams.",
-  "createdAt": "2026-11-18T17:10:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.73.md",
+  "title": "TMP Camera Surveillance Next 2.20.74",
+  "summary": "Autonomer Linux-Kiosk mit sicherer, dauerhafter, widerrufbarer Geraetesitzung und automatischem Wiederverbinden.",
+  "createdAt": "2026-11-18T17:35:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.74.md",
   "changes": [
-    "Visual searchable camera thumbnail palette on the left of Kiosk layout editor",
-    "Drag-and-drop cameras onto grid slots and swap two occupied slots",
-    "Click-to-select camera and place into tile; dropdown/clear controls remain accessible",
-    "Lightweight lazy snapshots without additional video streams, max two simultaneous camera requests",
-    "Persist layouts with existing version 1 schema, keep recordings, motion and stream configuration unchanged"
+    "Support secure revocable HttpOnly Linux device grants and automatic JWT refresh",
+    "Enable Electron fullscreen kiosk, single-instance and resilient backoff reconnect",
+    "Install Linux desktop autostart without root or weakening sandbox",
+    "Rebuild downloadable Linux x64 ZIP with updated application code",
+    "Preserve web authentication, recording, motion, 26-camera bootstrap and stable broker"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.73.md",
+  "changelog": "UPDATE_NOTES_2.20.74.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.73",
-  "packageId": "tmp-camera-surveillance-next-2.20.73",
+  "name": "TMP Camera Surveillance Next v2.20.74",
+  "packageId": "tmp-camera-surveillance-next-2.20.74",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Visual kiosk camera placement and lightweight snapshot thumbnails, preserving existing layouts and central media architecture.",
+  "description": "Refreshable revocable device grants, Electron kiosk reconnect/autostart and rebuilt Linux desktop download ZIP.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Upgrade from 2.20.32. Kiosk layout manager now provides a searchable left camera thumbnail palette and right-hand drag-and-drop grid. Snapshot previews are lazy, limited to two concurrent authenticated requests and aborted/cleaned up on close. Click/keyboard/dropdown alternatives, swap, clear and previous saved layouts remain supported. Preserves existing 2.20.72 HLS replay fix, patched go2rtc broker, recordings/motion and database.",
-  "fileCount": 504
+  "releaseNotes": "Dedicated Linux Kiosk client now auto-starts in fullscreen at Linux user login (configurable), recovers after server/network outage and retains a securely renewable opt-in device session. Server stores only SHA256 hashes of revocable 90-day idle device grants; temporary 8h JWT access tokens are refreshed every 15 minutes. Explicit signout revokes grant, changes in user password/role disable old sessions, no TLS bypass, no auto login without explicit device consent. Updated downloadable Linux ZIP. Existing streams, recordings, motion, 2.20.73 layout editor and go2rtc stable.",
+  "fileCount": 507
 }

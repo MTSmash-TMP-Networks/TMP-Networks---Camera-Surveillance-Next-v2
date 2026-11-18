@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { loadRuntime, restoreSession } from './features/auth/authSlice.js';
+import { loadRuntime, restoreSession, restoreDesktopSession, sessionUpdated } from './features/auth/authSlice.js';
+import { hasDesktopGrant, isDesktopKiosk } from './services/api.js';
 import { AppFooter } from './components/AppFooter.jsx';
 import { AppShell } from './components/AppShell.jsx';
 import { BrandIcon } from './components/BrandIcon.jsx';
@@ -33,7 +34,8 @@ function BrandedLoading({ messageKey }) {
 }
 
 function Protected() {
-  const { user, token } = useSelector((state) => state.auth);
+  const { user, token, desktopRestoring, desktopOffline } = useSelector((state) => state.auth);
+  if (desktopRestoring || (isDesktopKiosk() && desktopOffline && !user)) return <BrandedLoading messageKey="app.loading" />;
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return <BrandedLoading messageKey="app.loading" />;
   return <AppShell />;
@@ -43,7 +45,39 @@ export default function App() {
   const dispatch = useDispatch();
   const token = useSelector((state) => state.auth.token);
   useEffect(() => { dispatch(loadRuntime()); }, [dispatch]);
-  useEffect(() => { if (token) dispatch(restoreSession()); }, [dispatch, token]);
+  useEffect(() => {
+    if (isDesktopKiosk()) {
+      dispatch(restoreDesktopSession());
+      return undefined;
+    }
+    return undefined;
+  }, [dispatch]);
+  useEffect(() => {
+    if (!isDesktopKiosk() && token) dispatch(restoreSession());
+  }, [dispatch, token]);
+  useEffect(() => {
+    if (!isDesktopKiosk()) return undefined;
+    const onRenewed = (event) => {
+      if (event.detail?.token) dispatch(sessionUpdated(event.detail));
+    };
+    const renew = () => {
+      if (hasDesktopGrant() && (document.visibilityState === 'visible' || navigator.onLine)) {
+        dispatch(restoreDesktopSession());
+      }
+    };
+    // The access token is still short-lived; the HttpOnly device grant is
+    // renewed in the background. Network outages do not clear the grant.
+    const timer = window.setInterval(renew, 15 * 60 * 1000);
+    window.addEventListener('online', renew);
+    window.addEventListener('focus', renew);
+    window.addEventListener('tmp-desktop-session-renewed', onRenewed);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('online', renew);
+      window.removeEventListener('focus', renew);
+      window.removeEventListener('tmp-desktop-session-renewed', onRenewed);
+    };
+  }, [dispatch]);
 
   return <BrowserRouter>
     <div className="app-frame">

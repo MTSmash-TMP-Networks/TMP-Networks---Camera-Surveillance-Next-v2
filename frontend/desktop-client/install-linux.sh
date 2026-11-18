@@ -252,6 +252,30 @@ Categories=Network;Video;Security;
 StartupNotify=true
 EOF_DESKTOP
 chmod 644 "$APPLICATIONS/tmp-camera-desktop.desktop"
+
+# Desktop-session autostart is per-user and never bypasses Linux login or
+# Electron's Chromium sandbox. Default is enabled for dedicated monitors.
+# TMP_CAMERA_AUTOSTART=0 disables it; set it again on reinstall to restore.
+AUTOSTART="${XDG_CONFIG_HOME:-$HOME/.config}/autostart"
+if [ "${TMP_CAMERA_AUTOSTART:-1}" = 1 ]; then
+  mkdir -p "$AUTOSTART"
+  cat > "$AUTOSTART/tmp-camera-kiosk.desktop" <<EOF_AUTOSTART
+[Desktop Entry]
+Type=Application
+Name=TMP Camera Kiosk
+Comment=TMP Camera Surveillance – autostart and reconnect
+Exec="$BIN/tmp-camera-desktop" --kiosk
+Terminal=false
+X-GNOME-Autostart-enabled=true
+StartupNotify=false
+EOF_AUTOSTART
+  chmod 600 "$AUTOSTART/tmp-camera-kiosk.desktop"
+  say 'Kiosk-Autostart bei der Linux-Benutzeranmeldung eingerichtet.'
+else
+  rm -f "$AUTOSTART/tmp-camera-kiosk.desktop"
+  say 'Kiosk-Autostart deaktiviert (TMP_CAMERA_AUTOSTART=0).'
+fi
 if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database "$APPLICATIONS" >/dev/null 2>&1 || true; fi
 say 'Installation abgeschlossen. Server unveraendert; kein Docker oder Root fuer die App erforderlich.'
+say 'Der Linux-Benutzer muss fuer automatischen Start nach einem Reboot angemeldet werden (ggf. Systemeinstellung Auto-Login).'
 say "Starte TMP Camera Desktop ueber das Anwendungsmenue oder $BIN/tmp-camera-desktop"
