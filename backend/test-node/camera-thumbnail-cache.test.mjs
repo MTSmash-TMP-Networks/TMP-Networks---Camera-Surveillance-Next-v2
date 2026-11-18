@@ -4,7 +4,15 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { CameraThumbnailCache, latestHlsSegment, CAMERA_THUMBNAIL_REFRESH_MS } from '../src/services/media/CameraThumbnailCache.js';
+
+// The production config defaults to /data; isolated CI tests use a writable
+// temporary data root before importing the backend's database module.
+const fixtureDataDir = await fsp.mkdtemp(path.join(os.tmpdir(), 'tmp-thumbnail-backend-'));
+process.env.APP_DATA_DIR = fixtureDataDir;
+process.env.DB_PATH = path.join(fixtureDataDir, 'thumbnail-test.sqlite');
+const { CameraThumbnailCache, latestHlsSegment, CAMERA_THUMBNAIL_REFRESH_MS } =
+  await import('../src/services/media/CameraThumbnailCache.js');
+
 
 const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8]), Buffer.alloc(150, 40), Buffer.from([0xff, 0xd9])]);
 
