@@ -262,7 +262,10 @@ class StreamOrchestrator {
         encoder,
       });
       let audioConfigured = false;
-      const videoOnlyPreview = !session.permanent && ['motion', 'prebuffer'].includes(session.purpose || '');
+      // The shared preview is browser-muted and must become video-ready even
+      // if a camera's optional audio endpoint is slow or broken. Recording and
+      // explicit live-mainstream sessions keep their own audio capability.
+      const videoOnlyPreview = session.permanent || ['motion', 'prebuffer'].includes(session.purpose || '');
       if (profile?.audioCodec && !videoOnlyPreview) {
         const audioSource = optionalAudioSource(paths.raw, 20, encoder, profile?.videoCodec);
         try {
@@ -616,8 +619,8 @@ class StreamOrchestrator {
         ? [{ profileOffset: 0, profileLimit: 1, includeManual: true }, { profileOffset: 1, includeManual: false }]
         : [{}];
       for (const batch of batches) {
-      const attempts = await this.orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources, batch);
-      session.attemptCount = attempts.length;
+        const attempts = await this.orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources, batch);
+        session.attemptCount = attempts.length;
       this.log(session, 'info', 'stream', 'ATTEMPTS_PREPARED', `${attempts.length} Streamvarianten werden systematisch geprüft`, {
         order: attempts.map(({ profile, candidate }) => ({ profile: profile.name, sourceType: candidate.sourceType || 'onvif', sourceLabel: candidate.sourceLabel || null, videoCodec: profile.videoCodec, videoProfile: profile.videoProfile, transport: candidate.transport, endpoint: candidate.endpoint || null, endpointReason: candidate.endpointReason || null })),
       });
