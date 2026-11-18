@@ -244,7 +244,7 @@ function KioskLayoutEditor({ cameras, layouts, initialLayout, onClose, onSave, o
                     className={`kiosk-layout-drop-slot${dropTargetId === item.id ? ' drop-target' : ''}${selectedCameraId ? ' can-assign' : ''}`}
                     style={{ gridColumn: `${item.column} / span ${item.columnSpan}`, gridRow: `${item.row} / span ${item.rowSpan}` }}
                     onDragEnter={(event) => { event.preventDefault(); setDropTargetId(item.id); }}
-                    onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = event.dataTransfer.types.includes('application/x-tmp-slot-id') ? 'move' : 'copy'; }}
+                    onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = Array.from(event.dataTransfer.types || []).includes('application/x-tmp-slot-id') ? 'move' : 'copy'; }}
                     onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDropTargetId(''); }}
                     onDrop={(event) => onDropSlot(event, item.id)}
                   >
