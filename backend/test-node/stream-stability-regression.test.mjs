@@ -237,6 +237,31 @@ test('camera startup is serialized per camera and bounded across cameras', () =>
   assert.doesNotMatch(orchestrator, /globalCameraStartTail/);
 });
 
+test('permanent camera publishers are initialized at backend startup independently of recordings or frontend', () => {
+  const boot = server.indexOf('startPermanentIngestForAll({ wait: false })');
+  const recovery = server.indexOf('recoverInterruptedRecordings()');
+  const reconcile = server.indexOf('networkRecordingStorageService.reconcile()');
+  const scheduler = server.indexOf('recordingScheduler.start()');
+  assert.ok(boot >= 0 && boot < recovery && boot < reconcile && boot < scheduler);
+  assert.match(orchestrator, /backgroundCameraBootstrapStaggerMs/);
+  assert.match(config, /backgroundCameraBootstrapStaggerMs: integer\('BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS', 250,/);
+  assert.match(envExample, /^BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS=250$/m);
+  assert.match(startScript, /ensure_env_key BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS 250/);
+});
+
+test('background camera video previews avoid optional audio stalls', () => {
+  assert.match(orchestrator, /const videoOnlyPreview = session\.permanent \|\| \['motion', 'prebuffer'\]\.includes/);
+  assert.match(orchestrator, /if \(profile\?\.audioCodec && !videoOnlyPreview\)/);
+  assert.match(orchestrator, /if \(broker\.audioConfigured\)/);
+});
+
+test('permanent bootstrap resolves one ONVIF profile first and only resolves remaining profiles as fallback', () => {
+  assert.match(orchestrator, /profileOffset = 0, profileLimit = Infinity, includeManual = true/);
+  assert.match(orchestrator, /profileIndex < profileOffset \|\| profileIndex >= profileOffset \+ profileLimit/);
+  assert.match(orchestrator, /profileOffset: 0, profileLimit: 1, includeManual: true/);
+  assert.match(orchestrator, /profileOffset: 1, includeManual: false/);
+});
+
 test('25-camera startup has faster bounded defaults and upgrades the previous .env defaults', () => {
   assert.match(config, /permanentIngestStartupStaggerMs: integer\('PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS', 250,/);
   assert.match(config, /streamStartConcurrency: integer\('STREAM_START_CONCURRENCY', 4,/);
@@ -343,7 +368,7 @@ test('stable reconnect pins the exact profile and transport candidate', () => {
 });
 
 test('permanent preview preserves camera audio; dedicated auxiliary workers remain video-only', () => {
-  assert.match(orchestrator, /const videoOnlyPreview = !session\.permanent && \['motion', 'prebuffer'\]\.includes/);
+  assert.match(orchestrator, /const videoOnlyPreview = session\.permanent \|\| \['motion', 'prebuffer'\]\.includes/);
   assert.match(orchestrator, /GO2RTC_AUXILIARY_AUDIO_DISABLED/);
   assert.doesNotMatch(orchestrator, /GO2RTC_PREVIEW_AUDIO_DISABLED/);
   assert.match(orchestrator, /startRing\(broker\.audio, true\)/);

@@ -175,6 +175,10 @@ export const config = Object.freeze({
   permanentIngestProfile: configurableString('PERMANENT_CAMERA_INGEST_PROFILE', 'auto-substream').toLowerCase(),
   permanentIngestVideoMode: configurableString('PERMANENT_CAMERA_INGEST_VIDEO_MODE', 'force-copy').toLowerCase(),
   permanentIngestStartupStaggerMs: integer('PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS', 250, { min: 0, max: 120_000 }),
+  // Dedicated cold-start setting. Older updater installs keep a legacy 1500ms
+  // .env value because they do not execute start.sh migrations. Never let that
+  // obsolete setting slow down backend-owned publishers after an in-app upgrade.
+  backgroundCameraBootstrapStaggerMs: integer('BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS', 250, { min: 0, max: 120_000 }),
   kioskPreferSubstream: boolean('KIOSK_PREFER_SUBSTREAM', true),
   liveAutoUsePermanentIngest: boolean('LIVE_AUTO_USE_PERMANENT_INGEST', true),
   livePreferMainstream: boolean('LIVE_PREFER_MAINSTREAM', true),

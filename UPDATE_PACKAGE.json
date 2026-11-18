@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.65",
+  "version": "2.20.66",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.65",
-  "summary": "Repair the Docker Compose V1 updater crash and detect the live go2rtc API prefix, retaining faster 25-camera bootstrap.",
-  "createdAt": "2026-11-18T11:30:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.65.md",
+  "title": "TMP Camera Surveillance Next 2.20.66",
+  "summary": "Prepare every configured camera centrally at backend startup, prioritize video-first preview and avoid stale 1500 ms legacy startup delays.",
+  "createdAt": "2026-11-18T12:35:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.66.md",
   "changes": [
-    "Bundle Docker Compose V2 within the updater to prevent legacy ContainerConfig errors",
-    "Provide a safe host-side recovery for existing Compose V1 updater installations",
-    "Detect go2rtc root API when the configured prefixed API returns 404 and cache it for media reads",
-    "Keep four bounded parallel camera starts and 250ms ingest startup staggering",
-    "Preserve existing recording, motion, HLS and camera settings"
+    "Start all central camera publishers at backend boot rather than after recording and remote-storage recovery",
+    "First try the preferred ONVIF camera profile and lazily resolve other profiles only after a failure",
+    "Skip optional audio for always-on shared preview to reduce video first-frame latency",
+    "Use dedicated BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS=250 to bypass stale in-app update .env settings",
+    "Preserve bounded camera-start concurrency, stream fallback, recording, motion and watchdog behavior"
   ],
   "preserve": [
     ".env",
@@ -31,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.65.md",
+  "changelog": "UPDATE_NOTES_2.20.66.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.65",
-  "packageId": "tmp-camera-surveillance-next-2.20.65",
+  "name": "TMP Camera Surveillance Next v2.20.66",
+  "packageId": "tmp-camera-surveillance-next-2.20.66",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Compose V2 updater, host-side updater rescue before in-app upgrade, and automatic go2rtc root API fallback.",
+  "description": "Front-end independent proactive camera publisher bootstrap, lazy ONVIF URI resolution, video-first Kiosk previews.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32. Existing broken Compose V1 updaters MUST first run scripts/recover-updater-compose-v2.sh from the host before using Update Center. Preserves .env, recordings, cameras and database. Contains v2.20.64 faster start defaults.",
-  "fileCount": 483
+  "releaseNotes": "Direct update compatible from 2.20.32. All enabled central camera publishers start in backend background as soon as the service is listening, before recording/storage recovery. Legacy startup stagger bypassed via dedicated 250ms value. Prefer video over optional audio in Kiosk preview, preserving recording and explicit-live audio.",
+  "fileCount": 484
 }

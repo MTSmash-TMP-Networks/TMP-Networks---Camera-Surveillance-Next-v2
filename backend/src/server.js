@@ -48,6 +48,20 @@ const server = app.listen(config.port, config.host, () => {
   const demoRuntime = demoModeSettingsService.status();
   if (demoRuntime.demoMode) logger.warn({ allowExports: demoRuntime.allowExports }, 'Demo-Modus aktiv: zustandsveraendernde API-Aktionen sind schreibgeschuetzt');
   healthMonitor.start();
+  // A browser must never be responsible for starting camera publishers.
+  // Start the central previews as soon as the API is listening and the DB
+  // has migrated. Slow recording recovery or remote-storage reconciliation
+  // must not delay the first frame of every camera in the Kiosk.
+  void (async () => {
+    try {
+      await streamOrchestrator.pruneOrphanedBrokersOnBoot();
+    } catch (error) {
+      logger.warn({ err: error }, 'Bereinigung alter Kamera-Producer fehlgeschlagen; Stream-Start bleibt moeglich');
+    }
+    void streamOrchestrator.startPermanentIngestForAll({ wait: false });
+  })().catch((error) => logger.error({ err: error }, 'Zentraler Kamera-Bootstrap konnte nicht vorbereitet werden'));
+
+  // Archive recovery and scheduling continue independently of the previews.
   void (async () => {
     try {
       const recovery = await recordingService.recoverInterruptedRecordings();
@@ -67,14 +81,8 @@ const server = app.listen(config.port, config.host, () => {
       }
       networkRecordingStorageService.start();
       discoveryJobService.bootstrap();
-      try {
-        await streamOrchestrator.pruneOrphanedBrokersOnBoot();
-      } catch (error) {
-        logger.warn({ err: error }, 'Bereinigung alter Kamera-Producer fehlgeschlagen; Stream-Start bleibt moeglich');
-      }
       // Offline preview cameras cannot delay the recording scheduler.
-      // Media startup remains bounded and owned by the backend.
-      void streamOrchestrator.startPermanentIngestForAll({ wait: false });
+      // Camera bootstrap is already running in its own backend task.
       motionDetectionService.start();
       recordingScheduler.start();
       // Retention starts last. It must never delete archive rows before local,
