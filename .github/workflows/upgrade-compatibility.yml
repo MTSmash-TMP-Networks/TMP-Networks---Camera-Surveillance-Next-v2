@@ -29,6 +29,8 @@ jobs:
         run: |
           node --test backend/test-node/camera-discovery-precision-regression.test.mjs
           node --test backend/test-node/camera-discovery-final-policy-regression.test.mjs
+      - name: Validate fair 26-camera cold-start and deferred recovery
+        run: node --test backend/test-node/camera-bootstrap-fairness-26.test.mjs
       - name: Validate camera discovery deadlines and progressive results
         run: node --test backend/test-node/discovery-completion-timeout.test.mjs
       - name: Validate updater compatibility regressions
@@ -65,6 +67,6 @@ jobs:
           npm ci --prefix frontend --no-audit --no-fund
           npm run test --prefix backend
           npm run test:critical --prefix backend
-          npm run test --prefix frontend
+          npm run test:ci --prefix frontend
           npm run build --prefix frontend
           npm run test --prefix updater

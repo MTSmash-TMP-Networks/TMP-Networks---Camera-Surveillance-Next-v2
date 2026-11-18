@@ -1,17 +1,21 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.70",
+  "version": "2.20.71",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.70",
-  "summary": "Reject false Reolink camera matches from TCP 8443+9000 and prevent old discovery flags persisting.",
-  "createdAt": "2026-11-18T15:10:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.70.md",
+  "title": "TMP Camera Surveillance Next 2.20.71",
+  "summary": "Fair 26-camera background startup plus fully verified frontend tests, robust session storage and WHEP timeout.",
+  "createdAt": "2026-11-18T16:10:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.71.md",
   "changes": [
-    "Do not identify Reolink by an open 9000 vendor port and a generic HTTPS port alone",
-    "Reevaluate port-based proof on every final discovery policy application",
-    "Remove old invalid Reolink manufacturer labels and stale manually scanned entries",
-    "Preserve verified ONVIF and RTSP/RTMP camera discovery",
-    "Keep full go2rtc race protection, motion, recording and HLS compatibility"
+    "Bound first cold-start HLS media wait to 20 seconds per candidate",
+    "Defer expensive ONVIF, encoder, alternate-profile and snapshot fallback attempts until each camera got a first chance",
+    "Keep four simultaneous starts, per-camera serialization and existing restart/backoff safety",
+    "Record queue wait and active startup durations by camera without credentials",
+    "Preserve legacy camera, recording, motion, HLS and fixed go2rtc broker behavior",
+    "Fix frontend initial sessionStorage import in non-browser and restricted contexts",
+    "Make WHEP SDP POST and response body bounded by a hard deadline",
+    "Run all legacy native node:test frontend suites separately from Vitest",
+    "Repair localized recording-storage translation and stale tests without disabling any tests"
   ],
   "preserve": [
     ".env",
@@ -32,14 +36,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.70.md",
+  "changelog": "UPDATE_NOTES_2.20.71.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.70",
-  "packageId": "tmp-camera-surveillance-next-2.20.70",
+  "name": "TMP Camera Surveillance Next v2.20.71",
+  "packageId": "tmp-camera-surveillance-next-2.20.71",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Correct vendor inference and final camera discovery classification; reset stale manual scan results.",
+  "description": "Two-stage 26-camera bootstrap, backend stream metrics and frontend regression fixes with independent Vitest/node:test runners.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32. TCP 9000 + generic HTTPS is no longer enough to identify a Reolink camera. RTSP, RTMP or explicit ONVIF/vendor API evidence remains eligible. Current scan recomputes port signature, stale scan flags are discarded, and each new manual scan resets results. Preserves recordings, cameras and .env.",
-  "fileCount": 494
+  "releaseNotes": "Direct upgrade from 2.20.32. 26 cameras receive a bounded 20-second first media attempt; failed profiles and snapshot recovery run in a second round after all cameras were admitted. Four start slots retained, with queue and active start time diagnostics. No database, camera settings, recordings, motion, patched go2rtc or .env changes. Frontend fixes: graceful storage-unavailable authentication token handling, hard timeout for WHEP SDP handshake, localization completeness for recording storage, corrected current behavior regression tests, and separate native Node test suites.",
+  "fileCount": 497
 }

@@ -37,6 +37,7 @@ UPDATE_NOTES_2.20.67.md
 UPDATE_NOTES_2.20.68.md
 UPDATE_NOTES_2.20.69.md
 UPDATE_NOTES_2.20.70.md
+UPDATE_NOTES_2.20.71.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -171,6 +172,7 @@ backend/src/utils/logger.js
 backend/src/utils/url.js
 backend/test-node/ai-event-analysis-regression.test.mjs
 backend/test-node/broker-pipeline.test.mjs
+backend/test-node/camera-bootstrap-fairness-26.test.mjs
 backend/test-node/camera-discovery-final-policy-regression.test.mjs
 backend/test-node/camera-discovery-precision-regression.test.mjs
 backend/test-node/camera-discovery-ui-state.test.mjs
@@ -423,6 +425,7 @@ frontend/test-node/coreui-shell-foundation.test.mjs
 frontend/test-node/desktop-client-distribution.test.mjs
 frontend/test-node/motion-zone-editor.test.mjs
 frontend/test-node/ptz-setup-regression.test.mjs
+frontend/test-node/run-native-tests.mjs
 frontend/test/always-on-streams.test.js
 frontend/test/branding-icon.test.js
 frontend/test/camera-add-refresh.test.js

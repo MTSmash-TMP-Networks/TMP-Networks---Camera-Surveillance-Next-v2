@@ -232,11 +232,12 @@ test('Updater übernimmt den tatsächlichen Compose-Projektnamen statt einen zwe
   assert.match(compose, /COMPOSE_PROJECT_NAME: \$\{COMPOSE_PROJECT_NAME:-tmp-camera-surveillance-next\}/);
 });
 
-test('Dienstneustart entfernt alle alten Container desselben Compose-Dienstes vor dem Start', () => {
-  assert.match(server, /composeServiceContainerIds/);
-  assert.match(server, /label=com\.docker\.compose\.project=\$\{context\.composeProjectName\}/);
-  assert.match(server, /execute\('docker', \['rm', '-f', \.\.\.ids\]/);
-  assert.match(server, /replaceComposeService\(context, 'mediamtx'\)/);
+test('Dienstneustart nutzt die Compose-SIGTERM-Stopfrist statt hartem docker rm -f', () => {
+  assert.match(server, /async function replaceComposeService\(context, service/);
+  assert.match(server, /'up', '-d', '--no-deps', '--force-recreate'/);
+  assert.match(server, /Honor Compose stop_grace_period and let the backend finalize recordings/);
+  assert.match(server, /await replaceComposeService\(context, 'mediamtx'\)/);
+  assert.doesNotMatch(server, /execute\('docker', \['rm', '-f', \.\.\.ids\]/);
 });
 
 

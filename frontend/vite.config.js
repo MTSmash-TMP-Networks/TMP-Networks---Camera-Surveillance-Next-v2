@@ -9,6 +9,11 @@ const packageJson = JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8
 
 export default defineConfig({
   plugins: [react()],
+  // Vitest runs its own test API. Native node:test suites are executed by
+  // test:native instead of being misclassified as empty Vitest suites.
+  test: {
+    include: ['**/*.test.js', 'src/i18n/recordings.test.mjs'],
+  },
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version || '0.0.0'),
   },

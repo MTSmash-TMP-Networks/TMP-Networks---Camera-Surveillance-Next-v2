@@ -180,6 +180,8 @@ export const config = Object.freeze({
   // .env value because they do not execute start.sh migrations. Never let that
   // obsolete setting slow down backend-owned publishers after an in-app upgrade.
   backgroundCameraBootstrapStaggerMs: integer('BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS', 250, { min: 0, max: 120_000 }),
+  // Limit slow media waits during the first cold-start wave only.
+  backgroundCameraBootstrapMaxMediaMs: integer('BACKGROUND_CAMERA_BOOTSTRAP_MAX_MEDIA_MS', 20000, { min: 12000, max: 60000 }),
   kioskPreferSubstream: boolean('KIOSK_PREFER_SUBSTREAM', true),
   liveAutoUsePermanentIngest: boolean('LIVE_AUTO_USE_PERMANENT_INGEST', true),
   livePreferMainstream: boolean('LIVE_PREFER_MAINSTREAM', true),

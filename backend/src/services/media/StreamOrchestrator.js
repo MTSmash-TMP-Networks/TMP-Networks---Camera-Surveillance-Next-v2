@@ -175,14 +175,26 @@ class StreamOrchestrator {
   async startSerialized(session, camera, viewportWidth) {
     const cameraId = String(camera?.id || session?.cameraId || 'camera');
     const expectedEpoch = Number(session.startEpoch || 0);
+    const queuedAt = Date.now();
     const previous = this.cameraStartLocks.get(cameraId) || Promise.resolve();
     this.log(session, 'debug', 'stream', 'CAMERA_START_QUEUED', 'Kamerastart wartet auf einen freien begrenzten Verbindungsplatz');
     const current = previous.catch(() => null).then(() => this.cameraStarts.run(async () => {
       this.assertStartCurrent(session, expectedEpoch);
       const latest = cameraRepository.getWithCredentials(cameraId);
       if (!latest || !latest.enabled) throw new AppError(409, 'STREAM_START_CANCELLED', 'Kamera wurde entfernt oder deaktiviert');
+      const acquiredAt = Date.now();
+      const fastPass = Boolean(session.permanent && session.bootstrapFastPass);
       this.log(session, 'debug', 'stream', 'CAMERA_START_ACQUIRED', 'Kamerastart hat einen freien Verbindungsplatz', this.cameraStarts.status());
-      return this.start(session, latest, viewportWidth, expectedEpoch);
+      try {
+        return await this.start(session, latest, viewportWidth, expectedEpoch);
+      } finally {
+        this.log(session, 'info', 'stream', 'CAMERA_START_TIMING', 'Kamerastart hat den gemeinsamen Startplatz freigegeben', {
+          queuedMs: Math.max(0, acquiredAt - queuedAt),
+          activeMs: Math.max(0, Date.now() - acquiredAt),
+          fastPass,
+          state: session.state,
+        });
+      }
     }));
     this.cameraStartLocks.set(cameraId, current);
     try {
@@ -411,7 +423,7 @@ class StreamOrchestrator {
     return this.publicSession(session, true);
   }
 
-  async ensurePermanentIngest(cameraId, { viewportWidth = 1280, profileToken = null, purpose = 'live' } = {}, { wait = true } = {}) {
+  async ensurePermanentIngest(cameraId, { viewportWidth = 1280, profileToken = null, purpose = 'live' } = {}, { wait = true, fastBootstrap = false } = {}) {
     if (this.closed) throw new AppError(503, 'STREAM_SERVICE_STOPPED', 'Stream-Dienst wird gerade beendet');
     const camera = cameraRepository.getWithCredentials(cameraId);
     if (!camera || !camera.enabled) throw new AppError(404, 'CAMERA_NOT_FOUND', 'Kamera nicht gefunden oder deaktiviert');
@@ -461,6 +473,7 @@ class StreamOrchestrator {
       });
     } else if (!session.startPromise || session.state === 'stopped') {
       session.startFailure = null;
+      session.bootstrapFastPass = Boolean(fastBootstrap);
       session.startPromise = this.startSerialized(session, camera, viewportWidth).catch((error) => {
         if (error?.code === 'STREAM_START_CANCELLED') return null;
         session.state = 'failed';
@@ -541,6 +554,10 @@ class StreamOrchestrator {
 
   async start(session, camera, viewportWidth, startEpoch = Number(session.startEpoch || 0)) {
     this.assertStartCurrent(session, startEpoch);
+    // Only the first backend cold-start wave is shortened. All later recovery,
+    // manual, recording and motion starts retain their full fallback behavior.
+    const fastBootstrap = Boolean(session.permanent && session.bootstrapFastPass);
+    session.bootstrapFastPass = false;
     if (session.restartTimer) {
       clearTimeout(session.restartTimer);
       session.restartTimer = null;
@@ -576,7 +593,8 @@ class StreamOrchestrator {
     let profiles = cameraRepository.profiles(camera.id);
     const hadStoredProfiles = profiles.length > 0;
     this.phase(session, 'profile_loading', hadStoredProfiles ? `${profiles.length} gespeicherte ONVIF-Profile und ${mediaSources.length} alternative Quellen werden geprüft` : 'ONVIF-Profile und alternative Medienquellen werden geladen', { storedProfiles: profiles.length, alternativeSources: mediaSources.length, sourcePolicy: session.sourcePolicy });
-    if (!profiles.length && !directStream) {
+    // Defer slow ONVIF profile discovery until every camera had a first turn.
+    if (!profiles.length && !directStream && !fastBootstrap) {
       try {
         profiles = await onvif.profiles();
         cameraRepository.replaceProfiles(camera.id, profiles);
@@ -593,7 +611,7 @@ class StreamOrchestrator {
     }
     const failures = [];
     if (directStream) this.log(session, 'info', 'stream', 'DIRECT_STREAM_SOURCE', 'Direkter Netzwerkstream wird ohne ONVIF-Profilauflösung gestartet', { alternativeSources: mediaSources.length });
-    const passes = hadStoredProfiles && !directStream ? 2 : 1;
+    const passes = fastBootstrap ? 1 : (hadStoredProfiles && !directStream ? 2 : 1);
 
     for (let pass = 0; pass < passes; pass += 1) {
       this.assertStartCurrent(session, startEpoch);
@@ -618,7 +636,7 @@ class StreamOrchestrator {
       const batches = session.permanent && pass === 0 && !directStream && profiles.length > 1
         ? [{ profileOffset: 0, profileLimit: 1, includeManual: true }, { profileOffset: 1, includeManual: false }]
         : [{}];
-      for (const batch of batches) {
+      for (const batch of (fastBootstrap ? batches.slice(0, 1) : batches)) {
         const attempts = await this.orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources, batch);
         session.attemptCount = attempts.length;
       this.log(session, 'info', 'stream', 'ATTEMPTS_PREPARED', `${attempts.length} Streamvarianten werden systematisch geprüft`, {
@@ -680,12 +698,12 @@ class StreamOrchestrator {
             this.assertStartCurrent(session, startEpoch);
             session.brokerEncoder = encoder;
             try {
-              session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy);
+              session.outputs = await this.launch(session, camera, sourceUri, candidate, profile, probe, policy, { fastBootstrap });
               this.assertStartCurrent(session, startEpoch);
               break;
             } catch (encodeError) {
               await this.kill(session);
-              if (encoderIndex === encoders.length - 1 || !isBrokerEncoderRetryable(encodeError)) throw encodeError;
+              if (fastBootstrap || encoderIndex === encoders.length - 1 || !isBrokerEncoderRetryable(encodeError)) throw encodeError;
               failedEncoders.set(encoder, Date.now());
               this.brokerEncoderFailures.set(failureKey, failedEncoders);
               const copyFailure = encoder === 'copy';
@@ -784,9 +802,29 @@ class StreamOrchestrator {
             ffmpeg: session.stderrLines.slice(-30),
           });
           await this.kill(session);
+          if (fastBootstrap) {
+            // A failed first attempt must not occupy one of four slots for
+            // many alternate profiles, software encoders and snapshots.
+            session.bootstrapDeferredFallback = true;
+            this.log(session, 'info', 'stream', 'BOOTSTRAP_SLOW_FALLBACK_DEFERRED',
+              'Langsame Profil- und Encoder-Fallbacks folgen nach der ersten Kamerarunde', {
+                attemptedProfile: profile.name,
+                previousErrorCode: error?.code || null,
+              });
+            throw new AppError(503, 'BOOTSTRAP_FALLBACK_DEFERRED',
+              'Keine ersten Medienframes; voller Fallback folgt nach der ersten Kamerarunde');
+          }
         }
       }
       }
+    }
+    if (fastBootstrap) {
+      // No source was available from cached profiles or direct media URLs.
+      // Normal ONVIF refresh and snapshot emergency video remain available
+      // in the deferred recovery wave; never start them in cold-start wave 1.
+      session.bootstrapDeferredFallback = true;
+      throw new AppError(503, 'BOOTSTRAP_FALLBACK_DEFERRED',
+        'Keine sofort nutzbare Quelle; volle Fallbacks folgen nach der ersten Kamerarunde');
     }
     // Snapshot-H.264 is an emergency source for every consumer, including
     // permanent previews, recording, motion and prebuffer. Resource control is
@@ -928,7 +966,7 @@ class StreamOrchestrator {
     }
   }
 
-  async launch(session, camera, sourceUri, candidate, profile, probe, policy) {
+  async launch(session, camera, sourceUri, candidate, profile, probe, policy, { fastBootstrap = false } = {}) {
     const broker = await this.acquireBroker(session, camera, profile, candidate, sourceUri);
 
     session.mode = 'local-hls-ring';
@@ -989,7 +1027,9 @@ class StreamOrchestrator {
         : config.startTimeoutMs;
       const outcome = await this.waitUntilLocalHlsReady(session, {
         timeoutMs: firstFrameTimeoutMs,
-        maxActiveMediaMs: Math.max(firstFrameTimeoutMs, config.streamActiveMediaStartMaxMs),
+        maxActiveMediaMs: fastBootstrap
+          ? Math.max(firstFrameTimeoutMs, Math.min(config.streamActiveMediaStartMaxMs, config.backgroundCameraBootstrapMaxMediaMs))
+          : Math.max(firstFrameTimeoutMs, config.streamActiveMediaStartMaxMs),
         expectedChild: child,
         intervalMs: 250,
       });
@@ -2166,7 +2206,7 @@ class StreamOrchestrator {
     }
   }
 
-  async startPermanentIngestForCamera(cameraId, { wait = false, reason = 'camera-enabled' } = {}) {
+  async startPermanentIngestForCamera(cameraId, { wait = false, reason = 'camera-enabled', fastBootstrap = false } = {}) {
     if (!config.permanentIngestEnabled) return { started: false, reason: 'disabled' };
     const camera = cameraRepository.getWithCredentials(cameraId);
     if (!camera || !camera.enabled) return { started: false, reason: 'camera-disabled-or-missing' };
@@ -2174,7 +2214,7 @@ class StreamOrchestrator {
       viewportWidth: widthForQuality(permanentQuality()),
       profileToken: null,
       purpose: 'kiosk',
-    }, { wait }).catch((error) => {
+    }, { wait, fastBootstrap }).catch((error) => {
       logger.warn({ cameraId, reason, err: error }, 'Permanenter Kamera-Publisher konnte nicht gestartet werden');
       return null;
     });
@@ -2195,7 +2235,7 @@ class StreamOrchestrator {
         const requests = [];
         for (const [index, camera] of cameras.entries()) {
           if (this.closed) break;
-          requests.push(this.startPermanentIngestForCamera(camera.id, { wait: true, reason: 'backend-startup' }));
+          requests.push(this.startPermanentIngestForCamera(camera.id, { wait: true, reason: 'backend-startup', fastBootstrap: true }));
           started += 1;
           if (pauseMs > 0 && index < cameras.length - 1) {
             await new Promise((resolve) => setTimeout(resolve, pauseMs));
@@ -2208,7 +2248,11 @@ class StreamOrchestrator {
         this.deferredPermanentRestartKeys.clear();
         for (const key of deferredKeys) {
           const session = this.sessions.get(key);
-          if (session?.permanent && session.state === 'failed' && !session.restartTimer) this.scheduleRestart(session);
+          if (session?.permanent && session.state === 'failed' && !session.restartTimer) {
+            const deferred = Boolean(session.bootstrapDeferredFallback);
+            session.bootstrapDeferredFallback = false;
+            this.scheduleRestart(session, deferred ? 1500 : null);
+          }
         }
       }
       logger.info({ started, quality: permanentQuality(), permanentIngest: true, ready: cameras.filter((camera) => this.hasReadyPermanent(camera.id)).length }, 'Kamera-Bootstrap wurde abgeschlossen');

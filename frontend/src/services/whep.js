@@ -133,19 +133,39 @@ export async function connectWhep({ url, token, video, onState, onStats, signal,
     if (signal?.aborted) throw abortError();
     await pc.setLocalDescription(offer);
     await waitIce(pc, 5000, signal);
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/sdp', Authorization: `Bearer ${token}` },
-      body: pc.localDescription.sdp,
-      signal,
-    });
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      throw new Error(`WebRTC/WHEP ${response.status}${body ? `: ${body.slice(0, 240)}` : ''}`);
+    // Abort the complete WHEP handshake, including a stalled SDP response
+    // body. A socket-connect timeout by itself is insufficient.
+    const requestController = new AbortController();
+    const timedOut = { current: false };
+    const onAbort = () => requestController.abort();
+    signal?.addEventListener('abort', onAbort, { once: true });
+    const requestTimer = setTimeout(() => {
+      timedOut.current = true;
+      requestController.abort();
+    }, 8000);
+    let response;
+    let answer;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/sdp', Authorization: `Bearer ${token}` },
+        body: pc.localDescription.sdp,
+        signal: requestController.signal,
+      });
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`WebRTC/WHEP ${response.status}${body ? `: ${body.slice(0, 240)}` : ''}`);
+      }
+      answer = await response.text();
+    } catch (error) {
+      if (timedOut.current) throw timeoutError('Zeitlimit bei der WebRTC/WHEP-Anmeldung');
+      throw error;
+    } finally {
+      clearTimeout(requestTimer);
+      signal?.removeEventListener('abort', onAbort);
     }
     location = response.headers.get('location');
     etag = response.headers.get('etag');
-    const answer = await response.text();
     if (signal?.aborted) throw abortError();
     await pc.setRemoteDescription({ type: 'answer', sdp: answer });
     await playWithTimeout(video, 8000, signal);

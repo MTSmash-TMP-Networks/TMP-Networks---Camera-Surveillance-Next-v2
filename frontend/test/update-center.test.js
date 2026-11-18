@@ -2,43 +2,43 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { translate } from '../src/i18n/messages.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const page = readFileSync(resolve(here, '../src/pages/UpdatePage.jsx'), 'utf8');
 const navigation = readFileSync(resolve(here, '../src/config/navigation.js'), 'utf8');
 const api = readFileSync(resolve(here, '../src/services/api.js'), 'utf8');
 
-describe('Update-Center frontend', () => {
-  it('zeigt geprüfte Änderungen, Fortschritt und Rollback an', () => {
-    expect(page).toContain('Update-Paket hochladen');
-    expect(page).toContain('Änderungen anzeigen');
-    expect(page).toContain('Technisches Installationsprotokoll');
-    expect(page).toContain('Rollback');
+describe('Localized update center', () => {
+  it('shows checked changes, progress, rollback and binary uploads', () => {
+    for (const marker of ["t('update.upload.title')", "t('update.package.showChanges')", "t('update.log.technical')", "t('update.backups.title')"]) {
+      // The package action key is referenced in the conditional label helper.
+      expect(page).toContain(marker);
+    }
+    expect(translate('de', 'update.log.technical')).toBe('Technisches Installationsprotokoll');
   });
-
-  it('ist nur in der Adminnavigation verlinkt', () => {
+  it('is restricted to admin navigation', () => {
     expect(navigation).toContain('adminOnly: true');
     expect(navigation).toContain('/system/update');
   });
-
-  it('überträgt ZIP-Dateien binär statt als JSON', () => {
+  it('uploads a ZIP as raw bytes instead of JSON', () => {
     expect(api).toContain('body: file');
     expect(api).toContain('X-File-Name');
   });
-
-  it('sperrt die Installation nicht allein wegen eines fehlgeschlagenen Healthchecks', () => {
-    expect(page).toContain('Installation versuchen');
+  it('allows an installation attempt even when the updater health state is degraded', () => {
+    expect(page).toContain('updaterActionLabel');
+    expect(page).toContain("t('update.action.installTry')");
+    expect(page).toContain('disabled={busy || running || updaterRestarting}');
     expect(page).not.toContain('disabled={busy || running || !updaterOnline}');
   });
-
-  it('zeigt einen initialen Backendfehler statt eines endlosen Ladezustands', () => {
-    expect(page).toContain('Update-Center nicht erreichbar');
-    expect(page).toContain('Erneut versuchen');
+  it('shows a recoverable backend error instead of spinning forever', () => {
+    expect(page).toContain("t('update.load.unreachable')");
+    expect(page).toContain("t('update.load.retry')");
+    expect(translate('de', 'update.load.unreachable')).toBe('Update-Center nicht erreichbar');
   });
-
-  it('zeigt sichere Diagnose-IDs, aber keine fest verdrahtete interne URL', () => {
-    expect(page).toContain('Verbindungsdiagnose des Update-Dienstes');
-    expect(page).toContain('Diagnose-ID');
+  it('shows diagnostic IDs without exposing internal service addresses', () => {
+    expect(page).toContain("t('update.diagnostics.title')");
+    expect(page).toContain("t('update.diagnostics.id')");
     expect(page).not.toContain('http://updater:3010');
     expect(api).toContain('API_NETWORK_ERROR');
   });
