@@ -1,3 +1,12 @@
+## 2.20.73 – Visueller Kiosk-Rastereditor mit Kamera-Vorschauen
+
+- Rasterverwaltung zeigt links eine durchsuchbare Kameraliste mit Miniatur-Snapshots und rechts das Layout mit Kamera-Vorschaubildern.
+- Kameras per Drag-and-drop aus der Liste ins Raster ziehen; bestehende belegte Kacheln untereinander tauschen, per Klick zuweisen oder aus dem Raster entfernen.
+- Gespeicherte Layouts erscheinen oberhalb des Editors. Bestehende gespeicherte Einstellungen/IDs und Rastervorlagen bleiben kompatibel.
+- Vorschaubilder werden nur bei Sichtbarkeit geladen, mit zwei parallelen authentifizierten Snapshot-Anfragen und Zeitlimit. Keine zusätzlichen WebRTC-/HLS- oder RTSP-Liveverbindungen fuer die Rasterverwaltung.
+- Responsives Rastermanagement mit alternativem Klick-/Dropdown-Bedienweg fuer Touch und Tastatur, englische/deutsche Texte und Fallback fuer weitere Sprachen.
+- Version 2.20.72 HLS-Stillstandsschutz, 26-Kamera-Start und TMP-Broker-Racefix bleiben erhalten.
+
 ## 2.20.72 – Eingefrorene HLS-Streams nicht mehr endlos wiederholen
 
 - Live-Playlist-Segmentnummern muessen fortschreiten. Alte Browser-Puffer gelten nicht als neue Kameraframes.
