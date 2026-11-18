@@ -1131,7 +1131,7 @@ class StreamOrchestrator {
       height,
       fps: config.snapshotVideoFps,
       segmentSeconds: config.localHlsSegmentSeconds,
-      listSize: config.localHlsListSize,
+      listSize: effectiveLocalHlsListSize(config.localHlsListSize, config.localHlsStableMinSegments),
     });
     const child = spawn(config.ffmpegPath, args, { stdio: ['pipe', 'pipe', 'pipe'] });
     child.__tmpExpectedExit = false;
