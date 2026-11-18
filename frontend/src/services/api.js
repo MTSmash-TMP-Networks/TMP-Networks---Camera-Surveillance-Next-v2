@@ -65,10 +65,12 @@ export async function request(path, options = {}) {
 }
 
 
-export async function requestBlob(path) {
+export async function requestBlob(path, { signal = undefined, timeoutMs = 12_000 } = {}) {
   const headers = new Headers();
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
-  const response = await fetchApi(`${API}${path}`, { headers, cache: 'no-store' });
+  const deadline = AbortSignal.timeout(Math.max(1000, Number(timeoutMs) || 12_000));
+  const requestSignal = signal && AbortSignal.any ? AbortSignal.any([signal, deadline]) : deadline;
+  const response = await fetchApi(`${API}${path}`, { headers, cache: 'no-store', signal: requestSignal });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.blob();
 }
@@ -171,7 +173,7 @@ export const api = {
   ptzHome: (id, input = {}) => request(`/ptz/${id}/home`, { method: 'POST', body: typeof input === 'string' ? { profileToken: input } : input }),
   ptzStatus: (id) => request(`/ptz/${id}/status`),
   presets: (id, profileToken) => request(`/ptz/${id}/presets?profile=${encodeURIComponent(profileToken || '')}`),
-  snapshot: (id, profile = '') => requestBlob(`/cameras/${id}/snapshot${profile ? `?profile=${encodeURIComponent(profile)}` : ''}`),
+  snapshot: (id, profile = '', options = {}) => requestBlob(`/cameras/${encodeURIComponent(id)}/snapshot${profile ? `?profile=${encodeURIComponent(profile)}` : ''}`, options),
   gotoPreset: (id, preset, input = {}) => request(`/ptz/${id}/presets/${encodeURIComponent(preset)}`, { method: 'POST', body: typeof input === 'string' ? { profileToken: input } : input }),
   recordings: (cameraId = '') => request(`/recordings${cameraId ? `?cameraId=${encodeURIComponent(cameraId)}` : ''}`),
   startRecording: (input) => request('/recordings', { method: 'POST', body: input }),
