@@ -16,7 +16,8 @@ export function consumeFfmpegProgress(tracker, lines = []) {
     const value = Number(line.slice(separator + 1));
     if (!Number.isFinite(value)) continue;
     const previous = target.values.get(key);
-    if (previous === undefined || value > previous) advanced = true;
+    // Initial zeros are not evidence of encoded frames, packets or output.
+    if ((previous === undefined && value > 0) || (previous !== undefined && value > previous)) advanced = true;
     if (previous === undefined || value >= previous) target.values.set(key, value);
   }
   if (advanced) target.updates += 1;
