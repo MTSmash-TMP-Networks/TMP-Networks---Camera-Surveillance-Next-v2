@@ -40,6 +40,7 @@ UPDATE_NOTES_2.20.70.md
 UPDATE_NOTES_2.20.71.md
 UPDATE_NOTES_2.20.72.md
 UPDATE_NOTES_2.20.73.md
+UPDATE_NOTES_2.20.74.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -77,6 +78,7 @@ backend/src/services/CameraIdentity.js
 backend/src/services/DemoModePolicy.js
 backend/src/services/DemoModeSettingsService.js
 backend/src/services/DemoUserService.js
+backend/src/services/DesktopDeviceSessionService.js
 backend/src/services/DirectStreamInstaller.js
 backend/src/services/DiscoveryJobService.js
 backend/src/services/GenericCameraInstaller.js
@@ -424,6 +426,7 @@ frontend/src/utils/codec.js
 frontend/src/utils/codec.test.js
 frontend/src/utils/smbLocation.js
 frontend/src/utils/smbLocation.test.mjs
+frontend/test-node/autonomous-desktop-client.test.mjs
 frontend/test-node/camera-add-validation-regression.test.mjs
 frontend/test-node/container-status-branding.test.mjs
 frontend/test-node/coreui-shell-foundation.test.mjs
