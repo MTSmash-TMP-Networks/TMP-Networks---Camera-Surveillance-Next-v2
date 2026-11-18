@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { CameraStartLimiter } from '../src/services/media/CameraStartLimiter.js';
-import { inspectLocalHlsRing } from '../src/services/media/LocalHlsHealth.js';
+import { inspectLocalHlsRing, effectiveLocalHlsListSize, withLocalHlsContinuity } from '../src/services/media/LocalHlsHealth.js';
 
 test('HLS readiness requires fresh playlist-referenced segment files', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'camera-hls-health-'));
@@ -23,6 +23,35 @@ test('HLS readiness requires fresh playlist-referenced segment files', () => {
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test('a short manifest rotation does not flip a running HLS publisher offline', () => {
+  const now = Date.now();
+  const missing = { ready: false, newestSegmentAt: null, ageMs: null, reason: 'missing-playlist' };
+  const opts = { now, lastReadyAt: now - 1500, graceMs: 10000, processAlive: true, wasReady: true };
+  const continuous = withLocalHlsContinuity(missing, opts);
+  assert.equal(continuous.ready, true);
+  assert.equal(continuous.grace, true);
+  assert.equal(withLocalHlsContinuity(missing, { ...opts, lastReadyAt: now - 11000 }).ready, false);
+  assert.equal(withLocalHlsContinuity(missing, { ...opts, processAlive: false }).ready, false);
+  assert.equal(withLocalHlsContinuity(missing, { ...opts, wasReady: false }).ready, false);
+  assert.equal(withLocalHlsContinuity({ ready: true, reason: 'fresh' }, opts).grace, undefined);
+  assert.equal(effectiveLocalHlsListSize(30, 60), 60);
+  assert.equal(effectiveLocalHlsListSize(80, 60), 80);
+  assert.equal(effectiveLocalHlsListSize(30, 0), 30);
+});
+
+test('local HLS checks newest segments without statting all 60 fragments', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'camera-hls-many-segments-'));
+  try {
+    const names = Array.from({ length: 60 }, (_, i) => `seg_${String(i + 1).padStart(10, '0')}.ts`);
+    fs.writeFileSync(path.join(directory, 'index.m3u8'), '#EXTM3U\\n' + names.map((n) => `#EXTINF:1,\\n${n}\\n`).join(''));
+    fs.writeFileSync(path.join(directory, names.at(-1)), Buffer.alloc(2000, 0x47));
+    assert.equal(inspectLocalHlsRing(directory).ready, true);
+    fs.unlinkSync(path.join(directory, names.at(-1)));
+    fs.writeFileSync(path.join(directory, names.at(-2)), Buffer.alloc(2000, 0x47));
+    assert.equal(inspectLocalHlsRing(directory).ready, true);
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
 test('connection limiter never runs too many cameras simultaneously', async () => {
