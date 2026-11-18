@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.68",
+  "version": "2.20.69",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.68",
-  "summary": "Replace crashing go2rtc broker with pinned TMP race-fixed go2rtc engine; preserve existing FFmpeg, VAAPI and camera pipelines.",
-  "createdAt": "2026-11-18T14:45:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.68.md",
+  "title": "TMP Camera Surveillance Next 2.20.69",
+  "summary": "Fix TMP go2rtc broker build on classic Docker 20.10 and show verified cameras progressively during bounded discovery.",
+  "createdAt": "2026-11-18T14:35:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.69.md",
   "changes": [
-    "Replace vulnerable go2rtc v1.9.14 binary with TMP race-fixed pinned build",
-    "Fix unsafe DELETE/list of global streams map and concurrent /api info reads",
-    "Run Go race detector on concurrent 40-stream read/mutation test during build",
-    "Build broker ahead of production service recreation to fail safely",
-    "Preserve official FFmpeg/VAAPI runtime and all recording, Motion, ONVIF and HLS pathways"
+    "Fix go2rtc Docker build failing because classic Docker leaves BUILDPLATFORM blank",
+    "Test classic Docker build with DOCKER_BUILDKIT=0 in CI",
+    "Guarantee per-request and per-host camera discovery deadlines",
+    "Show verified camera results before entire search completes",
+    "Preserve camera settings, recordings and go2rtc race-fixed broker"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.68.md",
+  "changelog": "UPDATE_NOTES_2.20.69.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.68",
-  "packageId": "tmp-camera-surveillance-next-2.20.68",
+  "name": "TMP Camera Surveillance Next v2.20.69",
+  "packageId": "tmp-camera-surveillance-next-2.20.69",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Crash fix for fatal concurrent map writes in go2rtc stream DELETE/list API, via Go locking patch and reproducible Docker build.",
+  "description": "Classic-Docker compatible TMP Hardened Media Broker and bounded-progress camera network discovery.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Direct update compatible from 2.20.32. A custom go2rtc v1.9.14 broker fixes verified concurrent map write crash while preserving FFmpeg and Intel VAAPI runtime. Broker is built and Go race-tested before service replacement. Requires one controlled media service restart. Existing video, recording, Motion, ONVIF and HLS settings preserved. Separate HLS buffer improvements remain in development.",
-  "fileCount": 491
+  "releaseNotes": "Includes the go2rtc concurrent map write crash fix from 2.20.68 with native-architecture classic Docker builds. Camera scan uses absolute network request and 12s per-host fingerprint deadlines, and returns verified camera results before the last host finishes. Preserves .env, recordings and camera database. Direct update compatible from 2.20.32.",
+  "fileCount": 493
 }
