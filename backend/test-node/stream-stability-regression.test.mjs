@@ -252,7 +252,7 @@ test('permanent camera publishers are initialized at backend startup independent
 test('background camera video previews avoid optional audio stalls', () => {
   assert.match(orchestrator, /const videoOnlyPreview = session\.permanent \|\| \['motion', 'prebuffer'\]\.includes/);
   assert.match(orchestrator, /if \(profile\?\.audioCodec && !videoOnlyPreview\)/);
-  assert.match(orchestrator, /if \(broker\.audioConfigured\)/);
+  assert.match(orchestrator, /if \(broker\.audioConfigured && !session\.permanent\)/);
 });
 
 test('permanent bootstrap resolves one ONVIF profile first and only resolves remaining profiles as fallback', () => {
