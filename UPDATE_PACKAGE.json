@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.74",
+  "version": "2.20.75",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.74",
-  "summary": "Autonomer Linux-Kiosk mit sicherer, dauerhafter, widerrufbarer Geraetesitzung und automatischem Wiederverbinden.",
-  "createdAt": "2026-11-18T17:35:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.74.md",
+  "title": "TMP Camera Surveillance Next 2.20.75",
+  "summary": "Persistente serverseitige Kameravorschauen alle 60 Sekunden; Linux Desktop Login mit Host-Port-Fix und neuem Layout.",
+  "createdAt": "2026-11-18T17:02:09.093Z",
+  "changelogFile": "UPDATE_NOTES_2.20.75.md",
   "changes": [
-    "Support secure revocable HttpOnly Linux device grants and automatic JWT refresh",
-    "Enable Electron fullscreen kiosk, single-instance and resilient backoff reconnect",
-    "Install Linux desktop autostart without root or weakening sandbox",
-    "Rebuild downloadable Linux x64 ZIP with updated application code",
-    "Preserve web authentication, recording, motion, 26-camera bootstrap and stable broker"
+    "Persist one compressed JPEG per camera using the existing local HLS ring, no extra camera connections",
+    "Refresh each thumbnail every 60 seconds with globally single-flight background FFmpeg work",
+    "Serve authenticated cached thumbnails to overview and Kiosk layout editor without live probes",
+    "Fix LAN Desktop session Origin/Host checks by preserving Host with port in Nginx",
+    "Polish desktop login and checkbox layout without weakening existing authentication"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.74.md",
+  "changelog": "UPDATE_NOTES_2.20.75.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.74",
-  "packageId": "tmp-camera-surveillance-next-2.20.74",
+  "name": "TMP Camera Surveillance Next v2.20.75",
+  "packageId": "tmp-camera-surveillance-next-2.20.75",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Refreshable revocable device grants, Electron kiosk reconnect/autostart and rebuilt Linux desktop download ZIP.",
+  "description": "Shared persistent camera thumbnail cache with bounded local-HLS extraction and fixed Linux Desktop sign-in Origin/Host handling.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Dedicated Linux Kiosk client now auto-starts in fullscreen at Linux user login (configurable), recovers after server/network outage and retains a securely renewable opt-in device session. Server stores only SHA256 hashes of revocable 90-day idle device grants; temporary 8h JWT access tokens are refreshed every 15 minutes. Explicit signout revokes grant, changes in user password/role disable old sessions, no TLS bypass, no auto login without explicit device consent. Updated downloadable Linux ZIP. Existing streams, recordings, motion, 2.20.73 layout editor and go2rtc stable.",
-  "fileCount": 507
+  "releaseNotes": "2.20.75 stores staggered 60-second camera previews in /data/thumbnails, generated only from existing central local HLS streams. Overview and layout editor no longer probe cameras when opened; the last good JPEG survives transient outages. Nginx keeps the original Host including port so secure same-origin Desktop sign-in works on LAN addresses such as 192.168.0.231:8080. Responsive login checkbox. Existing Electron ZIP remains compatible and unchanged; credentials, recordings, camera sources and Kiosk layouts are preserved.",
+  "fileCount": 510
 }
