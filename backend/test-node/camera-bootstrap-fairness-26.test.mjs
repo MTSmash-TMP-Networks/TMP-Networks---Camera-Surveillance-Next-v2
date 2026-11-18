@@ -66,3 +66,27 @@ test('26 cameras never use more than 4 simultaneous start slots, including full 
   assert.equal(limiter.status().active, 0);
   assert.equal(limiter.status().queued, 0);
 });
+
+test('a queued cold-start/recording task overtakes low-priority full recovery without starvation', async () => {
+  const limiter = new CameraStartLimiter(1);
+  let releaseFirst;
+  const blocker = limiter.run(() => new Promise(resolve => { releaseFirst = resolve; }));
+  // Yield to ensure the first slot is occupied.
+  await new Promise(resolve => setImmediate(resolve));
+  const order = [];
+  const normalRecovery = limiter.run(async () => { order.push('recovery'); }, { priority: 0 });
+  const foregroundRecording = limiter.run(async () => { order.push('recording'); }, { priority: 3 });
+  const freshCamera = limiter.run(async () => { order.push('cold-preview'); }, { priority: 2 });
+  assert.equal(limiter.status().queued, 3);
+  releaseFirst();
+  await Promise.all([blocker, normalRecovery, foregroundRecording, freshCamera]);
+  assert.deepEqual(order, ['recording', 'cold-preview', 'recovery']);
+  assert.equal(limiter.status().active, 0);
+});
+
+test('permanent preview skips the optional audio probe and deferred restart gets low priority', () => {
+  assert.match(orchestrator, /if \(broker\.audioConfigured && !session\.permanent\)/);
+  assert.match(orchestrator, /this\.cameraStarts\.run\(async \(\) => \{/);
+  assert.match(orchestrator, /\}, \{ priority \}\)\)/);
+  assert.match(orchestrator, /widthForQuality\(session\.quality\), \{ recovery: true \}/);
+});
