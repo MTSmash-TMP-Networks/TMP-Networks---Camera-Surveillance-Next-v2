@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { loadRuntime, restoreSession, restoreDesktopSession, sessionUpdated } from './features/auth/authSlice.js';
-import { isDesktopKiosk } from './services/api.js';
+import { hasDesktopGrant, isDesktopKiosk } from './services/api.js';
 import { AppFooter } from './components/AppFooter.jsx';
 import { AppShell } from './components/AppShell.jsx';
 import { BrandIcon } from './components/BrandIcon.jsx';
@@ -61,7 +61,7 @@ export default function App() {
       if (event.detail?.token) dispatch(sessionUpdated(event.detail));
     };
     const renew = () => {
-      if (document.visibilityState === 'visible' || navigator.onLine) {
+      if (hasDesktopGrant() && (document.visibilityState === 'visible' || navigator.onLine)) {
         dispatch(restoreDesktopSession());
       }
     };
