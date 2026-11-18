@@ -1,6 +1,6 @@
 {
   "name": "tmp-camera-desktop",
-  "version": "2.20.52",
+  "version": "2.20.74",
   "private": true,
   "description": "Desktop client for TMP Camera Surveillance Next",
   "main": "main.cjs",
