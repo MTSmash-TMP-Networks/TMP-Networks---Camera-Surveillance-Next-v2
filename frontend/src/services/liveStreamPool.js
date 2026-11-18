@@ -348,7 +348,7 @@ class LiveStreamPool {
       key: options.poolKey || keyOf(options), cameraId: options.cameraId, quality: options.quality, profileToken: options.profileToken || '', purpose: options.purpose || 'live', transportMode: options.transportMode || 'auto', viewportWidth: options.viewportWidth || 1280,
       video, refs: 0, pins: new Set(), subscribers: new Set(), host: null, cleanup: null, abort: null,
       connectPromise: null, generation: 0, idleTimer: null, reconnectTimer: null, heartbeat: null, monitor: null, hlsRecoveryTimer: null, hlsRecoveryNoticeTimer: null, hlsRecoveryStartedAt: 0, lastHlsRecoveryAt: 0, backendSessionMode: null,
-      reconnectAttempt: 0, forceTranscode: false, hlsTokenRef: { current: '' }, lastCurrentTime: 0, lastFrameAt: Date.now(), lastProgressSource: 'created', lastDecodedFrames: 0, frameCounterObserved: false, frameCallbackObserved: false, frameCallbackId: null, frameVersion: 0, lastStatsFramesDecoded: 0, lastStatsBytesReceived: 0, lastStatsPacketsReceived: 0, lastStatsProgressAt: 0, controlWatchTimer: null, controlActiveUntil: 0, lastUsedAt: Date.now(), lastBackendSoftStallReportAt: 0,
+      reconnectAttempt: 0, lastSourceStaleReconnectAt: 0, sourceSequenceStale: false, forceTranscode: false, hlsTokenRef: { current: '' }, lastCurrentTime: 0, lastFrameAt: Date.now(), lastProgressSource: 'created', lastDecodedFrames: 0, frameCounterObserved: false, frameCallbackObserved: false, frameCallbackId: null, frameVersion: 0, lastStatsFramesDecoded: 0, lastStatsBytesReceived: 0, lastStatsPacketsReceived: 0, lastStatsProgressAt: 0, controlWatchTimer: null, controlActiveUntil: 0, lastUsedAt: Date.now(), lastBackendSoftStallReportAt: 0,
       state: { state: 'starting', protocol: null, message: 'Live-Stream wird vorbereitet …', hasAudio: null, snapshotMode: false },
       update: (patch) => {
         entry.state = { ...entry.state, ...patch };
@@ -562,6 +562,23 @@ class LiveStreamPool {
       const cleanup = connectHls({
         url: hlsSourceUrl, tokenRef: entry.hlsTokenRef, video: entry.video,
         targetLiveDelaySeconds: entry.purpose === 'live' ? 3 : 8,
+        onSourceHealth: ({ state, ageMs, sequence }) => {
+          if (stale()) return;
+          if (state === 'fresh') {
+            entry.sourceSequenceStale = false;
+            return;
+          }
+          if (state !== 'stale') return;
+          entry.sourceSequenceStale = true;
+          if (!hasActiveConsumer(entry) || !browserVisible() || entry.video.paused) return;
+          const now = Date.now();
+          // Never reconnect all 26 cameras for one stalled HLS source.
+          // A single player may try a fresh decoder at most once per 45 s.
+          if (now - Number(entry.lastSourceStaleReconnectAt || 0) < 45000) return;
+          entry.lastSourceStaleReconnectAt = now;
+          this.report(entry, 'warn', 'HLS_SOURCE_SEQUENCE_STALLED', 'Der HLS-Ring liefert keine neuen Segmentnummern; alte Bildwiederholung wird beendet', entry.state.protocol || 'Local-HLS', { ageMs, sequence });
+          this.reconnect(entry, 'HLS-Quelle ist nicht mehr aktuell – Player wird neu synchronisiert …', 0);
+        },
         onState: (state, details = {}) => {
           if (stale()) return;
           if (state === 'connected') {
@@ -705,6 +722,7 @@ class LiveStreamPool {
     stopFrameProbe(entry);
     entry.lastCurrentTime = entry.video.currentTime || 0;
     entry.lastDecodedFrames = decodedFrames(entry.video);
+    entry.sourceSequenceStale = false;
     entry.frameCounterObserved = entry.lastDecodedFrames > 0;
     entry.frameCallbackObserved = false;
     markBrowserProgress(entry, 'monitor-start');
