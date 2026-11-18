@@ -262,6 +262,14 @@ test('permanent bootstrap resolves one ONVIF profile first and only resolves rem
   assert.match(orchestrator, /profileOffset: 1, includeManual: false/);
 });
 
+test('local HLS readiness uses bounded continuity grace with a live publisher only', () => {
+  assert.match(orchestrator, /withLocalHlsContinuity\(health,/);
+  assert.match(orchestrator, /wasReady: session\.state === 'ready' && Boolean\(session\.outputs\?\.hls\)/);
+  assert.match(orchestrator, /effectiveLocalHlsListSize\(config\.localHlsListSize, config\.localHlsStableMinSegments\)/);
+  assert.match(config, /localHlsContinuityGraceMs: integer\('LOCAL_HLS_CONTINUITY_GRACE_MS', 10000,/);
+  assert.match(config, /localHlsStableMinSegments: integer\('LOCAL_HLS_STABLE_MIN_SEGMENTS', 60,/);
+});
+
 test('25-camera startup has faster bounded defaults and upgrades the previous .env defaults', () => {
   assert.match(config, /permanentIngestStartupStaggerMs: integer\('PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS', 250,/);
   assert.match(config, /streamStartConcurrency: integer\('STREAM_START_CONCURRENCY', 4,/);
