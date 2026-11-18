@@ -12,6 +12,18 @@ test('Updater vermeidet docker:27-cli und nutzt kompatible Docker-Werkzeuge', ()
   assert.doesNotMatch(dockerfile, /FROM docker:/);
   assert.match(dockerfile, /FROM node:24\.18\.0-bookworm-slim/);
   assert.match(dockerfile, /docker\.io docker-compose/);
+  assert.match(dockerfile, /COPY --from=docker\/compose-bin:v2\.40\.3 \/docker-compose \/usr\/local\/lib\/docker\/cli-plugins\/docker-compose/);
+  assert.match(dockerfile, /RUN docker compose version/);
+});
+
+test('Host recovery replaces only updater, confirms matching project and preserves prior image', () => {
+  const script = source('scripts/recover-updater-compose-v2.sh');
+  assert.match(script, /docker compose version/);
+  assert.match(script, /docker inspect --format/);
+  assert.match(script, /-no-deps --no-build --force-recreate updater/);
+  assert.match(script, /before-compose-v2-recovery/);
+  assert.match(script, /node src\/healthcheck\.js/);
+  assert.doesNotMatch(script, /docker (?:compose )?down|docker (?:container )?rm -f|docker system prune/);
 });
 
 test('Start erzwingt keine Registry-Pulls und startet ohne optionalen Updater', () => {

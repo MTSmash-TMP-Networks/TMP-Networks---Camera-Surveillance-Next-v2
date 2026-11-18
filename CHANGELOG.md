@@ -1,3 +1,10 @@
+## 2.20.65 – Updater mit Docker Compose V2 und go2rtc-API-Fallback
+
+- Behebt den Installations-/Rollbackfehler `KeyError: 'ContainerConfig'` durch ein eigenstaendiges Docker-Compose-V2-Plugin im Updater-Image.
+- Separates Host-Reparaturskript fuer bereits laufende V1-Updater: prueft die Projektidentitaet, baut ein neues Image und ersetzt nur den Updater mit Image-Backup und Healthcheck.
+- go2rtc-Control-API nutzt bei 404 des konfigurierten Base-Path automatisch die funktionierende Standard-API und uebernimmt den erfolgreichen Pfad fuer MPEG-TS.
+- Version 2.20.64 mit schnellerem, auf vier parallele Starts begrenztem Kamerahochlauf bleibt enthalten; Update-Kompatibilitaet ab 2.20.32.
+
 ## 2.20.64 – Schnellere und weiterhin begrenzte Kamerastarts
 
 - Maximal vier parallele Kamerastarts statt zwei; das Backend verhindert weiterhin mehrfache Starts derselben Kamera.

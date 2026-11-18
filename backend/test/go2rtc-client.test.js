@@ -58,6 +58,27 @@ describe('go2rtc-API', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('uses a root-only go2rtc API after prefixed 404 and caches it for HLS TS', async () => {
+    const calls = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      calls.push(String(url));
+      if (String(url).startsWith('http://go2rtc:1984/media/go2rtc/')) {
+        return { ok: false, status: 404, text: async () => '404 page not found' };
+      }
+      return okJson({});
+    });
+    const client = new Go2RtcClient({ baseUrl: 'http://go2rtc:1984/media/go2rtc', fallbackUrls: [] });
+    await client.paths();
+    expect(calls.slice(0, 2)).toEqual([
+      'http://go2rtc:1984/media/go2rtc/api/streams',
+      'http://go2rtc:1984/api/streams',
+    ]);
+    expect(client.streamTsUrl('cam')).toBe('http://go2rtc:1984/api/stream.ts?src=cam');
+    calls.length = 0;
+    await client.paths();
+    expect(calls).toEqual(['http://go2rtc:1984/api/streams']);
+  });
+
   it('lässt einen spekulativen 404-Fallback keinen echten Verbindungsfehler überdecken', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       if (String(url).includes('/media/go2rtc/')) {

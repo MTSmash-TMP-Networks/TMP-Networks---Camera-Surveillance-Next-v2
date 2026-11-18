@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.64
+# TMP Camera Surveillance Next 2.20.65
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -32,6 +32,8 @@ The first start creates `.env`, generates secure application secrets, prepares p
 For the complete setup procedure, NAS notes, reverse-proxy guidance, updates, backups and troubleshooting, read `INSTALLATION.md`.
 
 ## Updates across supported older versions
+
+**Repair first when the installed updater still uses Docker Compose V1 (KeyError: ContainerConfig):** On Linux hosts with a working Docker Compose V2/V5, download and run `scripts/recover-updater-compose-v2.sh` from the latest main branch as root, passing the full project directory as the only argument. The recovery replaces only the updater, verifies health and preserves the camera containers. See `UPDATE_NOTES_2.20.65.md` for exact commands. Do not attempt another in-app update before this repair.
 
 The complete GitHub source archive and the downloadable update ZIP use a stable root-directory layout supported since v2.20.32. A server at any tested release from v2.20.32 onward can validate the v2.20.41 package directly; it does not need to install every intermediate release. See `docs/UPGRADE_COMPATIBILITY.md` for the supported baseline, compatibility checks, data safety and recovery steps. Releases below v2.20.32 must use an individually verified intermediate bridge, not bypass the validation rules.
 

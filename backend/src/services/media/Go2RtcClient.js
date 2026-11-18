@@ -80,6 +80,11 @@ function endpointVariants(value) {
       const origin = trimTrailingSlash(parsed.origin);
       return [`${origin}${APP_API_PREFIX}`, origin];
     }
+    // Some existing go2rtc containers answer only at /api despite an expected
+    // /media/go2rtc base_path. Probe the host root only after the configured
+    // prefix returns HTTP 404/405, then cache the working base URL for both
+    // control requests and MPEG-TS reads.
+    if (pathname === APP_API_PREFIX) return [trimTrailingSlash(parsed.toString()), trimTrailingSlash(parsed.origin)];
     return [trimTrailingSlash(parsed.toString())];
   } catch {
     return [clean];

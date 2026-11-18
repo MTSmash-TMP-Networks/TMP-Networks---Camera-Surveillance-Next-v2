@@ -30,6 +30,7 @@ UPDATE_NOTES_2.20.61.md
 UPDATE_NOTES_2.20.62.md
 UPDATE_NOTES_2.20.63.md
 UPDATE_NOTES_2.20.64.md
+UPDATE_NOTES_2.20.65.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -453,6 +454,7 @@ scripts/recording-block-smoke-test.mjs
 scripts/recording-short-stop-smoke-test.mjs
 scripts/recording-storage-audit.sh
 scripts/recording-storage-smoke-test.mjs
+scripts/recover-updater-compose-v2.sh
 scripts/reliability-regression-test.mjs
 scripts/repair-compose-project.sh
 scripts/repair-updater.sh
