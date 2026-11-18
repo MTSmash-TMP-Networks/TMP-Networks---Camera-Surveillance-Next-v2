@@ -145,7 +145,14 @@ export async function requestBlob(path, { signal = undefined, timeoutMs = 12_000
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
   const deadline = AbortSignal.timeout(Math.max(1000, Number(timeoutMs) || 12_000));
   const requestSignal = signal && AbortSignal.any ? AbortSignal.any([signal, deadline]) : deadline;
-  const response = await fetchApi(`${API}${path}`, { headers, cache: 'no-store', signal: requestSignal });
+  let response = await fetchApi(`${API}${path}`, { headers, cache: 'no-store', signal: requestSignal });
+  if (response.status === 401 && isDesktopKiosk()) {
+    try {
+      await renewDesktopSession();
+      headers.set('Authorization', `Bearer ${accessToken}`);
+      response = await fetchApi(`${API}${path}`, { headers, cache: 'no-store', signal: requestSignal });
+    } catch { /* Caller handles genuine expired/revoked sessions. */ }
+  }
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return response.blob();
 }
