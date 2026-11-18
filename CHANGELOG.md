@@ -1,3 +1,11 @@
+## 2.20.66 – Zentrale Kameras bereits beim Backendstart vorwaermen
+
+- Zentrale Publisher der aktivierten Kameras werden sofort nach Backendstart aufgebaut, noch vor langwieriger Aufnahme- und Netzwerkspeicher-Wiederherstellung und ohne Frontendbesuch.
+- Der erste passende ONVIF-Substream wird sofort ausprobiert; weitere ONVIF-Profile werden erst nach einem Fehlschlag aufgeloest. Manuelle Quellen bleiben als Fallback vorhanden.
+- Permanente Kiosk-Videostreams umgehen die optionale Audiopfad-Pruefung; Mainstream-/Aufnahmesitzungen behalten ihre Audiooptionen.
+- Der neue Standardwert BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS=250 verhindert, dass alte 1500-ms-Werte aus einer erhaltenen .env den Backendstart erneut bremsen.
+- Begrenzung der parallelen Kamerastarts, lokale HLS-Pruefung, Kamera- und Aufnahme-Zustand sowie Restart-Backoff bleiben erhalten.
+
 ## 2.20.65 – Updater mit Docker Compose V2 und go2rtc-API-Fallback
 
 - Behebt den Installations-/Rollbackfehler `KeyError: 'ContainerConfig'` durch ein eigenstaendiges Docker-Compose-V2-Plugin im Updater-Image.
