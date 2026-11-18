@@ -425,6 +425,7 @@ frontend/test-node/coreui-shell-foundation.test.mjs
 frontend/test-node/desktop-client-distribution.test.mjs
 frontend/test-node/motion-zone-editor.test.mjs
 frontend/test-node/ptz-setup-regression.test.mjs
+frontend/test-node/run-native-tests.mjs
 frontend/test/always-on-streams.test.js
 frontend/test/branding-icon.test.js
 frontend/test/camera-add-refresh.test.js
