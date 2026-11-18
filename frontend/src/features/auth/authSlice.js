@@ -1,13 +1,16 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { api, setAccessToken } from '../../services/api.js';
+import { api, setAccessToken, enrollDesktopSession, isDesktopKiosk, renewDesktopSession } from '../../services/api.js';
 
 export const loadRuntime = createAsyncThunk('auth/runtime', async () => api.runtime());
-export const login = createAsyncThunk('auth/login', async ({ username, password }) => api.login(username, password));
+export const login = createAsyncThunk('auth/login', async ({ username, password }) => isDesktopKiosk()
+  ? enrollDesktopSession(username, password)
+  : api.login(username, password));
+export const restoreDesktopSession = createAsyncThunk('auth/desktopRestore', async () => renewDesktopSession());
 export const restoreSession = createAsyncThunk('auth/restore', async () => api.me());
 
 const slice = createSlice({
   name: 'auth',
-  initialState: { user: null, token: sessionStorage.getItem('tmp_camera_token'), status: 'idle', error: null, runtime: { demoMode: false, readOnly: false, allowExports: false, version: null } },
+  initialState: { user: null, token: (() => { try { return sessionStorage.getItem('tmp_camera_token'); } catch { return null; } })(), status: 'idle', desktopRestoring: isDesktopKiosk(), error: null, runtime: { demoMode: false, readOnly: false, allowExports: false, version: null } },
   reducers: {
     logout(state) { state.user = null; state.token = null; setAccessToken(''); },
     sessionUpdated(state, action) {
@@ -22,6 +25,16 @@ const slice = createSlice({
     .addCase(login.pending, (state) => { state.status = 'loading'; state.error = null; })
     .addCase(login.fulfilled, (state, action) => { state.status = 'ready'; state.user = action.payload.user; state.token = action.payload.token; state.runtime = action.payload.runtime || state.runtime; setAccessToken(action.payload.token); })
     .addCase(login.rejected, (state, action) => { state.status = 'error'; state.error = action.error.message; })
+    .addCase(restoreDesktopSession.pending, (state) => { state.desktopRestoring = true; })
+    .addCase(restoreDesktopSession.fulfilled, (state, action) => {
+      state.desktopRestoring = false;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.runtime = action.payload.runtime || state.runtime;
+      state.status = 'ready';
+      setAccessToken(action.payload.token);
+    })
+    .addCase(restoreDesktopSession.rejected, (state) => { state.desktopRestoring = false; })
     .addCase(restoreSession.fulfilled, (state, action) => { state.user = action.payload.user; state.runtime = action.payload.runtime || state.runtime; state.status = 'ready'; })
     .addCase(loadRuntime.fulfilled, (state, action) => { state.runtime = action.payload || state.runtime; })
     .addCase(restoreSession.rejected, (state) => { state.user = null; state.token = null; state.status = 'idle'; setAccessToken(''); }),
