@@ -160,6 +160,9 @@ export const config = Object.freeze({
   localHlsDir: path.resolve(env.LOCAL_HLS_DIR || path.join(env.APP_DATA_DIR || '/data', 'live')),
   localHlsSegmentSeconds: integer('LOCAL_HLS_SEGMENT_SECONDS', 1, { min: 1, max: 6 }),
   localHlsListSize: integer('LOCAL_HLS_LIST_SIZE', 30, { min: 8, max: 120 }),
+  // Keep older .env values intact but retain at least 60 segments in fleet mode.
+  localHlsStableMinSegments: integer('LOCAL_HLS_STABLE_MIN_SEGMENTS', 60, { min: 0, max: 120 }),
+  localHlsContinuityGraceMs: integer('LOCAL_HLS_CONTINUITY_GRACE_MS', 10000, { min: 0, max: 60000 }),
   publicLocalHlsBase: env.PUBLIC_LOCAL_HLS_BASE || '/live-hls',
   browserHlsMode: configurableString('STREAM_BROWSER_HLS_MODE', 'local-ring').toLowerCase(),
   publicWebRtcBase: env.PUBLIC_GO2RTC_BASE || env.PUBLIC_WEBRTC_BASE || '/media/go2rtc',
