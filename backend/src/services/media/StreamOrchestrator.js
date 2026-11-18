@@ -950,32 +950,51 @@ class StreamOrchestrator {
     return this.localHlsHealth(session).ready;
   }
 
-  async waitUntilLocalHlsReady(session, { timeoutMs = config.startTimeoutMs, intervalMs = 250, maxActiveMediaMs = timeoutMs, expectedChild = null } = {}) {
+  async waitUntilLocalHlsReady(session, { timeoutMs = config.startTimeoutMs, intervalMs = 250, maxActiveMediaMs = timeoutMs, expectedChild = null, brokerName = null } = {}) {
     const started = Date.now();
     let polls = 0;
     let graceLogged = false;
-    while (shouldContinueHlsStartup({
-      elapsedMs: Date.now() - started, baseTimeoutMs: timeoutMs, maxTimeoutMs: maxActiveMediaMs,
+    let upstreamChecked = false;
+    let upstreamReady = false;
+    let upstreamError = null;
+    const boundedGraceMs = Math.min(8000, Math.max(0, maxActiveMediaMs - timeoutMs));
+    const failure = (processExited = false) => ({
+      ready: false, polls, processExited, upstreamReady,
       progressUpdates: session.progressTracker?.updates || 0,
-      lastProgressAgeMs: Date.now() - Number(session.lastProgressAt || 0),
-    })) {
-      polls += 1;
+      hlsReason: this.localHlsHealth(session).reason,
+      upstreamError,
+    });
+    for (;;) {
+      const elapsedMs = Date.now() - started;
       const child = expectedChild || session.process;
-      if (child && (child.exitCode !== null || child.killed)) return { ready: false, polls, processExited: true };
+      if (child && (child.exitCode !== null || child.killed)) return failure(true);
       if (this.localHlsReady(session)) return { ready: true, polls, processExited: false };
-      if (!graceLogged && Date.now() - started >= timeoutMs) {
+      // Probe at most once, only after reaching the ordinary timeout, to
+      // avoid hammering go2rtc under 26-camera parallel cold starts.
+      if (elapsedMs >= timeoutMs && !upstreamChecked && brokerName) {
+        upstreamChecked = true;
+        try { upstreamReady = go2RtcStreamReady(await go2RtcClient.stream(brokerName)); }
+        catch (error) { upstreamError = String(error?.code || error?.message || error).slice(0, 120); }
+      }
+      if (!shouldContinueHlsStartup({
+        elapsedMs, baseTimeoutMs: timeoutMs, maxTimeoutMs: maxActiveMediaMs,
+        progressUpdates: session.progressTracker?.updates || 0,
+        lastProgressAgeMs: Date.now() - Number(session.lastProgressAt || 0),
+        upstreamReady, upstreamGraceMs: boundedGraceMs,
+      })) return failure(false);
+      if (!graceLogged && elapsedMs >= timeoutMs) {
         graceLogged = true;
         this.log(session, 'info', 'stream', 'LOCAL_HLS_ACTIVE_MEDIA_GRACE',
-          'FFmpeg verarbeitet Medien; langsame WLAN-/GOP-Segmente erhalten eine begrenzte Startnachfrist', {
-            maxActiveMediaMs, progressUpdates: session.progressTracker?.updates || 0,
+          'HLS-Start erhaelt eine begrenzte Nachfrist nur bei FFmpeg-Fortschritt oder aktivem Broker', {
+            maxActiveMediaMs, progressUpdates: session.progressTracker?.updates || 0, upstreamReady, boundedGraceMs,
           });
       }
+      polls += 1;
       if (polls === 1 || polls % 12 === 0) {
         this.log(session, 'info', 'stream', 'LOCAL_HLS_READINESS_POLL', 'Lokaler HLS-Ring wird vor der Browserfreigabe geprüft', { polls, playlist: this.localHlsPlaylist(session) });
       }
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
-    return { ready: false, polls, processExited: false };
   }
 
   async stopMediaChild(session, child) {
@@ -1058,6 +1077,7 @@ class StreamOrchestrator {
           ? Math.max(firstFrameTimeoutMs, Math.min(config.streamActiveMediaStartMaxMs, config.backgroundCameraBootstrapMaxMediaMs))
           : Math.max(firstFrameTimeoutMs, config.streamActiveMediaStartMaxMs),
         expectedChild: child,
+        brokerName,
         intervalMs: 250,
       });
       return { child, outcome, details: sanitize(session.stderr), brokerName, includeAudio, firstFrameTimeoutMs };
@@ -1088,6 +1108,10 @@ class StreamOrchestrator {
       await this.kill(session, ring.child);
       throw new AppError(502, 'PROFILE_MEDIA_TIMEOUT', 'Das Profil lieferte nicht rechtzeitig normalisierte Medienframes; das naechste Profil wird versucht', {
         processExited: ring.outcome.processExited,
+        upstreamReady: ring.outcome.upstreamReady ?? null,
+        progressUpdates: ring.outcome.progressUpdates ?? null,
+        hlsReason: ring.outcome.hlsReason || null,
+        upstreamError: ring.outcome.upstreamError || null,
         mode: 'broker-local-hls',
         profile: profile.name,
         profileToken: profile.token || null,
