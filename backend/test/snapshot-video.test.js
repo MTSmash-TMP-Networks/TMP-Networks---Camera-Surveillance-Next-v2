@@ -21,6 +21,24 @@ describe('Snapshot-Video-Fallback', () => {
     expect(args.at(-1)).toContain('cam_hls');
   });
 
+  it('does not re-encode an expired JPEG indefinitely when snapshot capture fails', async () => {
+    const stdin = new PassThrough();
+    const child = { stdin };
+    const frame = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+    let writes = 0;
+    stdin.on('data', (chunk) => { writes += chunk.length / frame.length; });
+    const pump = startSnapshotFramePump({
+      child, initialBuffer: frame, capture: async () => { throw new Error('camera offline'); },
+      fps: 20, refreshMs: 400, maxFrameAgeMs: 150,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 240));
+    const stoppedAt = writes;
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    expect(writes).toBe(stoppedAt);
+    expect(pump.status.lastFrameAgeMs).toBeGreaterThan(150);
+    pump.stop();
+  });
+
   it('wiederholt das letzte gültige Bild, während neue Snapshots geladen werden', async () => {
     const stdin = new PassThrough();
     const child = { stdin };
