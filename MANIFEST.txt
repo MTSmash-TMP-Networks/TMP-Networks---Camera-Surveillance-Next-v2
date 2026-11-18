@@ -1,4 +1,5 @@
 .env.example
+.github/workflows/hardened-go2rtc.yml
 .github/workflows/upgrade-compatibility.yml
 .gitignore
 CHANGELOG.md
@@ -33,6 +34,7 @@ UPDATE_NOTES_2.20.64.md
 UPDATE_NOTES_2.20.65.md
 UPDATE_NOTES_2.20.66.md
 UPDATE_NOTES_2.20.67.md
+UPDATE_NOTES_2.20.68.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -432,7 +434,10 @@ frontend/test/update-center.test.js
 frontend/test/whep-fallback.test.js
 frontend/vite.config.js
 logs.sh
+mediamtx/Dockerfile
 mediamtx/go2rtc.yaml
+mediamtx/patches/go2rtc-http-streams-races.patch
+mediamtx/tests/tmp_streams_race_test.go
 scripts/auto-network-env.sh
 scripts/backup.sh
 scripts/camera-encoder-diagnostics.sh
