@@ -162,12 +162,15 @@ function portOpen(host, port, timeoutMs = 650) {
   return new Promise((resolve) => {
     const socket = net.createConnection({ host, port: Number(port) });
     let settled = false;
+    let deadline;
     const finish = (open) => {
       if (settled) return;
       settled = true;
+      clearTimeout(deadline);
       socket.destroy();
       resolve(open);
     };
+    deadline = setTimeout(() => finish(false), Math.max(150, Number(timeoutMs) || 650));
     socket.setTimeout(timeoutMs, () => finish(false));
     socket.once('connect', () => finish(true));
     socket.once('error', () => finish(false));
@@ -194,7 +197,17 @@ function requestPage(url, timeoutMs = 1600, maxBytes = 256 * 1024) {
     try { parsed = new URL(url); } catch { resolve(null); return; }
     if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) { resolve(null); return; }
     const client = parsed.protocol === 'https:' ? https : http;
-    const request = client.get(parsed, {
+    let settled = false;
+    let request;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      resolve(value);
+    };
+    // Absolute wall-clock time, even when a device keeps sending partial data.
+    const deadline = setTimeout(() => { request?.destroy(); finish(null); }, Math.max(250, Number(timeoutMs) || 1600));
+    request = client.get(parsed, {
       rejectUnauthorized: false,
       timeout: timeoutMs,
       headers: {
@@ -211,7 +224,7 @@ function requestPage(url, timeoutMs = 1600, maxBytes = 256 * 1024) {
         chunks.push(chunk.subarray(0, remaining));
         size += Math.min(chunk.length, remaining);
       });
-      response.on('end', () => resolve({
+      response.on('end', () => finish({
         statusCode: response.statusCode || 0,
         headers: response.headers,
         body: Buffer.concat(chunks).toString('utf8'),
@@ -219,7 +232,7 @@ function requestPage(url, timeoutMs = 1600, maxBytes = 256 * 1024) {
       }));
     });
     request.on('timeout', () => request.destroy());
-    request.on('error', () => resolve(null));
+    request.on('error', () => finish(null));
   });
 }
 
@@ -378,12 +391,15 @@ function probeRtspRequest(host, port, requestText, timeoutMs) {
     const socket = net.createConnection({ host, port: Number(port) });
     let settled = false;
     let data = '';
+    let deadline;
     const finish = (confirmed, detail = null) => {
       if (settled) return;
       settled = true;
+      clearTimeout(deadline);
       socket.destroy();
       resolve({ port: Number(port), confirmed, detail });
     };
+    deadline = setTimeout(() => finish(false, 'deadline'), Math.max(250, Number(timeoutMs) || 1600));
     socket.setTimeout(timeoutMs, () => finish(false, 'timeout'));
     socket.once('connect', () => {
       socket.write(requestText);
@@ -432,13 +448,17 @@ export function preferredCameraPort(openPorts = [], onvifPort = null) {
 
 async function fingerprintHost(ip, openPorts, discoveryMethod = 'ip-range', { includeNonCandidate = false } = {}) {
   const webPorts = openPorts.filter((port) => CAMERA_WEB_PORTS.includes(Number(port)) || [2020, 8899].includes(Number(port))).slice(0, 8);
+  const fingerprintDeadline = Date.now() + config.discoveryFingerprintMaxMs;
   const pages = [];
   for (const port of webPorts) {
+    if (Date.now() >= fingerprintDeadline) break;
     const preferredScheme = CAMERA_TLS_PORTS.includes(Number(port)) ? 'https' : 'http';
     const schemes = [preferredScheme, preferredScheme === 'https' ? 'http' : 'https'];
     for (const scheme of schemes) {
+      if (Date.now() >= fingerprintDeadline) break;
       const base = `${scheme}://${ip}:${port}`;
-      const responses = await mapLimit(CAMERA_HTTP_PROBE_PATHS, 4, (path) => requestPage(`${base}${path}`));
+      const remainingMs = Math.max(250, fingerprintDeadline - Date.now());
+      const responses = await mapLimit(CAMERA_HTTP_PROBE_PATHS, 4, (path) => requestPage(`${base}${path}`, Math.min(1600, remainingMs)));
       const valid = responses.filter(Boolean);
       if (valid.length) {
         pages.push(...valid);
@@ -452,13 +472,14 @@ async function fingerprintHost(ip, openPorts, discoveryMethod = 'ip-range', { in
   // Keep the ordinary web-port scan unchanged so this does not confuse the
   // Hikvision SDK with a web server or incorrectly mark a device as a camera.
   for (const port of CAMERA_ONVIF_HTTP_VENDOR_PORTS) {
+    if (Date.now() >= fingerprintDeadline) break;
     if (!openPorts.includes(port)) continue;
     // ONVIF is a SOAP POST service. GET-only probing can return 405 even when
     // the device is healthy and accepts authenticated ONVIF requests.
     const onvifUrl = `http://${ip}:${port}/onvif/device_service`;
-    const soapResponse = await probeOnvifHttpDeviceService(ip, port, 1600);
+    const soapResponse = await probeOnvifHttpDeviceService(ip, port, Math.max(300, Math.min(1600, fingerprintDeadline - Date.now())));
     if (soapResponse) pages.push(soapResponse);
-    if (!isConfirmedOnvifServicePage(soapResponse) && (!soapResponse || [404, 405].includes(soapResponse.statusCode))) {
+    if (Date.now() < fingerprintDeadline && !isConfirmedOnvifServicePage(soapResponse) && (!soapResponse || [404, 405].includes(soapResponse.statusCode))) {
       // Some vendor firmware does expose a useful GET challenge. Only a
       // confirmed ONVIF response will be accepted by the classifier.
       const getResponse = await requestPage(onvifUrl, 800);
@@ -468,7 +489,9 @@ async function fingerprintHost(ip, openPorts, discoveryMethod = 'ip-range', { in
   const plainRtspPorts = openPorts
     .filter((port) => CAMERA_RTSP_PORTS.includes(Number(port)) && !CAMERA_TLS_PORTS.includes(Number(port)))
     .slice(0, 6);
-  const rtspServices = await mapLimit(plainRtspPorts, 4, (port) => probeRtsp(ip, port));
+  const rtspServices = await mapLimit(plainRtspPorts, 4, (port) => Date.now() >= fingerprintDeadline
+    ? { port, confirmed: false, detail: 'fingerprint-deadline' }
+    : probeRtsp(ip, port, Math.max(550, Math.min(1600, fingerprintDeadline - Date.now()))));
   const classification = classifyHostFingerprint({ openPorts, pages, rtspServices });
   // Preserve an explicit non-camera fingerprint for the final merge gate.
   // This prevents a parallel WS-Discovery/SSDP record from resurrecting a
@@ -690,6 +713,7 @@ async function activeRangeScan(targets, ports = DEFAULT_SCAN_PORTS, timeoutMs = 
   const result = await mapLimit(entries, Math.max(1, Number(options.fingerprintConcurrency || config.discoveryFingerprintConcurrency)), async ([ip, openPorts]) => {
     const device = await fingerprintHost(ip, [...openPorts].sort((a, b) => a - b), discoveryMethod);
     completed += 1;
+    if (device) options.onDevice?.(device);
     options.onProgress?.({ stage: 'fingerprint', completed, total: entries.length, hostsWithOpenPorts: entries.length });
     return device;
   });
@@ -789,6 +813,7 @@ export class NetworkCameraDiscovery {
     activeScan = false,
     ports = DEFAULT_SCAN_PORTS,
     onProgress = null,
+    onDevice = null,
     retries = config.discoveryProtocolRetries,
     scanConcurrency = config.discoveryScanConcurrency,
     perHostConcurrency = config.discoveryPerHostConcurrency,
@@ -844,6 +869,7 @@ export class NetworkCameraDiscovery {
         perHostConcurrency,
         fingerprintConcurrency,
         onProgress,
+        onDevice: (device) => onDevice?.(applyFinalCameraDiscoveryPolicy(device)),
       })),
     ]);
 
