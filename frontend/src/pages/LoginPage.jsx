@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
-import { LockKeyhole } from 'lucide-react';
+import { LockKeyhole, ShieldCheck } from 'lucide-react';
 import { login } from '../features/auth/authSlice.js';
 import { isDesktopKiosk } from '../services/api.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
@@ -17,18 +17,18 @@ export function LoginPage() {
     if (runtime?.demoMode) setForm({ username: 'demo', password: 'demo' });
   }, [runtime?.demoMode]);
   if (user) return <Navigate to={isDesktopKiosk() ? "/kiosk" : "/"} replace />;
-  return <div className="login-page">
+  return <div className={`login-page${isDesktopKiosk() ? ' login-page-desktop' : ''}`}>
     <div className="login-visual"><div className="login-grid"/><div className="login-copy"><BrandIcon size="hero" decorative={false}/><span className="eyebrow">TMP NETWORKS</span><h1>{t('login.heroLine1')}<br/>{t('login.heroLine2')}</h1><p>{t('login.heroDescription')}</p></div></div>
     <form className="login-card" onSubmit={(event) => { event.preventDefault(); dispatch(login({ ...form, rememberDevice })); }}>
-      <BrandIcon size="login"/><h2>{t('login.title')}</h2><p>{t('login.subtitle')}</p>
+      <div className="login-card-header"><BrandIcon size="login"/>{isDesktopKiosk() && <span className="desktop-login-badge"><ShieldCheck size={15}/> Linux-Kiosk</span>}</div><h2>{t('login.title')}</h2><p>{t('login.subtitle')}</p>
       {runtime?.demoMode && <div className="demo-login-notice"><strong>{t('demo.badge')}</strong><span>{t('demo.loginNotice')}</span><div className="demo-login-credentials"><span><b>{t('common.username')}:</b> <code>demo</code></span><span><b>{t('common.password')}:</b> <code>demo</code></span></div></div>}
       <label>{t('common.username')}<input autoComplete="username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })}/></label>
       <label>{t('common.password')}<input type="password" autoComplete="current-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })}/></label>
       {isDesktopKiosk() && <label className="desktop-remember-device">
         <input type="checkbox" checked={rememberDevice} onChange={(event) => setRememberDevice(event.target.checked)}/>
-        <span>Auf diesem Linux-Kiosk dauerhaft angemeldet bleiben (bis zur Abmeldung oder zum Widerruf)</span>
+        <span><strong>Angemeldet bleiben</strong><small>Geschuetzte Geraetesitzung. Jederzeit abmeldbar oder widerrufbar.</small></span>
       </label>}
-      {error && <div className="form-error">{error}</div>}
+      {error && <div className="form-error" role="alert">{error}</div>}
       <button className="primary-button" disabled={status === 'loading'}><LockKeyhole /> {status === 'loading' ? t('login.pending') : t('login.submit')}</button>
     </form>
   </div>;

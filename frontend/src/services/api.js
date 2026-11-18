@@ -261,6 +261,8 @@ export const api = {
   ptzHome: (id, input = {}) => request(`/ptz/${id}/home`, { method: 'POST', body: typeof input === 'string' ? { profileToken: input } : input }),
   ptzStatus: (id) => request(`/ptz/${id}/status`),
   presets: (id, profileToken) => request(`/ptz/${id}/presets?profile=${encodeURIComponent(profileToken || '')}`),
+  // Stored, periodically updated server JPEG, never a new live camera probe.
+  thumbnail: (id, options = {}) => requestBlob(`/cameras/${encodeURIComponent(id)}/thumbnail`, options),
   snapshot: (id, profile = '', options = {}) => requestBlob(`/cameras/${encodeURIComponent(id)}/snapshot${profile ? `?profile=${encodeURIComponent(profile)}` : ''}`, options),
   gotoPreset: (id, preset, input = {}) => request(`/ptz/${id}/presets/${encodeURIComponent(preset)}`, { method: 'POST', body: typeof input === 'string' ? { profileToken: input } : input }),
   recordings: (cameraId = '') => request(`/recordings${cameraId ? `?cameraId=${encodeURIComponent(cameraId)}` : ''}`),

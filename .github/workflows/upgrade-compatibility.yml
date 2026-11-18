@@ -35,6 +35,8 @@ jobs:
         run: node --test backend/test-node/discovery-completion-timeout.test.mjs
       - name: Validate updater compatibility regressions
         run: node --test backend/test-node/update-compatibility.test.mjs
+      - name: Validate persistent camera thumbnail cache and source isolation
+        run: node --test backend/test-node/camera-thumbnail-cache.test.mjs
       - name: Validate snapshot fallback native stream re-probing
         run: node --test backend/test-node/snapshot-native-recovery.test.mjs
       - name: Validate delayed browser HLS recovery and kiosk buffering

@@ -7,10 +7,10 @@ const css = readFileSync(new URL('../src/styles/app.css', import.meta.url), 'utf
 const api = readFileSync(new URL('../src/services/api.js', import.meta.url), 'utf8');
 
 describe('Visual kiosk grid layout editor', () => {
-  it('uses snapshot-only lazy thumbnails, never extra live video players', () => {
+  it('uses cached lazy thumbnails, never extra live video players', () => {
     expect(kiosk).toContain('createKioskThumbnailLoader');
     expect(kiosk).toContain('maxConcurrent: 2');
-    expect(kiosk).toContain("api.snapshot(cameraId, '', { signal, timeoutMs: 12_000 })");
+    expect(kiosk).toContain("api.thumbnail(cameraId, { signal, timeoutMs: 12_000 })");
     expect(kiosk).toContain('IntersectionObserver');
     expect(kiosk).toContain('observer.disconnect()');
     expect(kiosk).toContain('loader.dispose()');

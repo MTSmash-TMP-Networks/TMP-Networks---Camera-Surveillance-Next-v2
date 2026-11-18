@@ -117,7 +117,7 @@ function KioskLayoutEditor({ cameras, layouts, initialLayout, onClose, onSave, o
   useEffect(() => { setDraft(initialLayout); setSelectedCameraId(''); }, [initialLayout]);
   useEffect(() => {
     const loader = createKioskThumbnailLoader({
-      load: (cameraId, signal) => api.snapshot(cameraId, '', { signal, timeoutMs: 12_000 }),
+      load: (cameraId, signal) => api.thumbnail(cameraId, { signal, timeoutMs: 12_000 }),
       createUrl: (blob) => URL.createObjectURL(blob),
       revokeUrl: (url) => URL.revokeObjectURL(url),
       onUpdate: (cameraId, url) => setThumbnails((current) => ({ ...current, [cameraId]: url })),
