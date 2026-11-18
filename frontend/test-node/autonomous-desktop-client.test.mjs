@@ -61,3 +61,19 @@ test('normal web sessions and user revocation remain intact', () => {
   assert.match(shell, /revokeDesktopSession\(\)/);
   assert.match(shell, /clearLocalDeviceGrant\(\)/);
 });
+
+
+test('desktop enrollment keeps the original LAN port and a readable checkbox layout', () => {
+  const proxy = read('frontend/nginx.conf');
+  const apiLocation = proxy.split('location /api/ {')[1]?.split('\n  }')[0] || '';
+  assert.match(apiLocation, /proxy_set_header Host \$http_host;/);
+  assert.doesNotMatch(apiLocation, /proxy_set_header Host \$host;/);
+  const login = read('frontend/src/pages/LoginPage.jsx');
+  const css = read('frontend/src/styles/app.css');
+  assert.match(login, /login-page-desktop/);
+  assert.match(login, /desktop-remember-device/);
+  assert.match(css, /\.desktop-remember-device>input\[type=checkbox\]/);
+  assert.match(css, /width:19px!important/);
+  const origin = read('backend/src/services/DesktopDeviceSessionService.js');
+  assert.match(origin, /new URL\(origin\)\.host !== host/);
+});
