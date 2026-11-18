@@ -1,3 +1,12 @@
+## 2.20.75 – Persistente Kamera-Vorschau und Linux-Desktop-Anmeldung
+
+- Kameraübersicht und visueller Kiosk-Rastereditor lesen nur noch authentifizierte, auf dem Server gespeicherte JPEG-Vorschaubilder. Ein Browseraufruf startet keine neuen RTSP-, ONVIF- oder FFmpeg-Snapshot-Sitzungen.
+- Der Backend-Hintergrunddienst erzeugt alle 60 Sekunden pro Kamera ein kleines JPEG aus dem bereits laufenden lokalen HLS-Ring. Die Arbeit wird über die Kameras verteilt und auf höchstens einen gleichzeitigen Decoder begrenzt.
+- Vorschaubilder werden atomar unter /data/thumbnails gespeichert und bleiben nach einem Neustart sowie bei kurzfristigen Kameraausfällen erhalten. Änderungen der Kameraquelle und Löschen einer Kamera räumen den zugehörigen Cache auf.
+- Der Nginx-/api/-Proxy reicht Host samt Port weiter, damit die sichere Same-Origin-Prüfung des Desktop-Gerätelogins auch im LAN an einer Adresse wie http://192.168.0.231:8080 funktioniert.
+- Die Desktop-Anmeldemaske erhält einen eigenen responsiven Stil und eine gut lesbare Checkbox. Die normale Webanmeldung und die widerrufbare Desktop-Gerätesitzung bleiben getrennt.
+- Der Linux-Electron-Client selbst ist zur Version 2.20.74 binär unverändert; die Reparaturen liegen auf dem Server und im Web-Frontend. Aufnahme-, Bewegungs- und Streamkonfigurationen bleiben erhalten.
+
 ## 2.20.74 – Autonomer Linux-Kiosk mit dauerhafter widerrufbarer Anmeldung
 
 - Eigenständiger Electron-Kiosk startet beim Linux-Benutzerlogin automatisch im Vollbild und verbindet sich mit dem vorhandenen TMP Camera Surveillance Server; keine zusätzliche lokale Docker-/go2rtc-Instanz.
