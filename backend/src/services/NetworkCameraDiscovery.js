@@ -224,6 +224,7 @@ export function requestPage(url, timeoutMs = 1600, maxBytes = 256 * 1024) {
         chunks.push(chunk.subarray(0, remaining));
         size += Math.min(chunk.length, remaining);
       });
+      response.once('error', () => finish(null));
       response.on('end', () => finish({
         statusCode: response.statusCode || 0,
         headers: response.headers,
