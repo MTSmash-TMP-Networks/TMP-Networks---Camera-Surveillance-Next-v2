@@ -28,7 +28,7 @@ const slice = createSlice({
     .addCase(login.pending, (state) => { state.status = 'loading'; state.error = null; })
     .addCase(login.fulfilled, (state, action) => { state.status = 'ready'; state.user = action.payload.user; state.token = action.payload.token; state.runtime = action.payload.runtime || state.runtime; setAccessToken(action.payload.token); })
     .addCase(login.rejected, (state, action) => { state.status = 'error'; state.error = action.error.message; })
-    .addCase(restoreDesktopSession.pending, (state) => { state.desktopRestoring = true; })
+    .addCase(restoreDesktopSession.pending, (state) => { if (!state.user) state.desktopRestoring = true; })
     .addCase(restoreDesktopSession.fulfilled, (state, action) => {
       state.desktopRestoring = false;
       state.desktopOffline = false;
