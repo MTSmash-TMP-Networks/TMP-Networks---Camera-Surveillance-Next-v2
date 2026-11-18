@@ -6,7 +6,7 @@ Eine eigenständige Desktop-Anwendung für einen bereits laufenden TMP Camera Su
 
 1. Im Kamera-Webinterface unter **Desktop-Client** das ZIP herunterladen und entpacken.
 2. In den entpackten Ordner wechseln und `sh ./install-linux.sh` ausführen (ohne `sudo`).
-3. Im Anwendungsmenü **TMP Camera Desktop** öffnen, die Serveradresse (`http://SERVER-IP:8080` oder eine gültige HTTPS-Adresse) eingeben und sich anmelden.
+3. Im Anwendungsmenü **TMP Camera Desktop** öffnen, die Serveradresse (`http://SERVER-IP:8080` oder eine gültige HTTPS-Adresse) eingeben und sich anmelden. Im Linux-Client ist die Option **Auf diesem Gerät angemeldet bleiben** standardmäßig ausgewählt. Sie kann beim Anmelden deaktiviert werden.
 
 **Node.js und npm müssen nicht vorher installiert werden.** Falls beides fehlt oder Node.js zu alt ist, installiert das Skript automatisch Node.js 24 LTS inklusive npm **im eigenen Benutzerverzeichnis** (`~/.local/share/tmp-camera-desktop/runtime/node`). Die Originaldatei wird über HTTPS von nodejs.org bezogen und anhand der veröffentlichten SHA-256-Prüfsumme geprüft. Das installierte Node.js wird nur für TMP Camera Desktop verwendet; die vorhandene Systeminstallation wird nicht verändert.
 
@@ -22,3 +22,14 @@ Voraussetzungen: Linux x64 oder arm64 mit grafischem Desktop, tar, sha256sum, cu
 - Wechsel des Servers über **TMP Camera → Server wechseln** oder `Strg+Umschalt+S`.
 - Falls `npm install` wegen Proxy oder Zertifikatsproblemen scheitert, Netzwerk/CA-Konfiguration des Arbeitsplatzes prüfen; keine unsicheren TLS-Ausnahmen setzen.
 - Option `TMP_CAMERA_SKIP_SYSTEM_PACKAGES=1 sh ./install-linux.sh` unterbindet jede automatische Installation von Systembibliotheken.
+
+## Autonomer Kioskmodus und langlebige Anmeldung (ab Client 2.20.74)
+
+- Der Installer richtet für das Linux-Benutzerkonto standardmäßig einen Autostart in `~/.config/autostart/tmp-camera-kiosk.desktop` ein. Nach Anmeldung am Linux-Desktop wird der Client im Vollbild-Kioskmodus gestartet. Das Betriebssystem-Login bleibt davon unabhängig: Für einen vollständig unbeaufsichtigten Neustart muss der Administrator eine eigene Linux-Desktop-Autologin-Konfiguration vornehmen (nur auf physisch gesicherten Kiosk-Arbeitsplätzen).
+- `TMP_CAMERA_AUTOSTART=0 sh ./install-linux.sh` installiert ohne Autostart und entfernt eine zuvor erzeugte Autostart-Datei.
+- Der Client startet in `/kiosk`, schützt den Browser weiterhin mit Electron-Sandbox und navigiert nur zum konfigurierten Server.
+- Login: Die Gerätesitzung wird **nach einer ausdrücklichen Anmeldung mit Benutzername und Passwort** und aktivierter Geräteoption als serverseitig widerrufbarer Grant erzeugt. Die Chromium-Cookie-Ablage hält lediglich ein HttpOnly/SameSite=Strict-Geräte-Cookie, der Server nur dessen SHA-256-Hash. Keine Passwörter in Konfigurationsdateien.
+- Normale 8-Stunden-Zugriffstokens bleiben kurzlebig. Der Client holt alle 15 Minuten und nach Wiederherstellung der Verbindung automatisch ein neues Zugriffstoken. Der Geräte-Grant ist nach 90 Tagen Inaktivität ungültig; solange der Client arbeitet, verlängert er die Frist bei jeder erfolgreichen Erneuerung. Manuelle Abmeldung entfernt das lokale Cookie und widerruft das Gerät auf dem Server. Deaktivierung eines Nutzers oder Passwortänderung widerruft bisherige Grants ebenfalls.
+- Der Client erkennt Netzwerk- und Serverausfälle, versucht die Verbindung mit maximal 30 Sekunden Backoff wiederherzustellen und behält den gespeicherten Server. Während einer Störung erscheint keine erzwungene neue Loginmaske.
+- `Strg+Umschalt+K` schaltet den Kiosk-Vollbildmodus um, `Strg+Umschalt+S` zeigt das Server-Setup.
+- Sicherheit: Die langlebige Gerätesitzung ist kein unbegrenzt gültiges allgemeines JWT und kann serverseitig widerrufen werden. Für Zugriffe außerhalb des LAN HTTPS benutzen; kein Abschalten von Zertifikatsprüfungen.
