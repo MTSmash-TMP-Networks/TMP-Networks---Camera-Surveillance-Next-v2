@@ -731,3 +731,54 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[r
 
 /* Downloadable Linux desktop client */
 .desktop-client-panel{padding:28px;max-width:850px}.desktop-client-features{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}.desktop-client-features span{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--border-color,#456);border-radius:12px}.desktop-client-features svg{width:18px;height:18px}.desktop-client-download{display:inline-flex;align-items:center;gap:10px;text-decoration:none;margin-bottom:12px}.desktop-client-download svg{width:18px;height:18px}.desktop-client-note{line-height:1.55;max-width:730px}.desktop-client-command{padding:15px 18px;border-radius:12px;background:#0b1828;color:#e8f6ff;overflow:auto}
+
+/* v2.20.73 - Visual kiosk grid editor with a separate thumbnail palette. */
+.kiosk-layout-dialog-visual{width:min(1560px,98vw)}
+.kiosk-layout-dialog-visual .kiosk-layout-dialog-body{display:flex;flex-direction:column;overflow:hidden}
+.kiosk-layout-dialog-visual .kiosk-layout-saved-list{flex:0 0 auto;min-height:0;max-height:118px;overflow:hidden;padding:10px 17px;border-right:0;border-bottom:1px solid #17384b}
+.kiosk-layout-dialog-visual .kiosk-layout-saved-list .kiosk-layout-section-title{margin-bottom:7px}
+.kiosk-layout-saved-scroll{display:flex;gap:7px;max-width:100%;overflow-x:auto;scrollbar-width:thin}
+.kiosk-layout-saved-scroll>button{flex:0 0 175px;min-width:0;display:flex;align-items:center;gap:8px;padding:8px;border:1px solid #183a4e;border-radius:9px;background:#081b28;color:#c7e0ec;text-align:left}
+.kiosk-layout-saved-scroll>button:hover,.kiosk-layout-saved-scroll>button.active{border-color:#29cbe8;background:#0d2a3c}
+.kiosk-layout-saved-scroll>button svg{flex-shrink:0;width:17px;height:17px;color:#20d4f4}
+.kiosk-layout-saved-scroll>button span{min-width:0}.kiosk-layout-saved-scroll>button strong,.kiosk-layout-saved-scroll>button small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kiosk-layout-saved-scroll>button strong{font-size:11px}.kiosk-layout-saved-scroll>button small{font-size:9px;color:#89a5b4}
+.kiosk-layout-saved-scroll>p{font-size:11px;color:#7898a9}
+.kiosk-layout-editor-workspace{min-height:0;min-width:0;flex:1;display:grid;grid-template-columns:284px minmax(0,1fr)}
+.kiosk-camera-palette{min-width:0;min-height:0;display:flex;flex-direction:column;padding:15px;gap:9px;background:#061522;border-right:1px solid #1b445c}
+.kiosk-camera-palette .kiosk-layout-section-title{margin:0}
+.kiosk-camera-search{display:flex;align-items:center;gap:7px;padding:0 10px;border-radius:10px;border:1px solid #26536b;background:#081c2c}
+.kiosk-camera-search svg{flex:0 0 auto;width:16px;color:#8db4c6}
+.kiosk-camera-search input{min-width:0;width:100%;border:0!important;background:transparent!important;outline:0!important;box-shadow:none!important;padding:11px 0;font-size:12px;color:#eefbff}
+.kiosk-editor-instructions{color:#8faabc;font-size:11px;line-height:1.5;margin:0}
+.kiosk-camera-palette-list{display:flex;flex-direction:column;gap:8px;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:4px;scrollbar-width:thin}
+.kiosk-camera-palette-item{display:flex;align-items:center;gap:10px;padding:6px;text-align:left;border:1px solid #21435b;border-radius:12px;background:#0b2233;color:#dcecf6;cursor:grab;min-width:0}
+.kiosk-camera-palette-item:active{cursor:grabbing}
+.kiosk-camera-palette-item:hover,.kiosk-camera-palette-item.selected{border-color:#25d0ed;background:#103248;box-shadow:0 0 0 1px #20d4f420}
+.kiosk-camera-palette-item:focus-visible,.kiosk-layout-slot-preview:focus-visible{outline:2px solid #25d0ed;outline-offset:2px}
+.kiosk-camera-thumb{display:grid;place-items:center;width:100%;height:100%;min-height:0;background:linear-gradient(145deg,#173a52,#06121d);color:#85a5ba;overflow:hidden}
+.kiosk-camera-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.kiosk-camera-thumb svg{width:23px;height:23px;opacity:.6}
+.kiosk-camera-palette-item>.kiosk-camera-thumb{width:100px;aspect-ratio:16/9;flex:0 0 100px;border-radius:8px}
+.kiosk-camera-palette-info{min-width:0;display:grid;gap:5px}
+.kiosk-camera-palette-info strong{font-size:12px;overflow-wrap:anywhere}
+.kiosk-camera-palette-info small{font-size:10px;color:#89a9b9;overflow-wrap:anywhere}
+.kiosk-camera-palette-empty{font-size:12px;color:#90aab9}
+.kiosk-layout-dialog-visual .kiosk-layout-editor-main{min-height:0;overflow-y:auto;padding:18px 20px 24px}
+.kiosk-layout-assignment-visual{grid-template-rows:repeat(var(--layout-rows),minmax(100px,1fr));min-height:320px}
+.kiosk-layout-assignment-visual>.kiosk-layout-drop-slot{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;border:1px solid #24536b;border-radius:10px;background:#071b29}
+.kiosk-layout-assignment-visual>.kiosk-layout-drop-slot.drop-target{border-color:#20def1;box-shadow:inset 0 0 0 2px #22d8ed88;background:#10354b}
+.kiosk-layout-drop-slot.can-assign .kiosk-layout-slot-preview{cursor:copy}
+.kiosk-layout-slot-preview{position:relative;flex:1;min-height:55px;display:flex;justify-content:flex-end;flex-direction:column;text-align:left;padding:0;border:0;background:#071522;cursor:grab;overflow:hidden;color:#fff}
+.kiosk-layout-slot-preview>.kiosk-camera-thumb{position:absolute;inset:0;z-index:0}
+.kiosk-layout-slot-preview>.kiosk-camera-thumb:after{content:"";position:absolute;inset:35% 0 0;background:linear-gradient(transparent,#020910da)}
+.kiosk-layout-slot-preview>.kiosk-layout-slot-empty-icon{position:absolute;left:50%;top:39%;transform:translate(-50%,-50%);width:30px;height:30px;color:#426782}
+.kiosk-layout-slot-name,.kiosk-layout-slot-number{position:relative;z-index:1;padding:0 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.kiosk-layout-slot-name{font-size:12px;font-weight:800;text-shadow:0 1px 4px #000}
+.kiosk-layout-slot-number{padding-bottom:6px;font-size:10px;color:#b3d1e1}
+.kiosk-layout-slot-actions{display:flex;align-items:center;gap:4px;padding:5px;background:#081c2a}
+.kiosk-layout-slot-actions select{flex:1;min-width:0;padding:5px 6px;font-size:10px;border-radius:6px;background:#06131e}
+.kiosk-layout-slot-clear{flex:0 0 27px;height:27px;display:grid;place-items:center;padding:0;border:1px solid #3b5364;border-radius:7px;background:#102334;color:#e1a8aa}
+.kiosk-layout-slot-clear svg{width:15px;height:15px}
+@media(max-width:1100px){.kiosk-layout-editor-workspace{grid-template-columns:235px minmax(0,1fr)}.kiosk-camera-palette-item>.kiosk-camera-thumb{width:80px;flex-basis:80px}.kiosk-layout-dialog-visual .kiosk-layout-template-grid{grid-template-columns:repeat(2,minmax(135px,1fr))}}
+@media(max-width:760px){.kiosk-layout-dialog-visual .kiosk-layout-dialog-body{overflow:auto}.kiosk-layout-editor-workspace{display:flex;flex-direction:column;overflow:visible}.kiosk-camera-palette{min-height:235px;max-height:290px;border-right:0;border-bottom:1px solid #1b445c}.kiosk-camera-palette-list{flex-direction:row;overflow-x:auto;overflow-y:hidden;min-height:90px}.kiosk-camera-palette-item{flex:0 0 160px;flex-direction:column;align-items:stretch}.kiosk-camera-palette-item>.kiosk-camera-thumb{width:100%;flex:0 0 auto}.kiosk-layout-dialog-visual .kiosk-layout-editor-main{overflow:visible}.kiosk-layout-dialog-visual .kiosk-layout-saved-list{max-height:none}.kiosk-layout-saved-scroll>button{flex-basis:145px}.kiosk-layout-assignment-visual>.kiosk-layout-drop-slot{grid-column:auto!important;grid-row:auto!important;min-height:170px}.kiosk-layout-assignment-visual{grid-template-columns:1fr!important;grid-template-rows:none!important;aspect-ratio:auto}.kiosk-layout-slot-preview{min-height:112px}}

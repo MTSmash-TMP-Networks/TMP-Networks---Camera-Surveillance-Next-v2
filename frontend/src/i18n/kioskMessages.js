@@ -255,7 +255,31 @@ const rows = {
   ],
 };
 
+const visualEditorLabels = {
+  en: {
+    'kiosk.editor.cameraList': 'Available cameras',
+    'kiosk.editor.search': 'Search cameras',
+    'kiosk.editor.dragHint': 'Drag a camera into a tile, or select it and then click a tile.',
+    'kiosk.editor.slotHint': 'Drag cameras from the left or swap tiles within the grid.',
+    'kiosk.editor.noResults': 'No cameras match your search.',
+    'kiosk.editor.assignSlot': 'Assign camera to tile {number}',
+    'kiosk.editor.clear': 'Remove camera from tile',
+  },
+  de: {
+    'kiosk.editor.cameraList': 'Verfügbare Kameras',
+    'kiosk.editor.search': 'Kameras suchen',
+    'kiosk.editor.dragHint': 'Kamera ins Raster ziehen oder zuerst auswählen und dann eine Kachel anklicken.',
+    'kiosk.editor.slotHint': 'Kameras von links zuweisen oder bestehende Kacheln untereinander tauschen.',
+    'kiosk.editor.noResults': 'Keine passenden Kameras gefunden.',
+    'kiosk.editor.assignSlot': 'Kamera für Kachel {number} zuweisen',
+    'kiosk.editor.clear': 'Kamera aus Kachel entfernen',
+  },
+};
+
 export const kioskMessages = Object.fromEntries(Object.entries(rows).map(([locale, values]) => {
   if (values.length !== keys.length) throw new Error(`Invalid kiosk translation row ${locale}: ${values.length}/${keys.length}`);
-  return [locale, Object.fromEntries(keys.map((key, index) => [key, values[index]]))];
+  return [locale, {
+    ...Object.fromEntries(keys.map((key, index) => [key, values[index]])),
+    ...(visualEditorLabels[locale] || visualEditorLabels.en),
+  }];
 }));

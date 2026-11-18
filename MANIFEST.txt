@@ -39,6 +39,7 @@ UPDATE_NOTES_2.20.69.md
 UPDATE_NOTES_2.20.70.md
 UPDATE_NOTES_2.20.71.md
 UPDATE_NOTES_2.20.72.md
+UPDATE_NOTES_2.20.73.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -402,6 +403,8 @@ frontend/src/services/kioskLayouts.js
 frontend/src/services/kioskLayouts.test.js
 frontend/src/services/kioskStatus.js
 frontend/src/services/kioskStatus.test.js
+frontend/src/services/kioskThumbnailLoader.js
+frontend/src/services/kioskThumbnailLoader.test.js
 frontend/src/services/liveStreamPool.js
 frontend/src/services/quality.js
 frontend/src/services/scheduleValidation.js
@@ -434,6 +437,7 @@ frontend/test/branding-icon.test.js
 frontend/test/camera-add-refresh.test.js
 frontend/test/footer.test.js
 frontend/test/hls-auto-recovery.test.js
+frontend/test/kiosk-visual-layout-editor.test.js
 frontend/test/live-player-single-window.test.js
 frontend/test/live-stable-protocol.test.js
 frontend/test/multi-source-streaming.test.js

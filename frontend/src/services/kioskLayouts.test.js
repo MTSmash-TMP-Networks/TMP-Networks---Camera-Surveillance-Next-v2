@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyKioskTemplate,
+  assignKioskCamera,
   autoAssignKioskLayout,
   buildAutomaticKioskLayout,
   createKioskLayout,
   loadKioskLayouts,
   saveKioskLayouts,
+  swapKioskSlotCameras,
 } from './kioskLayouts.js';
 
 function memoryStorage() {
@@ -40,6 +42,24 @@ describe('kioskLayouts', () => {
   it('can reassign a layout sequentially', () => {
     const layout = createKioskLayout({ templateId: 'focus-five', cameras: [] });
     expect(autoAssignKioskLayout(layout, cameras).slots[4].cameraId).toBe('cam-5');
+  });
+
+  it('assigns a selected camera to one tile without mutating the original layout', () => {
+    const original = createKioskLayout({ templateId: 'quad', cameras });
+    const updated = assignKioskCamera(original, 'b', 'cam-7');
+    expect(updated.slots.map((item) => item.cameraId)).toEqual(['cam-1', 'cam-7', 'cam-3', 'cam-4']);
+    expect(original.slots[1].cameraId).toBe('cam-2');
+    expect(assignKioskCamera(updated, 'b', '').slots[1].cameraId).toBe('');
+  });
+
+  it('swaps occupied slots and safely moves a camera into an empty tile', () => {
+    const original = createKioskLayout({ templateId: 'quad', cameras });
+    const swapped = swapKioskSlotCameras(original, 'a', 'b');
+    expect(swapped.slots.map((item) => item.cameraId)).toEqual(['cam-2', 'cam-1', 'cam-3', 'cam-4']);
+    const empty = assignKioskCamera(original, 'b', '');
+    const moved = swapKioskSlotCameras(empty, 'a', 'b');
+    expect(moved.slots.map((item) => item.cameraId)).toEqual(['', 'cam-1', 'cam-3', 'cam-4']);
+    expect(swapKioskSlotCameras(original, 'a', 'missing')).toBe(original);
   });
 
   it('persists and sanitizes user layouts', () => {

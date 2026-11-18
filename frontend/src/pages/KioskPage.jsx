@@ -1,18 +1,20 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   Activity, Clock3, Copy, Expand, Grid2X2, LayoutDashboard, Minimize, Plus, Radio,
-  RefreshCw, Save, Trash2, Video, WandSparkles, X,
+  RefreshCw, Save, Search, Trash2, Video, WandSparkles, X,
 } from 'lucide-react';
 import { loadCameras } from '../features/cameras/camerasSlice.js';
 import { SeamlessLivePlayer } from '../components/SeamlessLivePlayer.jsx';
 import { api } from '../services/api.js';
 import { buildKioskCameraStatus, summarizeKioskStatus } from '../services/kioskStatus.js';
+import { createKioskThumbnailLoader } from '../services/kioskThumbnailLoader.js';
 import { useI18n } from '../i18n/index.js';
 import {
   KIOSK_LAYOUT_TEMPLATES,
   applyKioskTemplate,
+  assignKioskCamera,
   autoAssignKioskLayout,
   buildAutomaticKioskLayout,
   createKioskLayout,
@@ -20,6 +22,7 @@ import {
   loadKioskLayouts,
   saveActiveKioskLayoutId,
   saveKioskLayouts,
+  swapKioskSlotCameras,
 } from '../services/kioskLayouts.js';
 
 function KioskClock({ locale, t }) {
@@ -78,28 +81,76 @@ function templateText(t, template, field) {
   return t(`kiosk.template.${template.id}.${field}`);
 }
 
+function KioskThumbnail({ cameraId, thumbnails, requestPreview }) {
+  const elementRef = useRef(null);
+  useEffect(() => {
+    if (!cameraId) return undefined;
+    const node = elementRef.current;
+    if (!node) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      requestPreview(cameraId);
+      return undefined;
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        requestPreview(cameraId);
+        observer.disconnect();
+      }
+    }, { rootMargin: '100px 0px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [cameraId, requestPreview]);
+  const src = thumbnails[cameraId] || '';
+  return <span className="kiosk-camera-thumb" ref={elementRef} aria-hidden="true">
+    {src ? <img src={src} alt="" loading="lazy" draggable={false}/> : <Video/>}
+  </span>;
+}
+
 function KioskLayoutEditor({ cameras, layouts, initialLayout, onClose, onSave, onDelete, t }) {
   const [draft, setDraft] = useState(() => initialLayout);
+  const [search, setSearch] = useState('');
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const [dropTargetId, setDropTargetId] = useState('');
+  const [thumbnails, setThumbnails] = useState({});
+  const thumbnailLoaderRef = useRef(null);
 
-  useEffect(() => { setDraft(initialLayout); }, [initialLayout]);
+  useEffect(() => { setDraft(initialLayout); setSelectedCameraId(''); }, [initialLayout]);
+  useEffect(() => {
+    const loader = createKioskThumbnailLoader({
+      load: (cameraId, signal) => api.snapshot(cameraId, '', { signal, timeoutMs: 12_000 }),
+      createUrl: (blob) => URL.createObjectURL(blob),
+      revokeUrl: (url) => URL.revokeObjectURL(url),
+      onUpdate: (cameraId, url) => setThumbnails((current) => ({ ...current, [cameraId]: url })),
+      maxConcurrent: 2,
+    });
+    thumbnailLoaderRef.current = loader;
+    return () => {
+      thumbnailLoaderRef.current = null;
+      loader.dispose();
+    };
+  }, []);
+  const requestPreview = useCallback((id) => thumbnailLoaderRef.current?.request(id), []);
+  const cameraById = useMemo(() => new Map(cameras.map((camera) => [String(camera.id), camera])), [cameras]);
+  const filteredCameras = useMemo(() => cameras.filter((camera) =>
+    `${camera.name || ''} ${camera.location || ''} ${camera.ip || ''}`.toLowerCase().includes(search.trim().toLowerCase())
+  ), [cameras, search]);
   if (!draft) return null;
 
   const isStored = layouts.some((item) => item.id === draft.id);
 
   function changeTemplate(templateId) {
     setDraft((current) => applyKioskTemplate(current, templateId, cameras));
+    setDropTargetId('');
   }
 
   function changeCamera(slotId, cameraId) {
-    setDraft((current) => ({
-      ...current,
-      slots: current.slots.map((item) => item.id === slotId ? { ...item, cameraId } : item),
-    }));
+    setDraft((current) => assignKioskCamera(current, slotId, cameraId));
   }
 
   function newLayout() {
     const templateId = cameras.length >= 5 ? 'focus-five' : cameras.length >= 4 ? 'quad' : 'single';
     setDraft(createKioskLayout({ templateId, cameras, name: t('kiosk.layout.defaultName', { number: layouts.length + 1 }) }));
+    setSelectedCameraId('');
   }
 
   function duplicateLayout() {
@@ -107,57 +158,122 @@ function KioskLayoutEditor({ cameras, layouts, initialLayout, onClose, onSave, o
     setDraft({ ...copy, columns: draft.columns, rows: draft.rows, slots: draft.slots.map((item) => ({ ...item })) });
   }
 
+  function onCameraDragStart(event, cameraId) {
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('application/x-tmp-camera-id', String(cameraId));
+    event.dataTransfer.setData('text/plain', String(cameraId));
+    setSelectedCameraId(String(cameraId));
+  }
+
+  function onSlotDragStart(event, slotId) {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('application/x-tmp-slot-id', String(slotId));
+  }
+
+  function onDropSlot(event, slotId) {
+    event.preventDefault();
+    setDropTargetId('');
+    const sourceSlotId = event.dataTransfer.getData('application/x-tmp-slot-id');
+    if (sourceSlotId) {
+      setDraft((current) => swapKioskSlotCameras(current, sourceSlotId, slotId));
+      return;
+    }
+    const cameraId = event.dataTransfer.getData('application/x-tmp-camera-id') || event.dataTransfer.getData('text/plain');
+    if (cameraById.has(cameraId)) changeCamera(slotId, cameraId);
+  }
+
+  function selectSlot(slotId) {
+    if (selectedCameraId && cameraById.has(selectedCameraId)) changeCamera(slotId, selectedCameraId);
+  }
+
   return <div className="kiosk-layout-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="kiosk-layout-dialog" role="dialog" aria-modal="true" aria-labelledby="kiosk-layout-editor-title">
+    <section className="kiosk-layout-dialog kiosk-layout-dialog-visual" role="dialog" aria-modal="true" aria-labelledby="kiosk-layout-editor-title">
       <header>
         <div><span className="eyebrow">{t('kiosk.layouts.eyebrow')}</span><h2 id="kiosk-layout-editor-title">{t('kiosk.layouts.title')}</h2><p>{t('kiosk.layouts.subtitle')}</p></div>
         <button className="kiosk-dialog-icon" onClick={onClose} aria-label={t('kiosk.action.close')}><X/></button>
       </header>
-
       <div className="kiosk-layout-dialog-body">
-        <aside className="kiosk-layout-saved-list">
+        <div className="kiosk-layout-saved-list">
           <div className="kiosk-layout-section-title"><strong>{t('kiosk.saved.title')}</strong><button onClick={newLayout}><Plus/> {t('kiosk.action.new')}</button></div>
-          {layouts.length
-            ? layouts.map((layout) => <button key={layout.id} className={layout.id === draft.id ? 'active' : ''} onClick={() => setDraft(layout)}>
-              <LayoutDashboard/><span><strong>{layout.name}</strong><small>{t('kiosk.saved.meta', { count: layout.slots.filter((item) => item.cameraId).length, columns: layout.columns, rows: layout.rows })}</small></span>
-            </button>)
-            : <p>{t('kiosk.saved.empty')}</p>}
-        </aside>
-
-        <div className="kiosk-layout-editor-main">
-          <div className="kiosk-layout-name-row">
-            <label>{t('kiosk.layout.name')}<input value={draft.name} maxLength={80} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}/></label>
-            <button onClick={() => setDraft((current) => autoAssignKioskLayout(current, cameras))}><WandSparkles/> {t('kiosk.action.autoFill')}</button>
+          <div className="kiosk-layout-saved-scroll">
+            {layouts.length
+              ? layouts.map((layout) => <button key={layout.id} className={layout.id === draft.id ? 'active' : ''} onClick={() => { setDraft(layout); setSelectedCameraId(''); }}>
+                <LayoutDashboard/><span><strong>{layout.name}</strong><small>{t('kiosk.saved.meta', { count: layout.slots.filter((item) => item.cameraId).length, columns: layout.columns, rows: layout.rows })}</small></span>
+              </button>)
+              : <p>{t('kiosk.saved.empty')}</p>}
           </div>
-
-          <div className="kiosk-layout-template-section">
-            <div className="kiosk-layout-section-title"><strong>{t('kiosk.template.title')}</strong><small>{t('kiosk.template.hint')}</small></div>
-            <div className="kiosk-layout-template-grid">
-              {KIOSK_LAYOUT_TEMPLATES.map((template) => <button key={template.id} className={draft.templateId === template.id ? 'active' : ''} onClick={() => changeTemplate(template.id)}>
-                <LayoutMiniature template={template}/>
-                <span><strong>{templateText(t, template, 'name')}</strong><small>{templateText(t, template, 'description')}</small></span>
+        </div>
+        <div className="kiosk-layout-editor-workspace">
+          <aside className="kiosk-camera-palette" aria-label={t('kiosk.editor.cameraList')}>
+            <div className="kiosk-layout-section-title"><strong>{t('kiosk.editor.cameraList')}</strong><small>{filteredCameras.length} / {cameras.length}</small></div>
+            <label className="kiosk-camera-search"><Search/><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('kiosk.editor.search')} aria-label={t('kiosk.editor.search')}/></label>
+            <p className="kiosk-editor-instructions">{t('kiosk.editor.dragHint')}</p>
+            <div className="kiosk-camera-palette-list">
+              {filteredCameras.map((camera) => <button key={camera.id} type="button" draggable
+                className={String(camera.id) === selectedCameraId ? 'kiosk-camera-palette-item selected' : 'kiosk-camera-palette-item'}
+                aria-pressed={String(camera.id) === selectedCameraId}
+                onClick={() => setSelectedCameraId(String(camera.id))}
+                onDragStart={(event) => onCameraDragStart(event, camera.id)}
+              >
+                <KioskThumbnail cameraId={String(camera.id)} thumbnails={thumbnails} requestPreview={requestPreview}/>
+                <span className="kiosk-camera-palette-info"><strong>{camera.name}</strong>{camera.location && <small>{camera.location}</small>}</span>
               </button>)}
+              {!filteredCameras.length && <p className="kiosk-camera-palette-empty">{t('kiosk.editor.noResults')}</p>}
             </div>
-          </div>
-
-          <div className="kiosk-layout-assignment-section">
-            <div className="kiosk-layout-section-title"><strong>{t('kiosk.assignment.title')}</strong><small>{t('kiosk.assignment.hint')}</small></div>
-            <div className="kiosk-layout-assignment-grid" style={{ '--layout-cols': draft.columns, '--layout-rows': draft.rows }}>
-              {draft.slots.map((item, index) => <label key={item.id} style={{
-                gridColumn: `${item.column} / span ${item.columnSpan}`,
-                gridRow: `${item.row} / span ${item.rowSpan}`,
-              }}>
-                <span>{t('kiosk.assignment.tile', { number: index + 1 })}{item.columnSpan > 1 || item.rowSpan > 1 ? ` · ${t('kiosk.assignment.focus')}` : ''}</span>
-                <select value={item.cameraId} onChange={(event) => changeCamera(item.id, event.target.value)}>
-                  <option value="">{t('kiosk.assignment.noCamera')}</option>
-                  {cameras.map((camera) => <option key={camera.id} value={camera.id}>{camera.name}{camera.location ? ` · ${camera.location}` : ''}</option>)}
-                </select>
-              </label>)}
+          </aside>
+          <div className="kiosk-layout-editor-main">
+            <div className="kiosk-layout-name-row">
+              <label>{t('kiosk.layout.name')}<input value={draft.name} maxLength={80} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}/></label>
+              <button onClick={() => setDraft((current) => autoAssignKioskLayout(current, cameras))}><WandSparkles/> {t('kiosk.action.autoFill')}</button>
+            </div>
+            <div className="kiosk-layout-template-section">
+              <div className="kiosk-layout-section-title"><strong>{t('kiosk.template.title')}</strong><small>{t('kiosk.template.hint')}</small></div>
+              <div className="kiosk-layout-template-grid">
+                {KIOSK_LAYOUT_TEMPLATES.map((template) => <button key={template.id} className={draft.templateId === template.id ? 'active' : ''} onClick={() => changeTemplate(template.id)}>
+                  <LayoutMiniature template={template}/>
+                  <span><strong>{templateText(t, template, 'name')}</strong><small>{templateText(t, template, 'description')}</small></span>
+                </button>)}
+              </div>
+            </div>
+            <div className="kiosk-layout-assignment-section">
+              <div className="kiosk-layout-section-title"><strong>{t('kiosk.assignment.title')}</strong><small>{t('kiosk.editor.slotHint')}</small></div>
+              <div className="kiosk-layout-assignment-grid kiosk-layout-assignment-visual" style={{ '--layout-cols': draft.columns, '--layout-rows': draft.rows }}>
+                {draft.slots.map((item, index) => {
+                  const camera = cameraById.get(String(item.cameraId));
+                  return <div key={item.id}
+                    className={`kiosk-layout-drop-slot${dropTargetId === item.id ? ' drop-target' : ''}${selectedCameraId ? ' can-assign' : ''}`}
+                    style={{ gridColumn: `${item.column} / span ${item.columnSpan}`, gridRow: `${item.row} / span ${item.rowSpan}` }}
+                    onDragEnter={(event) => { event.preventDefault(); setDropTargetId(item.id); }}
+                    onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = Array.from(event.dataTransfer.types || []).includes('application/x-tmp-slot-id') ? 'move' : 'copy'; }}
+                    onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setDropTargetId(''); }}
+                    onDrop={(event) => onDropSlot(event, item.id)}
+                  >
+                    <button type="button" className="kiosk-layout-slot-preview"
+                      draggable={Boolean(camera)}
+                      onDragStart={(event) => onSlotDragStart(event, item.id)}
+                      onClick={() => selectSlot(item.id)}
+                      aria-label={t('kiosk.editor.assignSlot', { number: index + 1 })}
+                    >
+                      {camera
+                        ? <KioskThumbnail cameraId={String(camera.id)} thumbnails={thumbnails} requestPreview={requestPreview}/>
+                        : <Grid2X2 className="kiosk-layout-slot-empty-icon"/>}
+                      <span className="kiosk-layout-slot-name">{camera?.name || t('kiosk.assignment.noCamera')}</span>
+                      <span className="kiosk-layout-slot-number">{t('kiosk.assignment.tile', { number: index + 1 })}{item.columnSpan > 1 || item.rowSpan > 1 ? ` · ${t('kiosk.assignment.focus')}` : ''}</span>
+                    </button>
+                    <div className="kiosk-layout-slot-actions">
+                      <select aria-label={t('kiosk.editor.assignSlot', { number: index + 1 })} value={item.cameraId} onChange={(event) => changeCamera(item.id, event.target.value)}>
+                        <option value="">{t('kiosk.assignment.noCamera')}</option>
+                        {cameras.map((available) => <option key={available.id} value={available.id}>{available.name}{available.location ? ` · ${available.location}` : ''}</option>)}
+                      </select>
+                      {item.cameraId && <button type="button" className="kiosk-layout-slot-clear" onClick={() => changeCamera(item.id, '')} title={t('kiosk.editor.clear')} aria-label={t('kiosk.editor.clear')}><X/></button>}
+                    </div>
+                  </div>;
+                })}
+              </div>
             </div>
           </div>
         </div>
       </div>
-
       <footer>
         <div>
           {isStored && <button className="danger-button" onClick={() => onDelete(draft.id)}><Trash2/> {t('kiosk.action.delete')}</button>}

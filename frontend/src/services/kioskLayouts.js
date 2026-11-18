@@ -121,6 +121,30 @@ export function applyKioskTemplate(layout, templateId, cameras = []) {
   };
 }
 
+// Pure assignment helpers: do not mutate a persisted layout or its slots.
+export function assignKioskCamera(layout, slotId, cameraId) {
+  return {
+    ...layout,
+    slots: (layout?.slots || []).map((slot) => slot.id === slotId ? { ...slot, cameraId: String(cameraId || '') } : slot),
+  };
+}
+
+// Moving an occupied tile swaps assignments; no saved camera disappears.
+export function swapKioskSlotCameras(layout, fromId, toId) {
+  if (!layout || fromId === toId) return layout;
+  const from = layout.slots?.find((slot) => slot.id === fromId);
+  const to = layout.slots?.find((slot) => slot.id === toId);
+  if (!from?.cameraId || !to) return layout;
+  return {
+    ...layout,
+    slots: layout.slots.map((slot) => {
+      if (slot.id === fromId) return { ...slot, cameraId: to.cameraId || '' };
+      if (slot.id === toId) return { ...slot, cameraId: from.cameraId };
+      return slot;
+    }),
+  };
+}
+
 export function autoAssignKioskLayout(layout, cameras = []) {
   return {
     ...layout,
