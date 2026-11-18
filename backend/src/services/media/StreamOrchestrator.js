@@ -501,7 +501,7 @@ class StreamOrchestrator {
     };
   }
 
-  async orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources = []) {
+  async orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources = [], { profileOffset = 0, profileLimit = Infinity, includeManual = true } = {}) {
     let selectedProfiles = chooseProfiles(profiles, session.quality, viewportWidth, session.codecPreference);
     if (!session.stableProfileToken && session.requestedProfileToken) {
       const requested = selectedProfiles.find((profile) => profile.token === session.requestedProfileToken);
@@ -510,6 +510,7 @@ class StreamOrchestrator {
 
     const attempts = [];
     for (const [profileIndex, profile] of selectedProfiles.entries()) {
+      if (profileIndex < profileOffset || profileIndex >= profileOffset + profileLimit) continue;
       try {
         this.phase(session, 'resolving', `ONVIF-Medienadresse für „${profile.name}“ wird abgefragt`, { profile: profile.name });
         const candidates = await onvif.streamCandidates(profile.token, undefined, profile.mediaService);
@@ -519,7 +520,7 @@ class StreamOrchestrator {
         this.log(session, 'warn', 'onvif', 'STREAM_URI_FAILED', `ONVIF lieferte für „${profile.name}“ keine nutzbare Medienadresse`, errorDetails(error));
       }
     }
-    attempts.push(...manualStreamAttempts(mediaSources));
+    if (includeManual) attempts.push(...manualStreamAttempts(mediaSources));
     const failureMemory = session.failedCandidates || new Map();
     session.failedCandidates = failureMemory;
     const now = Date.now();
@@ -606,7 +607,16 @@ class StreamOrchestrator {
         }
       }
 
-      const attempts = await this.orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources);
+      // Fast path for permanent preview: resolve only the highest-ranked
+      // ONVIF/substream URI first. Before this change we requested the URI for
+      // EVERY profile, one after another, before trying even one video frame.
+      // If the first profile fails, resolve all remaining profiles normally;
+      // alternate/manual sources are never lost or duplicated.
+      const batches = session.permanent && pass === 0 && !directStream && profiles.length > 1
+        ? [{ profileOffset: 0, profileLimit: 1, includeManual: true }, { profileOffset: 1, includeManual: false }]
+        : [{}];
+      for (const batch of batches) {
+      const attempts = await this.orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources, batch);
       session.attemptCount = attempts.length;
       this.log(session, 'info', 'stream', 'ATTEMPTS_PREPARED', `${attempts.length} Streamvarianten werden systematisch geprüft`, {
         order: attempts.map(({ profile, candidate }) => ({ profile: profile.name, sourceType: candidate.sourceType || 'onvif', sourceLabel: candidate.sourceLabel || null, videoCodec: profile.videoCodec, videoProfile: profile.videoProfile, transport: candidate.transport, endpoint: candidate.endpoint || null, endpointReason: candidate.endpointReason || null })),
@@ -772,6 +782,7 @@ class StreamOrchestrator {
           });
           await this.kill(session);
         }
+      }
       }
     }
     // Snapshot-H.264 is an emergency source for every consumer, including
@@ -2168,7 +2179,7 @@ class StreamOrchestrator {
     return { started: true, reason, waited: Boolean(wait) };
   }
 
-  async startPermanentIngestForAll({ wait = false, staggerMs = config.permanentIngestStartupStaggerMs } = {}) {
+  async startPermanentIngestForAll({ wait = false, staggerMs = config.backgroundCameraBootstrapStaggerMs } = {}) {
     if (!config.permanentIngestEnabled) return { started: 0, reason: 'disabled' };
     const cameras = cameraRepository.listEnabled();
     const pauseMs = Math.max(0, Number(staggerMs) || 0);
@@ -2197,7 +2208,7 @@ class StreamOrchestrator {
           if (session?.permanent && session.state === 'failed' && !session.restartTimer) this.scheduleRestart(session);
         }
       }
-      logger.info({ started, quality: permanentQuality(), permanentIngest: true }, 'Kamera-Bootstrap wurde abgeschlossen');
+      logger.info({ started, quality: permanentQuality(), permanentIngest: true, ready: cameras.filter((camera) => this.hasReadyPermanent(camera.id)).length }, 'Kamera-Bootstrap wurde abgeschlossen');
       return { started, quality: permanentQuality() };
     };
 
