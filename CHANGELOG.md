@@ -1,3 +1,12 @@
+## 2.20.74 – Autonomer Linux-Kiosk mit dauerhafter widerrufbarer Anmeldung
+
+- Eigenständiger Electron-Kiosk startet beim Linux-Benutzerlogin automatisch im Vollbild und verbindet sich mit dem vorhandenen TMP Camera Surveillance Server; keine zusätzliche lokale Docker-/go2rtc-Instanz.
+- Einmaliger Benutzername/Passwort-Login mit sichtbarer Geräteoption erzeugt eine auf 90 Tage Inaktivität begrenzte widerrufbare Gerätesitzung, die aktiv laufende Clients automatisch verlängern. Der Server speichert ausschließlich einen SHA256-Hash des Gerätegeheimnisses.
+- Zugriffstokens bleiben weiterhin auf 8 Stunden begrenzt und werden alle 15 Minuten beziehungsweise nach Rückkehr des Netzwerks per HttpOnly/SameSite=Strict-Cookie erneuert. Passwortänderung, Account-Deaktivierung und explizite Abmeldung widerrufen die Gerätesitzung.
+- Electron benutzt weiterhin persistente Chromium-Partition, Sandbox, Context-Isolation und servergebundene Navigation; keine Abschaltung von TLS-Zertifikatsprüfung.
+- Linux-Installer richtet Autostart unter ~/.config/autostart ein und erlaubt TMP_CAMERA_AUTOSTART=0. Offline- oder Serverausfälle lösen kontrollierte Wiederverbindungen aus, nicht die Serveradress-Neueinrichtung.
+- Linux-Download-ZIP wurde mit dem neuen Client aktualisiert. Keine Änderung an laufenden Kamera-, Aufnahme-, Motion-, Kiosk-Raster- oder mediamtx-Einstellungen.
+
 ## 2.20.73 – Visueller Kiosk-Rastereditor mit Kamera-Vorschauen
 
 - Rasterverwaltung zeigt links eine durchsuchbare Kameraliste mit Miniatur-Snapshots und rechts das Layout mit Kamera-Vorschaubildern.
