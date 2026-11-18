@@ -29,8 +29,11 @@ export function onvifProbeCandidates(input = {}) {
   // Some Reolink models expose ONVIF on TCP 8000 even when the previously
   // discovered web/RTSP ports do not list it. Test it only for identified
   // Reolink devices; do not treat every Hikvision SDK port as an ONVIF server.
-  const isReolink = /reolink/i.test(`${input.manufacturer || ''} ${input.model || ''}`);
-  const ports = [...new Set([explicitPort, ...(input.openPorts || []).map(Number), ...(isReolink ? [8000] : [])])]
+  const vendorIdentity = `${input.manufacturer || ''} ${input.model || ''}`;
+  const isReolink = /reolink/i.test(vendorIdentity);
+  const isVoscam = /voscam/i.test(vendorIdentity);
+  // Voscam can expose ONVIF on 888 even when older scans only found port 80.
+  const ports = [...new Set([explicitPort, ...(input.openPorts || []).map(Number), ...(isReolink ? [8000] : []), ...(isVoscam ? [888] : [])])]
     .filter((port) => Number.isInteger(port) && port > 0 && port <= 65535 && !ONVIF_MEDIA_ONLY_PORTS.has(port));
   ports.sort((a, b) => {
     if (a === explicitPort && b !== explicitPort) return -1;
