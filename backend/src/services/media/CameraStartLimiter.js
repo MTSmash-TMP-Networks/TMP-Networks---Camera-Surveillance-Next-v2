@@ -45,12 +45,8 @@ export class CameraStartLimiter {
   }
 
   status() {
-    const now = Date.now();
-    return {
-      active: this.active,
-      queued: this.waiters.length,
-      limit: this.limit,
-      oldestQueuedMs: this.waiters.length ? Math.max(0, now - this.waiters[0].queuedAt) : 0,
-    };
+    // Retain the stable API shape used by existing viewers, monitoring and
+    // cross-version compatibility tests.
+    return { active: this.active, queued: this.waiters.length, limit: this.limit };
   }
 }
