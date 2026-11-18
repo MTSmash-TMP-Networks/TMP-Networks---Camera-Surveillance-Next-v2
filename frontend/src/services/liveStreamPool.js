@@ -19,7 +19,7 @@ const PLAYBACK_ORDER = String(import.meta.env.VITE_STREAM_PLAYBACK_ORDER || 'hls
 const STALL_MS = Math.max(8000, positiveSeconds(import.meta.env.VITE_STREAM_BROWSER_STALL_SECONDS, 30) * 1000);
 const HEARTBEAT_MS = Math.max(8000, positiveSeconds(import.meta.env.VITE_STREAM_HEARTBEAT_SECONDS, 15) * 1000);
 // Do not pre-empt the hls.js watchdog while a WLAN fragment is retrying.
-const HLS_RECOVERY_ESCALATION_MS = Math.max(30000, positiveSeconds(import.meta.env.VITE_HLS_RECOVERY_ESCALATION_SECONDS, 30) * 1000);
+const HLS_RECOVERY_ESCALATION_MS = Math.max(60000, positiveSeconds(import.meta.env.VITE_HLS_RECOVERY_ESCALATION_SECONDS, 60) * 1000);
 const HLS_RECOVERY_NOTICE_GRACE_MS = 6500;
 const PTZ_BROWSER_RESYNC_MS = Math.max(500, Number(import.meta.env.VITE_PTZ_BROWSER_RESYNC_MS || import.meta.env.PTZ_BROWSER_RESYNC_MS || 3500));
 
@@ -324,7 +324,7 @@ class LiveStreamPool {
       }
       this.report(entry, 'warn', 'HLS_RECOVERY_ESCALATED', 'HLS-Puffer liefert auch nach der Wartefrist keine neuen Browserframes; Player wird neu aufgebaut', entry.state.protocol || 'HLS', { recoveryMs: now - startedAt, frameAgeMs, ...details });
       this.reconnect(entry, 'HLS-Wiederherstellung dauert zu lange – Stream wird neu verbunden …', 0);
-    }, confirmedFrameStall ? 15000 : HLS_RECOVERY_ESCALATION_MS);
+    }, confirmedFrameStall ? Math.max(30000, STALL_MS) : HLS_RECOVERY_ESCALATION_MS);
   }
 
   stagingRoot() {
