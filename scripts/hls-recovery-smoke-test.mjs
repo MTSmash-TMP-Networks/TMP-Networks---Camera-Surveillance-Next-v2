@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { createHlsLiveSequenceTracker } from '../frontend/src/services/hlsLiveSequencePolicy.js';
 
 class FakeVideo {
   constructor() {
@@ -33,6 +34,7 @@ class FakeHls {
   static Events = {
     MEDIA_ATTACHED: 'media-attached',
     MANIFEST_PARSED: 'manifest-parsed',
+    LEVEL_UPDATED: 'level-updated',
     FRAG_BUFFERED: 'frag-buffered',
     ERROR: 'error',
   };
@@ -59,11 +61,13 @@ class FakeHls {
 }
 
 globalThis.__FakeHls = FakeHls;
+globalThis.__HlsLiveSequenceTracker = createHlsLiveSequenceTracker;
 globalThis.window = { location: { origin: 'http://localhost' } };
 
 const file = process.argv[2] || new URL('../frontend/src/services/hlsPlayer.js', import.meta.url);
 let source = await readFile(file, 'utf8');
 source = source.replace("import Hls from 'hls.js';", 'const Hls = globalThis.__FakeHls;');
+source = source.replace("import { createHlsLiveSequenceTracker } from './hlsLiveSequencePolicy.js';", 'const createHlsLiveSequenceTracker = globalThis.__HlsLiveSequenceTracker;');
 source = source.replace('const RECOVERY_WATCHDOG_MS = 25000;', 'const RECOVERY_WATCHDOG_MS = 60;');
 source = source.replace('const WAITING_GRACE_MS = 6000;', 'const WAITING_GRACE_MS = 10;');
 source = source.replace('Math.min(250 * networkRecoveries, 750)', '5');
@@ -80,6 +84,7 @@ const cleanup = mod.connectHls({
 await new Promise((resolve) => setTimeout(resolve, 0));
 const hls = FakeHls.instances.at(-1);
 hls.emit(FakeHls.Events.MANIFEST_PARSED);
+hls.emit(FakeHls.Events.LEVEL_UPDATED, { details: { live: true, endSN: 100 } });
 if (!states.some((item) => item.state === 'connected')) throw new Error('initial connection was not reported');
 
 hls.emit(FakeHls.Events.ERROR, { fatal: true, type: FakeHls.ErrorTypes.NETWORK_ERROR, details: 'fragLoadError' });
@@ -87,6 +92,7 @@ await new Promise((resolve) => setTimeout(resolve, 15));
 if (hls.startLoadCount < 1) throw new Error('network recovery did not resume loading');
 if (!states.some((item) => item.state === 'recovering')) throw new Error('network recovery was not started');
 hls.emit(FakeHls.Events.FRAG_BUFFERED);
+hls.emit(FakeHls.Events.LEVEL_UPDATED, { details: { live: true, endSN: 101 } });
 video.dispatch('playing');
 if (!states.some((item) => item.state === 'connected' && item.details.recovered)) throw new Error('successful recovery was not reported');
 
