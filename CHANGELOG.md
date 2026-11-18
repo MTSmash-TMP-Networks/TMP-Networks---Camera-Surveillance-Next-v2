@@ -1,3 +1,11 @@
+## 2.20.69 – Classic Docker-Build und abschliessende Kamerasuche
+
+- TMP Hardened Media Broker laesst sich jetzt mit dem klassischen Docker 20.10-Builder bauen: keine BuildKit-Variablen `$BUILDPLATFORM`, `$TARGETARCH` oder `$TARGETOS`; Go kompiliert nativ fuer das Docker-Zielsystem. Das behebt das fehlerhafte Release 2.20.68 auf dem Linux-Kameraserver.
+- GitHub CI prueft den Broker zusaetzlich mit `DOCKER_BUILDKIT=0 docker build` sowie dem vorhandenen Go Race Detector und laufender HTTP-API.
+- Netzwerkgeraetesuche begrenzt die gesamte HTTP-/RTSP-/ONVIF-Fingerprintingzeit pro Host auf 12 Sekunden (konfigurierbar); Netzwerk-Requests haben echte Wall-Clock-Deadlines, auch bei fehlerhaften Streaming-Antworten.
+- Bereits bestaetigte und noch nicht konfigurierte Kameras erscheinen waehrend der laufenden Suche. Ein ausstehender 53. Host verhindert nicht die Anzeige der vorherigen 52 Ergebnisse.
+- Aufnahmen, Kameraeinstellungen, go2rtc-Race-Fix, Voscam 888, Backend-Vorbereitung und HLS-Verhalten bleiben kompatibel zu 2.20.67.
+
 ## 2.20.68 – TMP Hardened Media Broker: go2rtc-Absturz beheben
 
 - Eigener, reproduzierbarer go2rtc v1.9.14-Build auf unveraenderter Original-Runtime (FFmpeg und Intel-VAAPI), fest auf Upstream-SHA b5948cfb25404cc5cb37b166ecaa2dca20b11d4b gepinnt.
