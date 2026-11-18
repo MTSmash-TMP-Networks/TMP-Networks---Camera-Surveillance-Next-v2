@@ -1,3 +1,10 @@
+## 2.20.81 – H.264-Parameter- und MPEG-TS-Zeitstempelfehler gezielt behandeln
+
+- Bei nachgewiesenen fehlenden SPS/PPS-Daten oder defekten HLS-Paketdauern darf der H.264-Copy-Pfad gezielt auf vorhandene VAAPI-/Software-Encoder ausweichen.
+- Allgemeines EOF, leere go2rtc-Producer und Video ohne Frames erzeugen weiterhin keinen zusätzlichen Encoder-Retry.
+- `FFMPEG_EXIT` bleibt als Ereigniscode erhalten; der Prozessstatus wird getrennt als `exitCode` protokolliert.
+- Keine pauschal höheren Kamera-Timeouts oder zusätzlichen Verbindungsplätze; vorhandene Aufnahmen und Kameraeinstellungen bleiben erhalten.
+
 ## 2.20.80 – Bedingte HLS-Startnachfrist und aussagekräftige Timeout-Diagnose
 
 - HLS-Erststarts erhalten eine maximal acht Sekunden lange Nachfrist, wenn go2rtc beim Fristablauf einen aktiven Videoproducer meldet; der bestehende Timeout für offline Kameras bleibt unverändert.
