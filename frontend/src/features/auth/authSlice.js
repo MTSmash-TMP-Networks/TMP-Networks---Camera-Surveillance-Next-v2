@@ -5,7 +5,10 @@ export const loadRuntime = createAsyncThunk('auth/runtime', async () => api.runt
 export const login = createAsyncThunk('auth/login', async ({ username, password }) => isDesktopKiosk()
   ? enrollDesktopSession(username, password)
   : api.login(username, password));
-export const restoreDesktopSession = createAsyncThunk('auth/desktopRestore', async () => renewDesktopSession());
+export const restoreDesktopSession = createAsyncThunk('auth/desktopRestore', async (_, { rejectWithValue }) => {
+  try { return await renewDesktopSession(); }
+  catch (error) { return rejectWithValue({ status: Number(error?.status || 0) }); }
+});
 export const restoreSession = createAsyncThunk('auth/restore', async () => api.me());
 
 const slice = createSlice({
@@ -34,7 +37,14 @@ const slice = createSlice({
       state.status = 'ready';
       setAccessToken(action.payload.token);
     })
-    .addCase(restoreDesktopSession.rejected, (state) => { state.desktopRestoring = false; })
+    .addCase(restoreDesktopSession.rejected, (state, action) => {
+      state.desktopRestoring = false;
+      // A network outage is temporary. Do not discard a valid device grant.
+      // A 401 is an explicit server-side revocation or expiration.
+      if (action.payload?.status === 401) {
+        state.user = null; state.token = null; state.status = 'idle'; setAccessToken('');
+      }
+    })
     .addCase(restoreSession.fulfilled, (state, action) => { state.user = action.payload.user; state.runtime = action.payload.runtime || state.runtime; state.status = 'ready'; })
     .addCase(loadRuntime.fulfilled, (state, action) => { state.runtime = action.payload || state.runtime; })
     .addCase(restoreSession.rejected, (state) => { state.user = null; state.token = null; state.status = 'idle'; setAccessToken(''); }),
