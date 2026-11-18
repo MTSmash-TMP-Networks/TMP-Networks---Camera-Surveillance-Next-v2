@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.67",
+  "version": "2.20.68",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.67",
-  "summary": "Detect Voscam cameras using ONVIF TCP port 888 in automatic network discovery, authenticated setup and vendor SOAP probing.",
-  "createdAt": "2026-11-18T12:55:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.67.md",
+  "title": "TMP Camera Surveillance Next 2.20.68",
+  "summary": "Replace crashing go2rtc broker with pinned TMP race-fixed go2rtc engine; preserve existing FFmpeg, VAAPI and camera pipelines.",
+  "createdAt": "2026-11-18T14:45:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.68.md",
   "changes": [
-    "Add Voscam ONVIF TCP 888 to camera port definitions, scan defaults and host discovery",
-    "Probe real ONVIF SOAP endpoint on open TCP 888 without treating arbitrary open ports as cameras",
-    "Preserve existing XAddr and ONVIF setup on port 888",
-    "Include TCP 888 at runtime even when existing .env host scan ports were saved before this release",
-    "Retain all background-stream, recording, HLS and Compose V2 updater fixes"
+    "Replace vulnerable go2rtc v1.9.14 binary with TMP race-fixed pinned build",
+    "Fix unsafe DELETE/list of global streams map and concurrent /api info reads",
+    "Run Go race detector on concurrent 40-stream read/mutation test during build",
+    "Build broker ahead of production service recreation to fail safely",
+    "Preserve official FFmpeg/VAAPI runtime and all recording, Motion, ONVIF and HLS pathways"
   ],
   "preserve": [
     ".env",
@@ -22,6 +22,7 @@
     "build": [
       "backend",
       "frontend",
+      "mediamtx",
       "updater"
     ],
     "restart": [
@@ -31,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.67.md",
+  "changelog": "UPDATE_NOTES_2.20.68.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.67",
-  "packageId": "tmp-camera-surveillance-next-2.20.67",
+  "name": "TMP Camera Surveillance Next v2.20.68",
+  "packageId": "tmp-camera-surveillance-next-2.20.68",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Add Voscam ONVIF TCP 888 to the camera scanner, host discovery, SOAP verification and camera setup.",
+  "description": "Crash fix for fatal concurrent map writes in go2rtc stream DELETE/list API, via Go locking patch and reproducible Docker build.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32. Port 888 is scanned in automatic and manual camera discovery and proven via ONVIF SOAP before declaring a camera. Old .env host-scan lists automatically include 888 in runtime. Camera recordings and other settings are preserved.",
-  "fileCount": 486
+  "releaseNotes": "Direct update compatible from 2.20.32. A custom go2rtc v1.9.14 broker fixes verified concurrent map write crash while preserving FFmpeg and Intel VAAPI runtime. Broker is built and Go race-tested before service replacement. Requires one controlled media service restart. Existing video, recording, Motion, ONVIF and HLS settings preserved. Separate HLS buffer improvements remain in development.",
+  "fileCount": 491
 }

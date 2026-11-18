@@ -1,3 +1,11 @@
+## 2.20.68 – TMP Hardened Media Broker: go2rtc-Absturz beheben
+
+- Eigener, reproduzierbarer go2rtc v1.9.14-Build auf unveraenderter Original-Runtime (FFmpeg und Intel-VAAPI), fest auf Upstream-SHA b5948cfb25404cc5cb37b166ecaa2dca20b11d4b gepinnt.
+- Kritischer Absturz `fatal error: concurrent map writes` im DELETE-/Inventar-Endpunkt des go2rtc-Streams-API durch synchronisierte Map-Zugriffe behoben, zusaetzliche /api-Map-Abfrage race-safe.
+- Docker-Build fuehrt Go-Race-Detector-Belastungstest fuer 40 Streams mit 8 parallelen Lesern und 8 Schreibern aus; GitHub CI prueft ffmpeg und den gestarteten API-Endpunkt.
+- Host-Installer und In-App-Updater bauen den Medienbroker VOR dem Ersetzen laufender Kamera-Dienste und brechen bei Broker-Buildfehlern ab.
+- Bestehende Kamera-, ONVIF-, Recording-, Motion-, VAAPI-, HLS- und Konfigurationswege bleiben erhalten. Keine Datenbankmigration.
+
 ## 2.20.67 – Voscam ONVIF-Port 888 erkennen
 
 - Kamera-Portkatalog, vollstaendiger IP-Scan und primärer Hostscan erkennen TCP 888 als moeglichen Voscam-ONVIF-Dienst.

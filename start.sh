@@ -653,13 +653,14 @@ sh ./scripts/docker-cache-cleanup.sh pre-build || true
 refresh_host_disk_snapshot
 if is_true "$FORCE_PULL_VALUE"; then
   printf '%s\n' 'FORCE_IMAGE_PULL=true: Basis-Images werden ausdrücklich neu geladen.'
-  sh ./scripts/docker-compose.sh build --pull backend frontend
+  sh ./scripts/docker-compose.sh build --pull backend frontend mediamtx
 else
   printf '%s\n' 'Vorhandene Basis-Images werden bevorzugt; kein erzwungener Registry-Pull.'
-  if ! sh ./scripts/docker-compose.sh build backend frontend; then
+  if ! sh ./scripts/docker-compose.sh build backend frontend mediamtx; then
     printf '%s\n' 'Backend-/Frontend-Build fehlgeschlagen.' >&2
     if docker_image_exists tmp-camera-surveillance-next-backend:latest \
-      && docker_image_exists tmp-camera-surveillance-next-frontend:latest; then
+      && docker_image_exists tmp-camera-surveillance-next-frontend:latest \
+      && docker_image_exists tmp-camera-surveillance-next-mediamtx:1.9.14-tmp-racefix1; then
       printf '%s\n' 'Vorhandene Anwendungs-Images werden als sicherer Kompatibilitätsfallback weiterverwendet.' >&2
     else
       printf '%s\n' 'Bei x509-Fehlern ist die Zertifikatskette des Docker-Daemons/DSM veraltet und mindestens ein benötigtes Basis-Image fehlt.' >&2
