@@ -17,6 +17,14 @@ describe('Aufnahmeplanung', () => {
     expect(isPlanCalendarActive(plan(), new Date('2026-07-20T17:00:00.000Z'))).toBe(false);
   });
 
+  it('interpretiert gleiche Start- und Endzeit als 24 Stunden an ausgewählten Tagen', () => {
+    const fullDay = plan({ weekdays: [1], startTime: '00:00', endTime: '00:00' });
+    expect(isPlanCalendarActive(fullDay, new Date('2026-07-19T22:00:00.000Z'))).toBe(true);
+    expect(isPlanCalendarActive(fullDay, new Date('2026-07-20T11:30:00.000Z'))).toBe(true);
+    expect(isPlanCalendarActive(fullDay, new Date('2026-07-20T21:59:00.000Z'))).toBe(true);
+    expect(isPlanCalendarActive(fullDay, new Date('2026-07-20T22:00:00.000Z'))).toBe(false);
+  });
+
   it('unterstützt über Mitternacht laufende Intervalle', () => {
     const overnight = plan({ weekdays: [1], startTime: '22:00', endTime: '06:00' });
     expect(isPlanCalendarActive(overnight, new Date('2026-07-20T21:00:00.000Z'))).toBe(true);
