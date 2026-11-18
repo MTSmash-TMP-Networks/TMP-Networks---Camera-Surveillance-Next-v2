@@ -36,6 +36,8 @@ app.use(axisEvidenceGuardMiddleware2208);
   app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tmp-camera-backend', version: config.appVersion, time: new Date().toISOString() }));
   app.use('/internal', internalRouter);
   app.use('/api/auth/login', rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: true, legacyHeaders: false }));
+  app.use('/api/auth/desktop/enroll', rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: true, legacyHeaders: false }));
+  app.use('/api/auth/desktop/renew', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: true, legacyHeaders: false }));
   app.use('/api/auth', authRouter);
   app.use('/api/cameras', camerasRouter);
   app.use('/api/streams', streamsRouter);
