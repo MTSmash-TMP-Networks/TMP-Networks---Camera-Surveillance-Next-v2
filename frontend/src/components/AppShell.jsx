@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { ChevronsLeft, ChevronsRight, LogOut, ShieldCheck } from 'lucide-react';
 import { logout } from '../features/auth/authSlice.js';
+import { isDesktopKiosk, revokeDesktopSession } from '../services/api.js';
 import { loadCameras } from '../features/cameras/camerasSlice.js';
 import { NAVIGATION_SECTIONS, activeNavigationItem, activeNavigationSection } from '../config/navigation.js';
 import { PRODUCT } from '../config/product.js';
@@ -87,7 +88,13 @@ export function AppShell() {
           <ShieldCheck />
           <span><strong>{user?.username}</strong><small>{t(`role.${user?.role}`)}</small></span>
         </div>
-        <button className="ghost-button sidebar-logout" onClick={() => dispatch(logout())} title={t('nav.logout')} aria-label={t('nav.logout')}><LogOut /> <span>{t('nav.logout')}</span></button>
+        <button className="ghost-button sidebar-logout" onClick={async () => {
+          if (isDesktopKiosk()) {
+            await revokeDesktopSession();
+            try { await window.tmpCameraDesktop?.clearLocalDeviceGrant(); } catch { /* local cookie removal is best-effort */ }
+          }
+          dispatch(logout());
+        }} title={t('nav.logout')} aria-label={t('nav.logout')}><LogOut /> <span>{t('nav.logout')}</span></button>
       </div>
     </aside>
 
