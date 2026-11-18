@@ -7,6 +7,16 @@ const css = readFileSync(new URL('../src/styles/app.css', import.meta.url), 'utf
 const api = readFileSync(new URL('../src/services/api.js', import.meta.url), 'utf8');
 
 describe('Visual kiosk grid layout editor', () => {
+  it('uses one server authority for browser and Linux layouts with safe migration and polling', () => {
+    expect(kiosk).toContain('api.kioskLayouts()');
+    expect(kiosk).toContain('api.saveKioskLayouts(');
+    expect(kiosk).toContain('expectedRevision: sharedRevision.current');
+    expect(kiosk).toContain('expectedRevision: 0');
+    expect(kiosk).toContain('remote.revision !== sharedRevision.current');
+    expect(kiosk).toContain('window.setInterval(synchronize, 5000)');
+    expect(api).toContain("kioskLayouts: () => request('/kiosk/layouts'");
+    expect(api).toContain("saveKioskLayouts: (input) => request('/kiosk/layouts'");
+  });
   it('uses cached lazy thumbnails, never extra live video players', () => {
     expect(kiosk).toContain('createKioskThumbnailLoader');
     expect(kiosk).toContain('maxConcurrent: 2');
