@@ -106,3 +106,61 @@ test('speculative 404 does not hide the configured endpoint connection failure',
     globalThis.fetch = originalFetch;
   }
 });
+
+test('go2rtc control list and DELETE requests do not overlap, even while response body is still streaming', async () => {
+  const originalFetch = globalThis.fetch;
+  let finishBody;
+  let startedDelete = false;
+  const bodyGate = new Promise((resolve) => { finishBody = resolve; });
+  const calls = [];
+  globalThis.fetch = async (url, options = {}) => {
+    const method = options.method || 'GET';
+    calls.push(method);
+    if (method === 'GET') {
+      return {
+        ok: true, status: 200, headers: { get: () => 'application/json' },
+        arrayBuffer: async () => { await bodyGate; return new TextEncoder().encode('{"camera":{}}').buffer; },
+      };
+    }
+    startedDelete = true;
+    return {
+      ok: true, status: 204, headers: { get: () => null },
+      arrayBuffer: async () => new ArrayBuffer(0),
+    };
+  };
+  try {
+    const client = new Go2RtcClient({ baseUrl: 'http://go2rtc:1984/media/go2rtc', fallbackUrls: [] });
+    const list = client.paths();
+    // Allow the pending GET to enter its asynchronous body read.
+    await Promise.resolve();
+    await Promise.resolve();
+    const remove = client.deleteStream('camera');
+    await Promise.resolve();
+    assert.equal(startedDelete, false, 'DELETE must not race GET while Go serializes the stream map');
+    finishBody();
+    assert.equal((await list).has('camera'), true);
+    await remove;
+    assert.deepEqual(calls, ['GET', 'DELETE']);
+  } finally {
+    finishBody();
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('go2rtc control queue is released if a request fails', async () => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls++;
+    if (calls === 1) throw new Error('network temporarily unavailable');
+    return okJson({});
+  };
+  try {
+    const client = new Go2RtcClient({ baseUrl: 'http://go2rtc:1984/media/go2rtc', fallbackUrls: [] });
+    await assert.rejects(client.fetchResponse('/api/streams', {}, { timeoutMs: 50 }), /network temporarily unavailable/);
+    assert.deepEqual(await client.paths(), new Map());
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
