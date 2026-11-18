@@ -209,7 +209,7 @@ export function isConfirmedOnvifServicePage(page, nonCameraDevice = false) {
   if (structuredSoap) return !nonCameraDevice;
   if ([401, 403].includes(status)) {
     const auth = String(page?.headers?.['www-authenticate'] || '');
-    return /(camera|dvr|nvr|reolink|hikvision|dahua|axis|vivotek|foscam|uniview|wisenet|onvif)/i.test(auth) && !nonCameraDevice;
+    return /(camera|dvr|nvr|reolink|hikvision|dahua|axis|vivotek|foscam|voscam|uniview|wisenet|onvif)/i.test(auth) && !nonCameraDevice;
   }
   return false;
 }
