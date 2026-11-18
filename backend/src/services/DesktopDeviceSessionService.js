@@ -54,7 +54,7 @@ export const desktopDeviceSessionService = {
     const expiresAt = new Date(Date.now() + IDLE_MS).toISOString();
     db.prepare('UPDATE desktop_sessions SET last_seen_at=?,expires_at=? WHERE id=?').run(now, expiresAt, row.id);
     const user = db.prepare('SELECT * FROM users WHERE id=? AND enabled=1').get(row.user_id);
-    return { user, expiresAt, maxAgeSeconds: Math.floor(IDLE_MS / 1000) };
+    return { user, token, expiresAt, maxAgeSeconds: Math.floor(IDLE_MS / 1000) };
   },
 
   revoke(token) {
@@ -82,8 +82,7 @@ export function requireDesktopSameOrigin(req) {
   try {
     if (!origin || !host || new URL(origin).host !== host) throw new Error('cross-site');
     const protocol = new URL(origin).protocol;
-    if ((req.secure && protocol !== 'https:') || (!req.secure && protocol !== 'http:')) {
-      // req.secure honors the configured reverse proxy trust setting.
+    if (!['http:', 'https:'].includes(protocol) || (req.secure && protocol !== 'https:')) {
       throw new Error('wrong-protocol');
     }
   } catch {
@@ -92,7 +91,9 @@ export function requireDesktopSameOrigin(req) {
 }
 
 export function setDesktopCookie(req, res, token, maxAgeSeconds) {
-  const secure = req.secure ? '; Secure' : '';
+  // The Origin header is verified against Host by requireDesktopSameOrigin.
+  // HTTPS may terminate at an nginx proxy even when req.secure is false.
+  const secure = req.secure || /^https:\/\//i.test(String(req.get('origin') || '')) ? '; Secure' : '';
   res.set('Set-Cookie', `${DESKTOP_COOKIE_NAME}=${token || ''}; Path=${DESKTOP_COOKIE_PATH}; HttpOnly; SameSite=Strict${secure}; Max-Age=${Math.max(0, Number(maxAgeSeconds) || 0)}`);
   res.set('Cache-Control', 'private, no-store, max-age=0');
 }
