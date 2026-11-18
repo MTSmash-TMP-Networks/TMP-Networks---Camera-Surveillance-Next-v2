@@ -1,3 +1,11 @@
+## 2.20.64 – Schnellere und weiterhin begrenzte Kamerastarts
+
+- Maximal vier parallele Kamerastarts statt zwei; das Backend verhindert weiterhin mehrfache Starts derselben Kamera.
+- Permanente Preview-Starts werden alle 250 ms statt alle 1500 ms eingereiht. Fehlerhafte Kameras blockieren andere Starts nicht dauerhaft; vorhandene Recovery-Schutzmechanismen bleiben erhalten.
+- Bereits erzeugte .env-Dateien mit den bisherigen Standardwerten 1500 und 2 werden beim normalen Start auf 250 und 4 migriert. Individuelle abweichende Werte bleiben unveraendert.
+- Kiosk-Kacheln verbinden sich mit 120 ms Abstand und maximal 3000 ms statt 900 ms und 4500 ms. Browser-Kacheln bleiben reine Leser des zentralen Preview-Streams.
+- Keine Aenderungen an Kamerakonfiguration, Datenbank, RTSP-Profilwahl, Bewegungserkennung, Aufnahmeformat oder HLS-Puffer. Upgrade kompatibel ab v2.20.32.
+
 ## 2.20.63 – Originalstreams aus Snapshot-Notfallmodus automatisch wiederherstellen
 
 - Erfolgreiche Snapshot-HLS-Notversorgung blockiert die native RTSP-/ONVIF-Wiederherstellung nicht mehr.
