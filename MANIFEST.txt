@@ -32,6 +32,7 @@ UPDATE_NOTES_2.20.63.md
 UPDATE_NOTES_2.20.64.md
 UPDATE_NOTES_2.20.65.md
 UPDATE_NOTES_2.20.66.md
+UPDATE_NOTES_2.20.67.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -212,6 +213,7 @@ backend/test-node/system-restart-control.test.mjs
 backend/test-node/system-storage-live-regression.test.mjs
 backend/test-node/update-compatibility.test.mjs
 backend/test-node/updater-local-ipc.test.mjs
+backend/test-node/voscam-onvif-port-888.test.mjs
 backend/test/auth.integration.test.js
 backend/test/axisEvidenceGuard2208.test.mjs
 backend/test/block-archive.test.js
