@@ -41,6 +41,72 @@ async function fetchApi(resource, options) {
   }
 }
 
+export const isDesktopKiosk = () => typeof window !== 'undefined' && window.tmpCameraDesktop?.isDesktop === true;
+let desktopRenewFlight = null;
+
+export async function renewDesktopSession() {
+  if (!isDesktopKiosk()) return null;
+  if (desktopRenewFlight) return desktopRenewFlight;
+  desktopRenewFlight = (async () => {
+    // An intentionally separate, same-origin endpoint; the normal web client
+    // never silently enrolls or persists a login.
+    const response = await fetchApi(`${API}/auth/desktop/renew`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) {
+      const error = new Error('Desktop-Geraetesitzung konnte nicht erneuert werden');
+      error.status = response.status;
+      throw error;
+    }
+    const result = await response.json();
+    setAccessToken(result.token);
+    // The Redux layer listens for successfully recovered credentials.
+    window.dispatchEvent(new CustomEvent('tmp-desktop-session-renewed', { detail: result }));
+    return result;
+  })();
+  try { return await desktopRenewFlight; }
+  finally { desktopRenewFlight = null; }
+}
+
+export async function enrollDesktopSession(username, password) {
+  if (!isDesktopKiosk()) throw new Error('Desktop-Geraeteanmeldung ist nur im Linux-Client verfuegbar');
+  const response = await fetchApi(`${API}/auth/desktop/enroll`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, rememberDevice: true, label: 'TMP Linux Kiosk' }),
+    signal: AbortSignal.timeout(20_000),
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    let payload = {};
+    try { payload = await response.json(); } catch {}
+    const error = new Error(payload.message || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+}
+
+export async function revokeDesktopSession() {
+  if (!isDesktopKiosk()) return;
+  try {
+    await fetchApi(`${API}/auth/desktop/revoke`, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' }, body: '{}',
+      signal: AbortSignal.timeout(8000), cache: 'no-store',
+    });
+  } catch {
+    // Never silently claim a remote revoke succeeded during an outage.
+    // The local auth state is cleared independently by the caller.
+  }
+}
+
 export async function request(path, options = {}) {
   const headers = new Headers(options.headers || {});
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
@@ -50,7 +116,16 @@ export async function request(path, options = {}) {
   const signal = fetchOptions.signal && AbortSignal.any
     ? AbortSignal.any([fetchOptions.signal, deadline])
     : deadline;
-  const response = await fetchApi(`${API}${path}`, { cache: options.cache || 'no-store', ...fetchOptions, signal, headers, body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body });
+  let response = await fetchApi(`${API}${path}`, { cache: options.cache || 'no-store', ...fetchOptions, signal, headers, body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body });
+  if (response.status === 401 && isDesktopKiosk() && !path.startsWith('/auth/')) {
+    try {
+      await renewDesktopSession();
+      if (accessToken) {
+        headers.set('Authorization', `Bearer ${accessToken}`);
+        response = await fetchApi(`${API}${path}`, { cache: options.cache || 'no-store', ...fetchOptions, signal, headers, body: options.body && !(options.body instanceof FormData) ? JSON.stringify(options.body) : options.body });
+      }
+    } catch { /* Leave the original HTTP 401 visible to the caller. */ }
+  }
   if (!response.ok) {
     let payload = {};
     try { payload = await response.json(); } catch { /* ignore */ }
