@@ -38,6 +38,7 @@ UPDATE_NOTES_2.20.68.md
 UPDATE_NOTES_2.20.69.md
 UPDATE_NOTES_2.20.70.md
 UPDATE_NOTES_2.20.71.md
+UPDATE_NOTES_2.20.72.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -394,6 +395,7 @@ frontend/src/pages/UsersPage.jsx
 frontend/src/services/api.js
 frontend/src/services/cameraDiscoveryState.js
 frontend/src/services/eventSocket.js
+frontend/src/services/hlsLiveSequencePolicy.js
 frontend/src/services/hlsPlayer.js
 frontend/src/services/hlsRecoveryPolicy.js
 frontend/src/services/kioskLayouts.js
@@ -423,6 +425,7 @@ frontend/test-node/camera-add-validation-regression.test.mjs
 frontend/test-node/container-status-branding.test.mjs
 frontend/test-node/coreui-shell-foundation.test.mjs
 frontend/test-node/desktop-client-distribution.test.mjs
+frontend/test-node/hls-live-sequence.test.mjs
 frontend/test-node/motion-zone-editor.test.mjs
 frontend/test-node/ptz-setup-regression.test.mjs
 frontend/test-node/run-native-tests.mjs
