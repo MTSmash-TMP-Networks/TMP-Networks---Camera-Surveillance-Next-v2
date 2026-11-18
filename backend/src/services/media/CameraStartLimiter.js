@@ -26,11 +26,26 @@ export class CameraStartLimiter {
     });
   }
 
+  setLimit(limit) {
+    this.limit = Math.max(1, Math.min(32, Math.floor(Number(limit) || 1)));
+    this.drain();
+    return this.status();
+  }
+
   release() {
-    if (!this.waiters.length) {
-      this.active = Math.max(0, this.active - 1);
-      return;
+    this.active = Math.max(0, this.active - 1);
+    this.drain();
+  }
+
+  drain() {
+    while (this.active < this.limit && this.waiters.length) {
+      const next = this.dequeueNext();
+      this.active += 1;
+      next.resolve();
     }
+  }
+
+  dequeueNext() {
     const now = Date.now();
     // Every 15s of waiting adds one effective priority level. A long-waiting
     // camera will eventually beat newer, urgent jobs: no permanent starvation.
@@ -40,8 +55,7 @@ export class CameraStartLimiter {
       if (score(this.waiters[i]) > score(this.waiters[best])) best = i;
     }
     const [next] = this.waiters.splice(best, 1);
-    next.resolve();
-    // Active stays unchanged: this slot is handed straight to the next job.
+    return next;
   }
 
   status() {

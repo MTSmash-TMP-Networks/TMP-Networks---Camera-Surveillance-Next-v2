@@ -22,6 +22,8 @@ import { startSnapshotFramePump } from './SnapshotVideoBridge.js';
 import { createStreamProgressTracker, consumeFfmpegProgress } from './StreamProgressTracker.js';
 import { isBenignFfmpegDiagnostic } from './FfmpegDiagnostics.js';
 import { CameraStartLimiter } from './CameraStartLimiter.js';
+import { AdaptiveCameraStartCapacity } from './AdaptiveCameraStartCapacity.js';
+import { cameraStartupProfileMemory } from './CameraStartupProfileMemory.js';
 import { inspectLocalHlsRing } from './LocalHlsHealth.js';
 import { shouldContinueHlsStartup } from './LocalHlsStartupGrace.js';
 import { nextSnapshotNativeRecheckAt, shouldReprobeSnapshotNative } from './SnapshotNativeRecoveryPolicy.js';
@@ -149,6 +151,8 @@ class StreamOrchestrator {
     this.cameraStartLocks = new Map();
     // Serial per camera; bounded concurrent starts across independent cameras.
     this.cameraStarts = new CameraStartLimiter(config.streamStartConcurrency);
+    this.adaptiveCameraCapacity = config.streamStartAdaptiveEnabled ? new AdaptiveCameraStartCapacity({ limiter: this.cameraStarts, baseline: config.streamStartConcurrency, max: Math.max(config.streamStartConcurrency, config.streamStartAdaptiveMax), logger }) : null;
+    this.adaptiveCameraCapacity?.start();
     this.permanentBootstrapActive = false;
     this.deferredPermanentRestartKeys = new Set();
     this.brokerRefs = new Map();
@@ -525,6 +529,16 @@ class StreamOrchestrator {
 
   async orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources = [], { profileOffset = 0, profileLimit = Infinity, includeManual = true } = {}) {
     let selectedProfiles = chooseProfiles(profiles, session.quality, viewportWidth, session.codecPreference);
+    if (session.permanent && !session.stableProfileToken) {
+      const lastGood = cameraStartupProfileMemory.get(session.cameraId);
+      if (lastGood && selectedProfiles.some((profile) => profile.token === lastGood.token)) {
+        selectedProfiles = [
+          ...selectedProfiles.filter((profile) => profile.token === lastGood.token),
+          ...selectedProfiles.filter((profile) => profile.token !== lastGood.token),
+        ];
+        session.rememberedTransport = lastGood.transport;
+      }
+    }
     if (!session.stableProfileToken && session.requestedProfileToken) {
       const requested = selectedProfiles.find((profile) => profile.token === session.requestedProfileToken);
       if (requested) selectedProfiles = [requested, ...selectedProfiles.filter((profile) => profile.token !== requested.token)];
@@ -555,7 +569,10 @@ class StreamOrchestrator {
     const ordered = sortMediaAttempts(attempts, session.sourcePolicy || 'auto');
     const requestedFirst = prioritizeRequestedSource(ordered, session.requestedProfileToken);
     const stableProfileFirst = prioritizeStableProfile(requestedFirst, session.stableProfileToken);
-    return prioritizeStableCandidate(stableProfileFirst, session.stableCandidateKey);
+    const stableFirst = prioritizeStableCandidate(stableProfileFirst, session.stableCandidateKey);
+    return session.rememberedTransport && !session.stableCandidateKey && session.permanent
+      ? [...stableFirst.filter(({ candidate }) => candidate.transport === session.rememberedTransport), ...stableFirst.filter(({ candidate }) => candidate.transport !== session.rememberedTransport)]
+      : stableFirst;
   }
 
   async start(session, camera, viewportWidth, startEpoch = Number(session.startEpoch || 0)) {
@@ -744,6 +761,10 @@ class StreamOrchestrator {
           session.failedCandidates.delete(session.activeCandidateKey);
           // Remember the last working source in memory only, for read-only recovery probes.
           session.lastNativeSource = { uri: candidate.uri, transport: candidate.transport || 'tcp' };
+          if (session.permanent) {
+            try { cameraStartupProfileMemory.remember(camera.id, profile, candidate); }
+            catch (error) { this.log(session, 'warn', 'stream', 'START_PROFILE_CACHE_FAILED', 'Erfolgreiches Profil konnte nicht gespeichert werden', { code: error?.code || null }); }
+          }
           session.snapshotNativeRecheckAt = 0;
           const previousStableProfile = session.stableProfileToken;
           const previousStableCandidate = session.stableCandidateKey;
@@ -2274,6 +2295,7 @@ class StreamOrchestrator {
   }
 
   async shutdown() {
+    this.adaptiveCameraCapacity?.stop();
     if (this.closed) return;
     this.closed = true;
     if (this.timer) clearInterval(this.timer);

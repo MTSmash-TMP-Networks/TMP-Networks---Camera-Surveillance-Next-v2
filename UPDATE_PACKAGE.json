@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.78",
+  "version": "2.20.79",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.78",
-  "summary": "Schnellere Kamera-Kaltstarts durch priorisierte Verbindungswarteschlange und videobasierte permanente Vorschauen.",
+  "title": "TMP Camera Surveillance Next 2.20.79",
+  "summary": "Dynamische Kamera-Startkapazität nach verfügbaren CPU-/RAM-Ressourcen sowie sichere Wiederverwendung bewährter Kameraprofile.",
   "createdAt": "2026-11-18T18:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.78.md",
+  "changelogFile": "UPDATE_NOTES_2.20.79.md",
   "changes": [
-    "Prioritize recording and central preview first camera connections over slow recovery starts",
-    "Maintain concurrency bound and use age-based fairness for long-waiting camera recoveries",
-    "Avoid a redundant optional audio start attempt for permanent video-only previews",
-    "Expose queue priority and current occupancy in startup diagnostics"
+    "Adapt the camera startup concurrency to available CPU and Docker container RAM",
+    "Keep the existing baseline when resource data is unavailable or the host is busy",
+    "Persist only the last successful ONVIF profile and transport per camera across reboot",
+    "Preserve the queue prioritization and all existing recording/streaming safety guards"
   ],
   "preserve": [
     ".env",
@@ -31,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.78.md",
+  "changelog": "UPDATE_NOTES_2.20.79.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.78",
-  "packageId": "tmp-camera-surveillance-next-2.20.78",
+  "name": "TMP Camera Surveillance Next v2.20.79",
+  "packageId": "tmp-camera-surveillance-next-2.20.79",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Faster, fair camera cold-start scheduling with fewer unnecessary media attempts.",
+  "description": "Dynamically adjust camera connection admission using host/cgroup pressure and persist the last verified ONVIF profile per camera.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.78 prioritizes critical recording and initial camera preview starts above second-wave recovery, retains maximum concurrency and fairness, and removes the redundant optional audio attempt from permanent preview startup. No changes to recordings or camera configuration.",
-  "fileCount": 517
+  "releaseNotes": "2.20.79 scales camera startup admission from the existing safe baseline toward available CPU and memory capacity without exceeding container cgroup limits. Each camera reuses its last successfully verified ONVIF profile/transport across backend restarts; no passwords or RTSP addresses are persisted, and normal fallback remains available. All recording, camera and kiosk settings remain intact.",
+  "fileCount": 522
 }
