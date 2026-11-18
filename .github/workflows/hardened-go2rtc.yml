@@ -1,0 +1,45 @@
+name: TMP hardened go2rtc broker
+on:
+  pull_request:
+    paths:
+      - 'mediamtx/Dockerfile'
+      - 'mediamtx/patches/**'
+      - 'mediamtx/tests/**'
+      - 'docker-compose.yml'
+      - 'updater/src/server.js'
+      - 'start.sh'
+      - '.github/workflows/hardened-go2rtc.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mediamtx/Dockerfile'
+      - 'mediamtx/patches/**'
+      - 'mediamtx/tests/**'
+      - 'docker-compose.yml'
+      - 'updater/src/server.js'
+      - 'start.sh'
+jobs:
+  broker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build race-fixed go2rtc with Go -race stress tests
+        run: docker build --progress=plain -t tmp-hardened-go2rtc:ci mediamtx
+      - name: Check image preserves go2rtc command and the original FFmpeg runtime
+        run: |
+          docker image inspect tmp-hardened-go2rtc:ci --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}'
+          docker run --rm --entrypoint sh tmp-hardened-go2rtc:ci -c 'command -v ffmpeg && command -v go2rtc && ffmpeg -version | head -n 1'
+      - name: Smoke-test broker HTTP API
+        run: |
+          docker run -d --name tmp-hardened-go2rtc-ci -p 127.0.0.1:19849:1984 tmp-hardened-go2rtc:ci
+          trap 'docker rm -f tmp-hardened-go2rtc-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:19849/api/streams > /tmp/streams.json; then
+              node -e "const p=require('/tmp/streams.json'); if(typeof p!=='object')process.exit(1)"
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs tmp-hardened-go2rtc-ci
+          exit 1
