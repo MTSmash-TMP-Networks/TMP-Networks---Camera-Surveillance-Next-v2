@@ -14,7 +14,9 @@ export function applyFinalCameraDiscoveryPolicy(device = {}) {
     CAMERA_RTSP_PORTS.includes(port)
     || CAMERA_VENDOR_PORTS.includes(port)
     || [1935, 1936].includes(port));
-  const strongPortSignature = Boolean(device.strongPortCombinationEvidence || portSignature.strong);
+  // Always recompute the signature. Older stored scans can contain a stale
+  // strongPortCombinationEvidence=true for TCP 9000 + a generic web port.
+  const strongPortSignature = Boolean(portSignature.strong);
   const directProtocolEvidence = Boolean(device.directCameraProtocolEvidence || device.onvifHttpEvidence || device.vendorEndpointEvidence);
   const broadcastCameraEvidence = Boolean(device.sadpVerified || device.ssdpVerified || methods.has('sadp') || methods.has('ssdp'));
   const onvifVideoTypeEvidence = Boolean(device.onvifDiscoveryVerified);
@@ -37,7 +39,12 @@ export function applyFinalCameraDiscoveryPolicy(device = {}) {
     !explicitNonCamera
     && !onlyGenericWebPorts
     && device.cameraCandidate
-    && Number(device.confidence || 0) >= 45,
+    && Number(device.confidence || 0) >= 45
+    // A formerly strong, now disproven port signature must never survive as
+    // an 'unverified camera candidate' merely because the old score was 88.
+    && (!device.strongPortCombinationEvidence || strongPortSignature
+      || directProtocolEvidence || broadcastCameraEvidence
+      || (onvifVideoTypeEvidence && hasCameraSpecificNetworkPort)),
   );
   const likelyCamera = reliableCameraEvidence;
   const cameraCandidate = reliableCameraEvidence || weakCandidate;
@@ -54,7 +61,7 @@ export function applyFinalCameraDiscoveryPolicy(device = {}) {
 
   return {
     ...device,
-    manufacturer: explicitNonCamera ? null : (device.manufacturer || null),
+    manufacturer: (reliableCameraEvidence || weakCandidate) ? (device.manufacturer || null) : null,
     openPorts,
     likelyCamera,
     cameraCandidate,

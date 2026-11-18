@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.69",
+  "version": "2.20.70",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.69",
-  "summary": "Fix TMP go2rtc broker build on classic Docker 20.10 and show verified cameras progressively during bounded discovery.",
-  "createdAt": "2026-11-18T14:35:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.69.md",
+  "title": "TMP Camera Surveillance Next 2.20.70",
+  "summary": "Reject false Reolink camera matches from TCP 8443+9000 and prevent old discovery flags persisting.",
+  "createdAt": "2026-11-18T15:10:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.70.md",
   "changes": [
-    "Fix go2rtc Docker build failing because classic Docker leaves BUILDPLATFORM blank",
-    "Test classic Docker build with DOCKER_BUILDKIT=0 in CI",
-    "Guarantee per-request and per-host camera discovery deadlines",
-    "Show verified camera results before entire search completes",
-    "Preserve camera settings, recordings and go2rtc race-fixed broker"
+    "Do not identify Reolink by an open 9000 vendor port and a generic HTTPS port alone",
+    "Reevaluate port-based proof on every final discovery policy application",
+    "Remove old invalid Reolink manufacturer labels and stale manually scanned entries",
+    "Preserve verified ONVIF and RTSP/RTMP camera discovery",
+    "Keep full go2rtc race protection, motion, recording and HLS compatibility"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.69.md",
+  "changelog": "UPDATE_NOTES_2.20.70.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.69",
-  "packageId": "tmp-camera-surveillance-next-2.20.69",
+  "name": "TMP Camera Surveillance Next v2.20.70",
+  "packageId": "tmp-camera-surveillance-next-2.20.70",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Classic-Docker compatible TMP Hardened Media Broker and bounded-progress camera network discovery.",
+  "description": "Correct vendor inference and final camera discovery classification; reset stale manual scan results.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Includes the go2rtc concurrent map write crash fix from 2.20.68 with native-architecture classic Docker builds. Camera scan uses absolute network request and 12s per-host fingerprint deadlines, and returns verified camera results before the last host finishes. Preserves .env, recordings and camera database. Direct update compatible from 2.20.32.",
-  "fileCount": 493
+  "releaseNotes": "Compatible from 2.20.32. TCP 9000 + generic HTTPS is no longer enough to identify a Reolink camera. RTSP, RTMP or explicit ONVIF/vendor API evidence remains eligible. Current scan recomputes port signature, stale scan flags are discarded, and each new manual scan resets results. Preserves recordings, cameras and .env.",
+  "fileCount": 494
 }

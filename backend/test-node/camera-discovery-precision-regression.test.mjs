@@ -127,3 +127,59 @@ test('real Dahua magicBox key-value response still verifies a web-only camera', 
   assert.equal(result.candidate, true);
   assert.equal(result.verified, true);
 });
+
+test('HTTPS 8443 + TCP 9000 does not identify a Reolink camera', async () => {
+  const { inferCameraPortSignature } = await import('../src/services/media/CameraPortCatalog.js');
+  const { applyFinalCameraDiscoveryPolicy } = await import('../src/services/media/CameraDiscoveryPolicy.js');
+  const signature = inferCameraPortSignature([8443, 9000]);
+  assert.equal(signature.strong, false);
+  assert.equal(signature.manufacturer, null);
+  const fingerprint = assertRejected([8443, 9000], {
+    pages: [{ statusCode: 200, url: 'https://192.0.2.180:8443/', headers: {}, body: '<html><title>Administration</title></html>' }],
+  });
+  const result = applyFinalCameraDiscoveryPolicy({
+    ip: '192.0.2.180', port: 8443, openPorts: [8443, 9000],
+    manufacturer: 'Reolink', likelyCamera: true, verified: true,
+    cameraCandidate: true, confidence: 88, strongPortCombinationEvidence: true,
+    discoveryMethods: ['host-route-scan'], rtspConfirmed: [],
+  });
+  assert.equal(result.likelyCamera, false);
+  assert.equal(result.verified, false);
+  assert.equal(result.cameraCandidate, false);
+  assert.equal(result.manufacturer, null);
+  assert.equal(result.confidence, 0);
+  assert.equal(fingerprint.manufacturer, null);
+});
+
+test('Reolink media port with RTSP or RTMP still qualifies as a camera signature', async () => {
+  const { inferCameraPortSignature } = await import('../src/services/media/CameraPortCatalog.js');
+  const { applyFinalCameraDiscoveryPolicy } = await import('../src/services/media/CameraDiscoveryPolicy.js');
+  for (const ports of [[554, 9000], [1935, 9000], [80, 554, 9000]]) {
+    const signature = inferCameraPortSignature(ports);
+    assert.equal(signature.strong, true);
+    assert.equal(signature.manufacturer, 'Reolink');
+    const fp = classifyHostFingerprint({ openPorts: ports });
+    assert.equal(fp.likelyCamera, true);
+    const final = applyFinalCameraDiscoveryPolicy({
+      ip: '192.0.2.80', port: 80, openPorts: ports,
+      strongPortCombinationEvidence: fp.strongPortCombinationEvidence,
+      cameraCandidate: fp.candidate, likelyCamera: fp.likelyCamera,
+      confidence: fp.confidence, discoveryMethods: ['ip-range'],
+    });
+    assert.equal(final.likelyCamera, true);
+  }
+});
+
+test('confirmed Reolink ONVIF remains valid even when only web and 9000 ports are open', async () => {
+  const { applyFinalCameraDiscoveryPolicy } = await import('../src/services/media/CameraDiscoveryPolicy.js');
+  const ports = [8443, 9000];
+  const result = applyFinalCameraDiscoveryPolicy({
+    ip: '192.0.2.180', port: 8443, openPorts: ports,
+    manufacturer: 'Reolink', confidence: 96,
+    directCameraProtocolEvidence: true, onvifHttpEvidence: true,
+    discoveryMethods: ['ip-range'],
+  });
+  assert.equal(result.likelyCamera, true);
+  assert.equal(result.verified, true);
+  assert.equal(result.manufacturer, 'Reolink');
+});

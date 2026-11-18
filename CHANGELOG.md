@@ -1,3 +1,11 @@
+## 2.20.70 – Falsch erkannte Reolink-Kameras ausblenden
+
+- TCP 9000 + generischer HTTPS-Port (z.B. 8443) ist kein Reolink-/Kameranachweis mehr. Die automatische Suche verlangt fuer diese Portsignatur mindestens RTSP oder RTMP; echte ONVIF-/API-Nachweise bleiben gueltig.
+- Der finale Ergebnisfilter bewertet die aktuell erkannten offenen Ports selbst neu, statt eine veraltete starke Signatur aus einem frueheren Scan zu uebernehmen. Ungueltige Herstellerzuordnungen werden entfernt.
+- Neue manuelle Suchen beginnen mit einer leeren Ergebnisliste und fuehren nicht alte, inzwischen verworfene Geistergeraete weiter.
+- Regressionstests decken 8443+9000, bestaetigte Reolink-ONVIF-Antworten und legitime RTSP-/RTMP-Kombinationen ab.
+- Bewahrt alle bisherigen fixes fuer den TMP Hardened Media Broker, Aufnahmen, ONVIF und Backendstreamstart.
+
 ## 2.20.69 – Classic Docker-Build und abschliessende Kamerasuche
 
 - TMP Hardened Media Broker laesst sich jetzt mit dem klassischen Docker 20.10-Builder bauen: keine BuildKit-Variablen `$BUILDPLATFORM`, `$TARGETARCH` oder `$TARGETOS`; Go kompiliert nativ fuer das Docker-Zielsystem. Das behebt das fehlerhafte Release 2.20.68 auf dem Linux-Kameraserver.
