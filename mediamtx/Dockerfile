@@ -21,8 +21,8 @@ RUN go mod download
 # Go race detector executes a concurrency stress case on the build architecture.
 # v1.9.14 ships stale upstream tests (New/Patch now return (value,error));
 # update test-only call sites for compilation, never modify production code.
-RUN sed -i -e 's/stream1 := New(/stream1, _ := New(/g' \\
-           -e 's/stream2 := GetOrPatch(/stream2, _ := GetOrPatch(/g' \\
+RUN sed -i -e 's/stream1 := New(/stream1, _ := New(/g' \
+           -e 's/stream2 := GetOrPatch(/stream2, _ := GetOrPatch(/g' \
            -e 's/stream2 := Patch(/stream2, _ := Patch(/g' internal/streams/stream_test.go
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=$(go env GOHOSTARCH) go test -race -count=1 -run '^TestTMP' ./internal/streams ./internal/api
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/go2rtc .
