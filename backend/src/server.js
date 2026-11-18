@@ -14,7 +14,7 @@ const [
   { createApp }, { migrate, db }, { healthMonitor }, { discoveryJobService },
   { recordingScheduler }, { retentionManager }, { recordingService }, { recordingCompressionService }, { motionDetectionService },
   { recordingEventDispatcher }, { ptzService }, { cameraRuntimeCoordinator },
-  { ptzAutomationInterlock }, { streamOrchestrator }, { eventWebSocketHub }, { domainEventBus }, { aiEventAnalysisService }, { emailNotificationService }, { demoModeSettingsService }, { networkRecordingStorageService },
+  { ptzAutomationInterlock }, { streamOrchestrator }, { cameraThumbnailCache }, { eventWebSocketHub }, { domainEventBus }, { aiEventAnalysisService }, { emailNotificationService }, { demoModeSettingsService }, { networkRecordingStorageService },
 ] = await Promise.all([
   import('./app.js'),
   import('./db/database.js'),
@@ -30,6 +30,7 @@ const [
   import('./services/runtime/CameraRuntimeCoordinator.js'),
   import('./services/runtime/PtzAutomationInterlock.js'),
   import('./services/media/StreamOrchestrator.js'),
+  import('./services/media/CameraThumbnailCache.js'),
   import('./services/events/EventWebSocketHub.js'),
   import('./services/events/DomainEventBus.js'),
   import('./services/ai/AiEventAnalysisService.js'),
@@ -48,6 +49,9 @@ const server = app.listen(config.port, config.host, () => {
   const demoRuntime = demoModeSettingsService.status();
   if (demoRuntime.demoMode) logger.warn({ allowExports: demoRuntime.allowExports }, 'Demo-Modus aktiv: zustandsveraendernde API-Aktionen sind schreibgeschuetzt');
   healthMonitor.start();
+  // Persist overview thumbnails independently of any open browser. Capture
+  // only from the central already-running local HLS ring, never new RTSP sessions.
+  void cameraThumbnailCache.start().catch((error) => logger.warn({ err: error }, 'Thumbnail-Cache konnte nicht gestartet werden'));
   // A browser must never be responsible for starting camera publishers.
   // Start the central previews as soon as the API is listening and the DB
   // has migrated. Slow recording recovery or remote-storage reconciliation
@@ -105,6 +109,7 @@ async function shutdown(signal) {
   forceExit.unref();
 
   healthMonitor.stop?.();
+  cameraThumbnailCache.stop();
   motionDetectionService.stop();
   recordingScheduler.stop();
   retentionManager.stop();
