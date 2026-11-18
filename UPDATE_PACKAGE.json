@@ -1,17 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.76",
+  "version": "2.20.77",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.76",
-  "summary": "Globale Aufnahmepläne für alle Kameras mit atomarem Speichern und 24-Stunden-Zeitfenster.",
-  "createdAt": "2026-11-18T19:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.76.md",
+  "title": "TMP Camera Surveillance Next 2.20.77",
+  "summary": "Gemeinsame Kiosk-Raster fuer Web und Linux-Client sowie Bewegungserkennung ohne Netzwerkspeicher-Startblockade.",
+  "createdAt": "2026-11-18T18:40:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.77.md",
   "changes": [
-    "Apply the selected camera recording plans to every configured camera in one atomic transaction",
-    "Offer optional bulk retention policies while preserving them by default",
-    "Add 24-hour all-day schedule selection to weekday/event recording windows",
-    "Preserve all camera credentials, archive files and camera-specific ONVIF profiles",
-    "Regression tests for global rollback, 24-hour calendar and UI safeguards"
+    "Store shared kiosk layouts and active view in server SQLite for web and Linux desktop",
+    "Prevent stale-client overwrites with atomic revisions and legacy local-layout migration",
+    "Start automatic motion detection and recording scheduler before network storage reconciliation",
+    "Preserve existing recording files, camera settings, and all existing streams"
   ],
   "preserve": [
     ".env",
@@ -32,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.76.md",
+  "changelog": "UPDATE_NOTES_2.20.77.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.76",
-  "packageId": "tmp-camera-surveillance-next-2.20.76",
+  "name": "TMP Camera Surveillance Next v2.20.77",
+  "packageId": "tmp-camera-surveillance-next-2.20.77",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Global recording plan template with opt-in retention bulk-apply and calendar-accurate 24h setting.",
+  "description": "Server-authoritative cross-client kiosk layouts with safe migration plus recording startup sequencing.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.76 introduces an explicitly confirmed global apply action for recording plans on all cameras, plus optionally retention rules. Plans are saved transactionally, each camera receives independent plan IDs and source-specific profiles are not copied. The scheduled/event time editor offers a full-day (00:00 to 00:00) option while respecting selected weekdays and holiday exceptions. Existing archives are unaffected.",
-  "fileCount": 512
+  "releaseNotes": "2.20.77 centralizes Kiosk layout selection in server SQLite and synchronizes it across browser and Electron every five seconds. Existing local layouts are migrated once if no shared settings exist, with optimistic conflict protection. Motion detection and recording scheduling now start after local recovery but before possibly slow SMB/SFTP media reconciliation; archive cleanup remains last. Existing recordings are preserved.",
+  "fileCount": 516
 }
