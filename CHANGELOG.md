@@ -1,3 +1,10 @@
+## 2.20.78 – Schnellere Kamera-Kaltstarts und faire Startwarteschlange
+
+- Kamera-Verbindungsplätze priorisieren neue zentrale Vorschauen sowie Bewegungs- und Aufnahmestarts gegenüber der langsamen zweiten Wiederaufbauwelle.
+- Ein wartender Wiederaufbau altert in der Priorität und wird nicht dauerhaft verdrängt; gleichzeitig laufende Starts bleiben auf die konfigurierten vier Plätze begrenzt.
+- Permanente zentrale Kamera-Vorschauen starten ohne überflüssigen Audiopfad; fehlerhafter optionaler Audioeingang kann den Video-Kaltstart nicht länger doppelt verzögern.
+- Warteschlangen-Ereignisse enthalten Priorität und Auslastung für bessere Diagnose; bestehende Kamerastreams, Aufnahmen und Konfigurationen bleiben erhalten.
+
 ## 2.20.77 – Synchronisierte Kiosk-Raster und zeitgerechter Aufnahmestart
 
 - Kiosk-Raster und aktive Ansicht zentral pro Server in SQLite gespeichert, browser- und Linux-Client-übergreifend synchronisiert.
