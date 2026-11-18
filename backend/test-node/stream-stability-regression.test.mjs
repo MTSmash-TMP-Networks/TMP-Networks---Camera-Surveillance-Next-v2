@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { CameraStartLimiter } from '../src/services/media/CameraStartLimiter.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../..');
@@ -24,6 +25,8 @@ const cameraRoutes = readFileSync(resolve(root, 'backend/src/routes/cameras.js')
 const appShell = readFileSync(resolve(root, 'frontend/src/components/AppShell.jsx'), 'utf8');
 const addCameraPage = readFileSync(resolve(root, 'frontend/src/pages/AddCameraPage.jsx'), 'utf8');
 const kioskPage = readFileSync(resolve(root, 'frontend/src/pages/KioskPage.jsx'), 'utf8');
+const startScript = readFileSync(resolve(root, 'start.sh'), 'utf8');
+const envExample = readFileSync(resolve(root, '.env.example'), 'utf8');
 
 test('compression backfill cannot bypass the configured startup delay', () => {
   assert.match(compression, /this\.backfill\(\{ schedule: false \}\)/);
@@ -232,6 +235,37 @@ test('camera startup is serialized per camera and bounded across cameras', () =>
   assert.match(orchestrator, /this\.cameraStartLocks\.get\(cameraId\)/);
   assert.match(orchestrator, /STREAM_START_CANCELLED/);
   assert.doesNotMatch(orchestrator, /globalCameraStartTail/);
+});
+
+test('25-camera startup has faster bounded defaults and upgrades the previous .env defaults', () => {
+  assert.match(config, /permanentIngestStartupStaggerMs: integer\('PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS', 250,/);
+  assert.match(config, /streamStartConcurrency: integer\('STREAM_START_CONCURRENCY', 4,/);
+  assert.match(envExample, /^PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS=250$/m);
+  assert.match(envExample, /^STREAM_START_CONCURRENCY=4$/m);
+  assert.match(startScript, /^PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS=250$/m);
+  assert.match(startScript, /^STREAM_START_CONCURRENCY=4$/m);
+  assert.match(startScript, /migrate_env_default PERMANENT_CAMERA_INGEST_STARTUP_STAGGER_MS 1500 250/);
+  assert.match(startScript, /migrate_env_default STREAM_START_CONCURRENCY 2 4/);
+  assert.match(kioskPage, /startDelayMs=\{camera \? Math\.min\(index \* 120, 3000\) : 0\}/);
+});
+
+test('four camera start slots admit all 25 cameras without exceeding capacity', async () => {
+  const limiter = new CameraStartLimiter(4);
+  let active = 0;
+  let maximum = 0;
+  let completed = 0;
+  const tasks = Array.from({ length: 25 }, () => limiter.run(async () => {
+    active += 1;
+    maximum = Math.max(maximum, active);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    active -= 1;
+    completed += 1;
+  }));
+  await Promise.all(tasks);
+  assert.equal(maximum, 4);
+  assert.equal(completed, 25);
+  assert.equal(limiter.status().active, 0);
+  assert.equal(limiter.status().queued, 0);
 });
 
 test('a disconnected preview does not block recording scheduler startup', () => {
