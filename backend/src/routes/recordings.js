@@ -327,6 +327,23 @@ recordingsRouter.post('/cleanup', authorize('operator'), asyncHandler(async (req
   res.json(await retentionManager.run({ cameraId: input.cameraId || null, dryRun: input.dryRun }));
 }));
 
+// A global template is explicitly applied by an operator after validation.
+// No per-camera profile token is shared across devices. The repository commits
+// every camera in one transaction, or rolls everything back on failure.
+recordingsRouter.put('/planning/all', authorize('operator'), (req, res) => {
+  const input = z.object({
+    plans: z.array(planSchema).max(200),
+    applyRetention: z.boolean().default(false),
+    retention: retentionSchema.optional(),
+    confirmation: z.literal('ALL_CAMERAS'),
+  }).superRefine((value, ctx) => {
+    if (value.applyRetention && !value.retention) {
+      ctx.addIssue({ code: 'custom', path: ['retention'], message: 'Aufbewahrungseinstellungen fehlen.' });
+    }
+  }).parse(req.body || {});
+  res.json(recordingPolicyRepository.applyPlanningToAll(input));
+});
+
 recordingsRouter.get('/cameras/:cameraId/plans', (req, res) => {
   requireCamera(req.params.cameraId);
   res.json({ items: recordingPolicyRepository.listPlans(req.params.cameraId) });
