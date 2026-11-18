@@ -303,7 +303,7 @@ export function KioskPage() {
           refreshEpoch={refreshEpoch}
           quality="low"
           runtimeStatus={camera ? runtimeStatus[camera.id] : null}
-          startDelayMs={camera ? Math.min(index * 900, 4500) : 0}
+          startDelayMs={camera ? Math.min(index * 120, 3000) : 0}
           style={{ gridColumn: `${item.column} / span ${item.columnSpan}`, gridRow: `${item.row} / span ${item.rowSpan}` }}
           t={t}
         />;
