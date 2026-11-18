@@ -13,8 +13,10 @@ export async function probeOnvifHttpDeviceService(host, port = 8000, timeoutMs =
   const body = GET_SYSTEM_DATE_AND_TIME;
   return await new Promise((resolve) => {
     let settled = false;
-    const finish = (value) => { if (!settled) { settled = true; resolve(value); } };
-    const request = http.request(url, {
+    let request;
+    const deadline = setTimeout(() => { request?.destroy(); finish(null); }, Math.max(300, Math.min(4000, Number(timeoutMs) || 1600)));
+    const finish = (value) => { if (!settled) { settled = true; clearTimeout(deadline); resolve(value); } };
+    request = http.request(url, {
       method: 'POST', timeout: Math.max(300, Math.min(4000, Number(timeoutMs) || 1600)),
       headers: {
         'Content-Type': 'application/soap+xml; charset=utf-8',
