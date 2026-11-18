@@ -802,3 +802,13 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[r
 .desktop-remember-device small{font-size:11px;color:#9bbac9;line-height:1.5}
 .login-page-desktop .form-error{font-size:12px;line-height:1.5;margin:12px 0;padding:11px 13px;overflow-wrap:anywhere}
 @media(max-height:620px){.login-page-desktop{align-items:flex-start}.login-page-desktop .login-card{margin:0 auto}}
+
+/* 2.20.76: global recording template and full-day scheduler controls */
+.recording-all-day-switch,.global-recording-retention{display:flex;align-items:flex-start;flex-direction:row;gap:12px;cursor:pointer;color:var(--text);font-size:13px;line-height:1.45}
+.recording-all-day-switch{margin:12px 0 8px}
+.recording-all-day-switch input[type=checkbox],.global-recording-retention input[type=checkbox]{flex:0 0 18px;width:18px;height:18px;margin:1px 0 0;padding:0;accent-color:var(--cyan)}
+.global-recording-panel{border-color:#2a6279;background:linear-gradient(135deg,rgba(25,105,135,.12),rgba(0,0,0,.08))}
+.global-recording-panel>header strong{font-size:17px}
+.global-recording-panel>header small{line-height:1.5}
+.global-recording-panel>.secondary-button{margin:14px 0 0;min-height:43px}
+.global-recording-warning{font-size:12px;line-height:1.55;color:var(--muted);margin:12px 0 0}
