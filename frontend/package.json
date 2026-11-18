@@ -7,7 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:native": "node test-node/run-native-tests.mjs",
+    "test:ci": "npm run test && npm run test:native"
   },
   "dependencies": {
     "@coreui/coreui": "5.9.0",
