@@ -31,6 +31,8 @@ jobs:
           node --test backend/test-node/camera-discovery-final-policy-regression.test.mjs
       - name: Validate fair 26-camera cold-start and deferred recovery
         run: node --test backend/test-node/camera-bootstrap-fairness-26.test.mjs
+      - name: Validate adaptive camera startup capacity
+        run: node --test backend/test-node/adaptive-camera-start.test.mjs
       - name: Validate camera discovery deadlines and progressive results
         run: node --test backend/test-node/discovery-completion-timeout.test.mjs
       - name: Validate updater compatibility regressions
