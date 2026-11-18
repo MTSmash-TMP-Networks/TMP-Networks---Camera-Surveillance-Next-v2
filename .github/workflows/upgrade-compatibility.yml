@@ -13,6 +13,14 @@ jobs:
           node-version: '24'
       - name: Validate legacy root paths and source manifest
         run: node scripts/check-update-compatibility.mjs
+      - name: Validate host recovery script syntax
+        run: sh -n scripts/recover-updater-compose-v2.sh
+      - name: Validate the Compose V2 plugin inside the updater image
+        run: |
+          docker build --tag tmp-camera-updater-compose-v2-ci updater
+          docker run --rm --entrypoint docker tmp-camera-updater-compose-v2-ci compose version
+      - name: Validate go2rtc root API fallback
+        run: node --test backend/test-node/go2rtc-control-api.test.mjs
       - name: Validate updater compatibility regressions
         run: node --test backend/test-node/update-compatibility.test.mjs
       - name: Validate snapshot fallback native stream re-probing
