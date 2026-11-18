@@ -1,4 +1,5 @@
 import Hls from 'hls.js';
+import { createHlsLiveSequenceTracker } from './hlsLiveSequencePolicy.js';
 
 // Allow the HLS internal retry to finish before the outer player gives up.
 const RECOVERY_WATCHDOG_MS = 25000;
@@ -142,7 +143,7 @@ function nativeHls({ url, video, onState }) {
   };
 }
 
-export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySeconds = TARGET_LIVE_DELAY_SECONDS }) {
+export function connectHls({ url, tokenRef, video, onState, onSourceHealth, targetLiveDelaySeconds = TARGET_LIVE_DELAY_SECONDS }) {
   if (!Hls.isSupported()) {
     const nativeSupported = video.canPlayType('application/vnd.apple.mpegurl') || video.canPlayType('application/x-mpegURL');
     if (!nativeSupported) throw new Error('HLS wird von diesem Browser nicht ueber Media Source Extensions unterstuetzt');
@@ -159,6 +160,15 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
   let lastSoftStallRetryAt = 0;
   let lastRecoveryDetails = null;
   let activeSourceUrl = cacheBustUrl(url);
+  const sourceSequence = createHlsLiveSequenceTracker();
+  let lastStaleReportAt = 0;
+  const sourceMonitor = setInterval(() => {
+    if (destroyed) return;
+    const health = sourceSequence.status();
+    if (!health.stale || Date.now() - lastStaleReportAt < 12000) return;
+    lastStaleReportAt = Date.now();
+    onSourceHealth?.({ state: 'stale', reason: 'hls-playlist-not-advancing', ageMs: health.ageMs, sequence: health.lastSequence });
+  }, 2500);
 
   const liveDelay = Math.max(2.5, Number(targetLiveDelaySeconds) || TARGET_LIVE_DELAY_SECONDS);
   const hls = new Hls({
@@ -217,6 +227,8 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
   };
   const markConnected = (source) => {
     if (destroyed) return;
+    // Cached frames must never count as fresh live media.
+    if (sourceSequence.status().stale) return;
     const wasRecovering = recovering;
     recovering = false;
     networkRecoveries = 0;
@@ -335,6 +347,13 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
 
   hls.attachMedia(video);
   hls.on(Hls.Events.MEDIA_ATTACHED, () => hls.loadSource(activeSourceUrl));
+  hls.on(Hls.Events.LEVEL_UPDATED, (_event, data) => {
+    const result = sourceSequence.observe(data?.details);
+    if (result.advanced) {
+      lastStaleReportAt = 0;
+      onSourceHealth?.({ state: 'fresh', sequence: result.lastSequence, ageMs: result.ageMs });
+    }
+  });
   hls.on(Hls.Events.MANIFEST_PARSED, () => {
     safePlay(video);
     if (!recovering) markConnected('manifest-parsed');
@@ -362,6 +381,7 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
 
   return () => {
     destroyed = true;
+    clearInterval(sourceMonitor);
     if (ptzSeekers.get(video) === nudgeForControl) ptzSeekers.delete(video);
     clearRecoveryTimer();
     clearWaitingTimer();

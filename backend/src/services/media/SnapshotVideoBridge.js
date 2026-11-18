@@ -12,11 +12,13 @@ export function startSnapshotFramePump({
   capture,
   fps = 5,
   refreshMs = 1000,
+  maxFrameAgeMs = 15_000,
   onFrame = null,
   onFetchError = null,
 }) {
   let stopped = false;
   let latest = initialBuffer;
+  let lastFetchedAt = Date.now();
   let fetching = false;
   let writing = false;
   let consecutiveFetchErrors = 0;
@@ -29,6 +31,7 @@ export function startSnapshotFramePump({
       const result = await capture();
       if (result?.buffer?.length) {
         latest = result.buffer;
+        lastFetchedAt = Date.now();
         consecutiveFetchErrors = 0;
         onFrame?.({ bytes: latest.length, contentType: result.contentType || 'image/jpeg' });
       }
@@ -42,6 +45,10 @@ export function startSnapshotFramePump({
 
   async function writeFrame() {
     if (stopped || writing || !latest?.length || child.stdin.destroyed || !child.stdin.writable) return;
+    // Re-encoding a single old JPEG indefinitely creates apparently fresh
+    // HLS segments that replay a frozen camera. Let the ring become stale so
+    // its normal watchdog detects the failed snapshot source and recovers it.
+    if (Date.now() - lastFetchedAt > maxFrameAgeMs) return;
     writing = true;
     try {
       if (!child.stdin.write(latest)) await once(child.stdin, 'drain');
@@ -68,7 +75,7 @@ export function startSnapshotFramePump({
       if (!child.stdin.destroyed) child.stdin.end();
     },
     get status() {
-      return { stopped, bytes: latest?.length || 0, consecutiveFetchErrors, fps: Math.round(1000 / frameIntervalMs) };
+      return { stopped, bytes: latest?.length || 0, consecutiveFetchErrors, lastFrameAgeMs: Date.now() - lastFetchedAt, fps: Math.round(1000 / frameIntervalMs) };
     },
   };
 }

@@ -1,21 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.71",
+  "version": "2.20.72",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.71",
-  "summary": "Fair 26-camera background startup plus fully verified frontend tests, robust session storage and WHEP timeout.",
+  "title": "TMP Camera Surveillance Next 2.20.72",
+  "summary": "Fix stale HLS video replay with monotonic live segment checks and snapshot freshness watchdog.",
   "createdAt": "2026-11-18T16:10:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.71.md",
+  "changelogFile": "UPDATE_NOTES_2.20.72.md",
   "changes": [
-    "Bound first cold-start HLS media wait to 20 seconds per candidate",
-    "Defer expensive ONVIF, encoder, alternate-profile and snapshot fallback attempts until each camera got a first chance",
-    "Keep four simultaneous starts, per-camera serialization and existing restart/backoff safety",
-    "Record queue wait and active startup durations by camera without credentials",
-    "Preserve legacy camera, recording, motion, HLS and fixed go2rtc broker behavior",
-    "Fix frontend initial sessionStorage import in non-browser and restricted contexts",
-    "Make WHEP SDP POST and response body bounded by a hard deadline",
-    "Run all legacy native node:test frontend suites separately from Vitest",
-    "Repair localized recording-storage translation and stale tests without disabling any tests"
+    "Detect stale HLS sequence despite active buffered video playback",
+    "Prevent old cached frames from marking recovered HLS playback as connected",
+    "Reconnect only stalled active viewer with a 45-second cooldown",
+    "Stop manufacturing fresh-looking snapshot HLS frames from last image after 15 seconds without successful fetch",
+    "Retain stable go2rtc broker and 26-camera fair startup"
   ],
   "preserve": [
     ".env",
@@ -36,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.71.md",
+  "changelog": "UPDATE_NOTES_2.20.72.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.71",
-  "packageId": "tmp-camera-surveillance-next-2.20.71",
+  "name": "TMP Camera Surveillance Next v2.20.72",
+  "packageId": "tmp-camera-surveillance-next-2.20.72",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Two-stage 26-camera bootstrap, backend stream metrics and frontend regression fixes with independent Vitest/node:test runners.",
+  "description": "Live HLS sequence freshness and bounded snapshot fallback frames",
   "minVersion": "2.20.32",
-  "releaseNotes": "Direct upgrade from 2.20.32. 26 cameras receive a bounded 20-second first media attempt; failed profiles and snapshot recovery run in a second round after all cameras were admitted. Four start slots retained, with queue and active start time diagnostics. No database, camera settings, recordings, motion, patched go2rtc or .env changes. Frontend fixes: graceful storage-unavailable authentication token handling, hard timeout for WHEP SDP handshake, localization completeness for recording storage, corrected current behavior regression tests, and separate native Node test suites.",
-  "fileCount": 497
+  "releaseNotes": "Fix cached HLS fragments endlessly showing as live images. Check segment sequence every 2.5s, reconnect only the affected active browser player after 30s stale and at most once per 45s, and bound stale snapshot JPEG repetition to 15s. No database/.env changes. Maintains 2.20.71 startup speed and fixed go2rtc broker.",
+  "fileCount": 500
 }

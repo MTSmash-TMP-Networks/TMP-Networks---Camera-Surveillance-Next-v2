@@ -1,3 +1,10 @@
+## 2.20.72 – Eingefrorene HLS-Streams nicht mehr endlos wiederholen
+
+- Live-Playlist-Segmentnummern muessen fortschreiten. Alte Browser-Puffer gelten nicht als neue Kameraframes.
+- Bei >30 Sekunden ohne neue Live-Segmente wird nur der betroffene Browser-Player kontrolliert reconnectet, maximal einmal pro 45 Sekunden.
+- Snapshot-Notfall-Encoder wiederholt ein zuletzt gespeichertes JPEG hoechstens 15 Sekunden ohne erfolgreichen Kameraabruf; anschliessend greift die vorhandene HLS-Quellueberwachung.
+- Aufnahmen, Bewegungserkennung, go2rtc-Patch, 26-Kamera-Kaltstart und gesetzte Kameraeinstellungen unveraendert.
+
 ## 2.20.71 – Fairer Hintergrund-Kaltstart fuer 26 Kameras
 
 - Beim Backendstart bekommt jede aktivierte Kamera zuerst einen kurzen bevorzugten Video-/ONVIF-Streamversuch (maximal 20 Sekunden aktives HLS-Warten statt bis zu 60 Sekunden je Quelle). Vier parallele Kamerastartplaetze bleiben erhalten.
