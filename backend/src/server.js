@@ -78,19 +78,21 @@ const server = app.listen(config.port, config.host, () => {
       // database commit; compression recovery must establish the authoritative
       // local file first.
       recordingCompressionService.start();
+      // The scheduler and motion detector need only the recovered local
+      // recording journal, not a potentially slow SMB/SFTP verification.
+      // Start them BEFORE network reconciliation so cameras can begin
+      // event recordings while remote storage is unavailable or slow.
+      motionDetectionService.start();
+      recordingScheduler.start();
+      discoveryJobService.bootstrap();
       try {
         await networkRecordingStorageService.reconcile();
       } catch (error) {
         logger.error({ err: error }, 'Aufnahmespeicher-Abgleich beim Start ist fehlgeschlagen');
       }
       networkRecordingStorageService.start();
-      discoveryJobService.bootstrap();
-      // Offline preview cameras cannot delay the recording scheduler.
-      // Camera bootstrap is already running in its own backend task.
-      motionDetectionService.start();
-      recordingScheduler.start();
-      // Retention starts last. It must never delete archive rows before local,
-      // remote and compression state have been reconciled after an update.
+      // Retention starts last and only after both local and remote archive
+      // metadata have been reconciled.
       retentionManager.start();
     }
   })();

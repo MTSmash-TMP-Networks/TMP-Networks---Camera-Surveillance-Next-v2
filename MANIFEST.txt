@@ -43,6 +43,7 @@ UPDATE_NOTES_2.20.73.md
 UPDATE_NOTES_2.20.74.md
 UPDATE_NOTES_2.20.75.md
 UPDATE_NOTES_2.20.76.md
+UPDATE_NOTES_2.20.77.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -68,6 +69,7 @@ backend/src/middleware/errorHandler.js
 backend/src/routes/auth.js
 backend/src/routes/cameras.js
 backend/src/routes/internal.js
+backend/src/routes/kioskLayouts.js
 backend/src/routes/ptz.js
 backend/src/routes/recordings.js
 backend/src/routes/streams.js
@@ -85,6 +87,7 @@ backend/src/services/DirectStreamInstaller.js
 backend/src/services/DiscoveryJobService.js
 backend/src/services/GenericCameraInstaller.js
 backend/src/services/HikvisionChannels.js
+backend/src/services/KioskLayoutSettingsService.js
 backend/src/services/NetworkCameraDiscovery.js
 backend/src/services/NetworkRecordingStorageService.js
 backend/src/services/RecordingService.js
@@ -243,6 +246,7 @@ backend/test/ffmpeg-command.test.js
 backend/test/ffmpeg-input-options.test.js
 backend/test/go2rtc-client.test.js
 backend/test/hikvision-installer.test.js
+backend/test/kiosk-layout-settings.test.js
 backend/test/media-read-auth.test.js
 backend/test/media-source-repository.test.js
 backend/test/media-source.test.js

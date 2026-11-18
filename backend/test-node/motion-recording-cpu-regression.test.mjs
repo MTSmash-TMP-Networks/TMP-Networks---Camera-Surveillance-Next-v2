@@ -26,3 +26,13 @@ test('offline H264 recompression yields to active recordings and high system loa
   assert.match(compression, /this\.criticalBusyReason\(\) \|\| this\.systemLoadBusyReason\(\)/);
   assert.match(config, /RECORDING_COMPRESSION_PAUSE_WHILE_RECORDING', true/);
 });
+
+test('motion and recording scheduling start before slow remote-storage reconciliation', () => {
+  const server = read('backend/src/server.js');
+  const section = server.slice(server.indexOf('await recordingService.recoverInterruptedRecordings()'));
+  const motion = section.indexOf('motionDetectionService.start()');
+  const scheduler = section.indexOf('recordingScheduler.start()');
+  const remote = section.indexOf('await networkRecordingStorageService.reconcile()');
+  const retention = section.indexOf('retentionManager.start()');
+  assert.ok(motion >= 0 && scheduler > motion && remote > scheduler && retention > remote);
+});
