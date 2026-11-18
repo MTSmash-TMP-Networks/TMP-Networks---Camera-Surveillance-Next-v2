@@ -152,12 +152,12 @@ test('go2rtc control queue is released if a request fails', async () => {
   let calls = 0;
   globalThis.fetch = async () => {
     calls++;
-    if (calls === 1) throw new Error('network temporarily unavailable');
+    if (calls === 1) throw new Error('unexpected test transport failure');
     return okJson({});
   };
   try {
     const client = new Go2RtcClient({ baseUrl: 'http://go2rtc:1984/media/go2rtc', fallbackUrls: [] });
-    await assert.rejects(client.fetchResponse('/api/streams', {}, { timeoutMs: 50 }), /network temporarily unavailable/);
+    await assert.rejects(client.fetchResponse('/api/streams', {}, { timeoutMs: 50 }), /unexpected test transport failure/);
     assert.deepEqual(await client.paths(), new Map());
     assert.equal(calls, 2);
   } finally {
