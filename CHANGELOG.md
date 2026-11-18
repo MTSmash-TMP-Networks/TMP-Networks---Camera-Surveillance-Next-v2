@@ -1,3 +1,10 @@
+## 2.20.77 – Synchronisierte Kiosk-Raster und zeitgerechter Aufnahmestart
+
+- Kiosk-Raster und aktive Ansicht zentral pro Server in SQLite gespeichert, browser- und Linux-Client-übergreifend synchronisiert.
+- Revisionierte Änderungen mit Konfliktschutz; einmaliger Import bisher lokal gespeicherter Ansichten, ohne fremde Einstellungen zu überschreiben.
+- Bewegungserkennung und Aufnahmeplaner starten nach der lokalen Wiederherstellung, ohne auf langsame Netzwerkspeicherprüfungen zu warten.
+- Aufnahmeplanung und vorhandene Aufnahmen bleiben unabhängig von den Kiosk-Rastern.
+
 ## 2.20.76 – Globale Aufnahmeplanung und 24-Stunden-Zeitfenster
 
 - Aufnahmeplanung kann nach Bestätigung auf alle Kameras in einem atomaren Vorgang übertragen werden; Einzelkameraeinstellungen bleiben editierbar.
