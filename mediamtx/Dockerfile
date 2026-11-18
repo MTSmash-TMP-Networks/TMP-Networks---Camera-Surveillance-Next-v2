@@ -5,7 +5,7 @@
 FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS build
 ARG TARGETOS=linux
 ARG TARGETARCH
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache git ca-certificates gcc musl-dev
 WORKDIR /src
 # Exact upstream revision for v1.9.14; no moving tags or master builds.
 RUN git init . \
@@ -16,8 +16,10 @@ RUN git init . \
 COPY patches/go2rtc-http-streams-races.patch /tmp/races.patch
 # Fail closed if upstream source changes and the patch stops applying.
 RUN git apply --check /tmp/races.patch && git apply /tmp/races.patch
+COPY tests/tmp_streams_race_test.go /src/internal/streams/tmp_streams_race_test.go
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go test ./internal/streams ./internal/api
+# Go race detector executes a concurrency stress case on the build architecture.
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=$(go env GOHOSTARCH) go test -race -count=1 ./internal/streams ./internal/api
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/go2rtc .
 
 # Preserve the existing encoder stack and working go2rtc.yaml unchanged.
