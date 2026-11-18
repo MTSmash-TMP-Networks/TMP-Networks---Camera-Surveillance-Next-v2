@@ -15,7 +15,8 @@ export function SnapshotBackdrop({ cameraId, refreshMs = 30000, className = '', 
     let cancelled = false;
     async function update() {
       try {
-        const blob = await api.snapshot(cameraId);
+        // A disk-cached preview; opening this page never probes the camera.
+        const blob = await api.thumbnail(cameraId);
         const next = URL.createObjectURL(blob);
         if (cancelled) return URL.revokeObjectURL(next);
         const image = new Image();
