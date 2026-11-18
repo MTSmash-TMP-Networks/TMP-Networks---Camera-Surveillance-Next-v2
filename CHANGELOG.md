@@ -1,3 +1,11 @@
+## 2.20.80 – Bedingte HLS-Startnachfrist und aussagekräftige Timeout-Diagnose
+
+- HLS-Erststarts erhalten eine maximal acht Sekunden lange Nachfrist, wenn go2rtc beim Fristablauf einen aktiven Videoproducer meldet; der bestehende Timeout für offline Kameras bleibt unverändert.
+- Nie Bereitschaft ohne echte frische HLS-Segmente; laufende HLS-/Aufnahmepfade werden nicht vorzeitig freigegeben.
+- `PROFILE_MEDIA_TIMEOUT` meldet zusätzlich Brokerstatus, FFmpeg-Fortschritt, Prozessende und Grund der HLS-Nichtbereitschaft.
+- FFmpeg-Startwerte `frame=0`, `total_size=0` gelten nicht mehr als Medienfortschritt.
+- Aufnahmen, Aufbewahrungs- und Kamerakonfiguration bleiben unverändert.
+
 ## 2.20.79 – Adaptive Kamera-Startkapazität und persistente Profilwahl
 
 - Kamera-Verbindungswarteschlange passt die Startkapazität kontrolliert an vorhandene CPU- und Docker-RAM-Reserven an; bei hohem Druck Rückregelung ohne laufende Starts abzubrechen.
