@@ -35,6 +35,7 @@ UPDATE_NOTES_2.20.65.md
 UPDATE_NOTES_2.20.66.md
 UPDATE_NOTES_2.20.67.md
 UPDATE_NOTES_2.20.68.md
+UPDATE_NOTES_2.20.69.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -177,6 +178,7 @@ backend/test-node/demo-mode-regression.test.mjs
 backend/test-node/demo-user-service.test.mjs
 backend/test-node/direct-network-stream-regression.test.mjs
 backend/test-node/direct-network-stream-ui-regression.test.mjs
+backend/test-node/discovery-completion-timeout.test.mjs
 backend/test-node/domain-event-bus.test.mjs
 backend/test-node/email-notification-source-regression.test.mjs
 backend/test-node/ffmpeg-diagnostics.test.mjs
