@@ -227,6 +227,11 @@ export function AddCameraPage() {
     if (manualSearchBusy || scanStartRef.current) return;
     scanStartRef.current = true;
     setScanStartBusy(true);
+    // Each manual search is a fresh result set. In particular, do not keep
+    // a false positive from an older scan by union-merging it into the new one.
+    setDevices([]);
+    setExpandedDevices(new Set());
+    setScannerInfo(null);
     setError(''); setScanWarning('');
     try {
       const job = await api.startDiscoveryJob({
