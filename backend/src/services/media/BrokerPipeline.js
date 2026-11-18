@@ -147,12 +147,31 @@ export function parseFfprobeVideoCodec(output) {
   return match ? match[1].toLowerCase() : null;
 }
 
-export function isBrokerEncoderRetryable(error) {
+export function copyVideoMediaError(error) {
+  const diagnostics = [error?.details?.ffmpeg, error?.details?.reason]
+    .filter((part) => typeof part === 'string').join(' | ');
+  // Only failures that actually implicate bitstream initialization or HLS
+  // packet timestamps may retry an encoder. Network EOF, missing frames and
+  // an empty go2rtc producer must keep the fast next-profile fallback.
+  if (/non-existing (?:PPS|SPS)|decode_slice_header error|missing picture in access unit|unspecified size|invalid NAL unit size/i.test(diagnostics)) {
+    return 'h264-parameter-sets';
+  }
+  if (Number(error?.details?.progressUpdates || 0) > 0
+    && /stream \d+ packet with pts .+ has duration 0|non.monotonous (?:DTS|PTS)|invalid (?:DTS|PTS)/i.test(diagnostics)) {
+    return 'invalid-packet-duration';
+  }
+  return null;
+}
+
+export function isBrokerEncoderRetryable(error, { encoder = null } = {}) {
   const code = String(error?.code || '');
-  // No normalized media frames means the selected camera profile/source is not
-  // delivering usable media. Retrying copy -> VAAPI -> CPU on that same dead
-  // profile only delays the real profile fallback, so move to the next profile.
-  if (code === 'PROFILE_MEDIA_TIMEOUT') return false;
+  if (code === 'PROFILE_MEDIA_TIMEOUT') {
+    // An H.264 copy stream can carry missing SPS/PPS or invalid TS durations
+    // even though the camera itself is online. A fresh H.264 encoder may repair
+    // these *specific* errors by emitting its own headers/keyframes/timestamps.
+    // Do not retry all the 12-second timeouts: that caused cold-start churn.
+    return encoder === 'copy' && Boolean(copyVideoMediaError(error));
+  }
   return code === 'STREAM_NOT_READY' || code === 'FFMPEG_EXITED'
     || /vaapi|renderD128|drm device|hardware encoder/i.test(String(error?.message || ''));
 }

@@ -9,6 +9,7 @@ import {
   normalizedBrokerPolicy,
   brokerEncoderCandidates,
   isBrokerEncoderRetryable,
+  copyVideoMediaError,
   parseFfprobeVideoCodec,
 } from '../src/services/media/BrokerPipeline.js';
 
@@ -97,4 +98,19 @@ test('actual TS codec is parsed, not guessed from the Reolink profile name', () 
   assert.equal(parseFfprobeVideoCodec('codec_name=hevc\n'), 'hevc');
   assert.equal(parseFfprobeVideoCodec('codec_name=mjpeg\n'), 'mjpeg');
   assert.equal(parseFfprobeVideoCodec('invalid codec data'), null);
+});
+
+test('only evidenced copy-mode H264 parameter-set and zero-duration problems enable encoder retries', () => {
+  const brokenHeaders = {code:'PROFILE_MEDIA_TIMEOUT', details: {ffmpeg:'[h264] non-existing PPS 0 referenced', processExited:true, upstreamReady:false}};
+  assert.equal(copyVideoMediaError(brokenHeaders), 'h264-parameter-sets');
+  assert.equal(isBrokerEncoderRetryable(brokenHeaders, {encoder:'copy'}), true);
+  assert.equal(isBrokerEncoderRetryable(brokenHeaders, {encoder:'vaapi'}), false);
+  const zeroDuration = {code:'PROFILE_MEDIA_TIMEOUT',details:{ffmpeg:'Stream 0 packet with pts 468000 has duration 0.', progressUpdates:3}};
+  assert.equal(copyVideoMediaError(zeroDuration), 'invalid-packet-duration');
+  assert.equal(isBrokerEncoderRetryable(zeroDuration,{encoder:'copy'}),true);
+  assert.equal(isBrokerEncoderRetryable({...zeroDuration,details:{...zeroDuration.details,progressUpdates:0}},{encoder:'copy'}),false);
+  for (const ffmpeg of ['End of file', 'Immediate exit requested', '']) {
+    assert.equal(isBrokerEncoderRetryable({code:'PROFILE_MEDIA_TIMEOUT',details:{ffmpeg,processExited:true}},{encoder:'copy'}),false);
+  }
+  assert.equal(isBrokerEncoderRetryable({code:'PROFILE_MEDIA_TIMEOUT',details:{upstreamReady:true,progressUpdates:0}},{encoder:'copy'}),false);
 });

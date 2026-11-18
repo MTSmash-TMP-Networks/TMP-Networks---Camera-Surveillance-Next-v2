@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.80",
+  "version": "2.20.81",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.80",
-  "summary": "Bedingte, begrenzte HLS-Startnachfrist und bessere Fehlerdiagnostik für häufige Medien-Timeouts.",
+  "title": "TMP Camera Surveillance Next 2.20.81",
+  "summary": "Gezielter Encoder-Fallback für belegte H.264-Parameter- und HLS-Zeitstempelfehler sowie korrekte FFmpeg-Exitprotokolle.",
   "createdAt": "2026-11-18T18:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.80.md",
+  "changelogFile": "UPDATE_NOTES_2.20.81.md",
   "changes": [
-    "Allow short conditional grace for actively starting go2rtc producers, with a strict maximum",
-    "Keep offline and stalled cameras on the existing short timeout path",
-    "Record structured HLS-readiness and FFmpeg-progress evidence for every media timeout",
-    "Do not count initial zero FFmpeg progress as media activity"
+    "Allow codec-evidenced copy-to-encoder fallback for PPS/SPS initialization faults",
+    "Allow timestamp-evidenced fallback on HLS packets with zero duration",
+    "Avoid encoder retries on EOF or no-frame stalls",
+    "Preserve FFMPEG_EXIT event code alongside separate numeric exitCode"
   ],
   "preserve": [
     ".env",
@@ -31,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.80.md",
+  "changelog": "UPDATE_NOTES_2.20.81.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.80",
-  "packageId": "tmp-camera-surveillance-next-2.20.80",
+  "name": "TMP Camera Surveillance Next v2.20.81",
+  "packageId": "tmp-camera-surveillance-next-2.20.81",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Bounded HLS warmup for active go2rtc producers and structured diagnostics of first-media failures.",
+  "description": "Evidence-based copy-video fallback for broken PPS and packet durations; preserve accurate FFmpeg exit events.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.80 checks go2rtc producer state once after the initial video timeout and allows a bounded extension only if the producer is active or FFmpeg is making genuine frame progress. It never reports ready without a fresh HLS segment. Timeouts now expose upstreamReady, progressUpdates, processExited and hlsReason for targeted camera diagnosis.",
-  "fileCount": 523
+  "releaseNotes": "2.20.81 retries the next existing encoder only for evidenced H264 parameter-set or packet timestamp faults in the copy path. EOF and empty video streams do not cause extra encoder attempts. FFMPEG_EXIT is preserved as an event code and exitCode is logged separately. All camera and recording settings remain unchanged.",
+  "fileCount": 524
 }

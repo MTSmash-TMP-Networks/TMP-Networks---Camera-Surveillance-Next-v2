@@ -27,7 +27,7 @@ import { cameraStartupProfileMemory } from './CameraStartupProfileMemory.js';
 import { inspectLocalHlsRing } from './LocalHlsHealth.js';
 import { shouldContinueHlsStartup } from './LocalHlsStartupGrace.js';
 import { nextSnapshotNativeRecheckAt, shouldReprobeSnapshotNative } from './SnapshotNativeRecoveryPolicy.js';
-import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, parseFfprobeVideoCodec } from './BrokerPipeline.js';
+import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, copyVideoMediaError, parseFfprobeVideoCodec } from './BrokerPipeline.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -349,7 +349,7 @@ class StreamOrchestrator {
     cameraEventLog.append(session.cameraId, {
       level, component, code, message, details, sessionKey: session.key,
     });
-    const payload = { cameraId: session.cameraId, sessionKey: session.key, code, ...((details && typeof details === 'object') ? details : {}) };
+    const payload = { cameraId: session.cameraId, sessionKey: session.key, ...((details && typeof details === 'object') ? details : {}), code };
     if (level === 'error') logger.error(payload, message);
     else if (level === 'warn') logger.warn(payload, message);
     else if (level === 'debug') logger.debug(payload, message);
@@ -726,7 +726,14 @@ class StreamOrchestrator {
               break;
             } catch (encodeError) {
               await this.kill(session);
-              if (fastBootstrap || encoderIndex === encoders.length - 1 || !isBrokerEncoderRetryable(encodeError)) throw encodeError;
+              if (fastBootstrap || encoderIndex === encoders.length - 1 || !isBrokerEncoderRetryable(encodeError, { encoder })) throw encodeError;
+              if (encodeError?.code === 'PROFILE_MEDIA_TIMEOUT') {
+                this.log(session, 'warn', 'go2rtc', 'BROKER_CODEC_EVIDENCE_FALLBACK',
+                  'Fehlerhafte H.264-Parameter oder HLS-Zeitstempel: Encoder-Fallback wird gezielt versucht', {
+                    profile: profile.name, failedEncoder: encoder,
+                    errorClass: copyVideoMediaError(encodeError), retryEncoder: encoders[encoderIndex + 1],
+                  });
+              }
               failedEncoders.set(encoder, Date.now());
               this.brokerEncoderFailures.set(failureKey, failedEncoders);
               const copyFailure = encoder === 'copy';
@@ -1356,7 +1363,7 @@ class StreamOrchestrator {
     session.ffmpegPid = null;
     if (child.__tmpExpectedExit) return;
     const details = sanitize(session.stderr) || `FFmpeg beendet (${code ?? signal})`;
-    this.log(session, session.state === 'ready' ? 'error' : 'warn', 'ffmpeg', 'FFMPEG_EXIT', 'FFmpeg-Medienprozess wurde unerwartet beendet', { code, signal, ffmpeg: details });
+    this.log(session, session.state === 'ready' ? 'error' : 'warn', 'ffmpeg', 'FFMPEG_EXIT', 'FFmpeg-Medienprozess wurde unerwartet beendet', { exitCode: code, signal, ffmpeg: details });
     // Während eines Startversuchs übernimmt start()/launch() den Fallback. Erst ein
     // bereits laufender Stream darf hier einen automatischen Wiederaufbau auslösen.
     if (session.state !== 'ready') return;
