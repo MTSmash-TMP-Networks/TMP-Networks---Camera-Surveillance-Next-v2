@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildLocalHlsRingArgs, buildSnapshotLocalHlsArgs } from '../src/services/media/FfmpegCommand.js';
+import { effectiveLocalHlsListSize } from '../src/services/media/LocalHlsHealth.js';
 
 function joined(args) { return args.join(' '); }
 
@@ -18,6 +19,13 @@ test('local HLS video path consumes go2rtc HTTP MPEG-TS and publishes atomic seg
   assert.match(value, /-hls_list_size 30/);
   assert.match(value, /temp_file/);
   assert.match(value, /\/data\/live\/cam\/index\.m3u8/);
+});
+
+test('large camera fleets retain at least 60 HLS segments without video transcoding', () => {
+  const args = buildLocalHlsRingArgs({ sourceUri: 'http://go2rtc:1984/api/stream.ts?src=cam_video', outputDir: '/data/live/cam', listSize: effectiveLocalHlsListSize(30, 60) });
+  assert.match(joined(args), /-hls_list_size 60/);
+  assert.match(joined(args), /-c:v copy/);
+  assert.doesNotMatch(joined(args), /libx264/);
 });
 
 test('audio-capable HTTP MPEG-TS path maps optional AAC without changing video copy', () => {
