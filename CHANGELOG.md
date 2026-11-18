@@ -1,3 +1,11 @@
+## 2.20.67 – Voscam ONVIF-Port 888 erkennen
+
+- Kamera-Portkatalog, vollstaendiger IP-Scan und primärer Hostscan erkennen TCP 888 als moeglichen Voscam-ONVIF-Dienst.
+- Die anschliessende ONVIF-SOAP-Pruefung bestaetigt den Dienst anhand echter Antworten; ein beliebiger Webserver oder offener TCP-Port wird nicht ungeprueft zur Kamera erklaert.
+- Kameraeinrichtung und ONVIF-Verbindungsparameter koennen Port 888 und einen vorhandenen XAddr verwenden.
+- Auch auf Installationen mit einer noch alten, aus .env erhaltenen Host-Portliste wird 888 beim Host-Scan ergaenzt, damit Kameras nicht vor der ONVIF-Pruefung aussortiert werden.
+- Keine Aenderung an laufenden Kamera-Publishern, Bewegungserkennung, Aufnahme- oder HLS-Logik; erhaelt v2.20.66 Hintergrund-Bootstrap und v2.20.65 Compose-V2-Updater.
+
 ## 2.20.66 – Zentrale Kameras bereits beim Backendstart vorwaermen
 
 - Zentrale Publisher der aktivierten Kameras werden sofort nach Backendstart aufgebaut, noch vor langwieriger Aufnahme- und Netzwerkspeicher-Wiederherstellung und ohne Frontendbesuch.

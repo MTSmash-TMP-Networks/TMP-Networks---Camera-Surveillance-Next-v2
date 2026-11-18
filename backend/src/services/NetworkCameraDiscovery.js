@@ -423,7 +423,7 @@ async function probeRtsp(host, port, timeoutMs = 1600) {
 export function preferredCameraPort(openPorts = [], onvifPort = null) {
   const available = new Set(openPorts.map(Number).filter(Number.isInteger));
   if (Number.isInteger(Number(onvifPort)) && available.has(Number(onvifPort))) return Number(onvifPort);
-  const priority = [80, 8080, 81, 82, 83, 88, 443, 8443, 8081, 8082, 8088, 8888, 10080, 8899, 2020, 5000];
+  const priority = [80, 8080, 888, 81, 82, 83, 88, 443, 8443, 8081, 8082, 8088, 8888, 10080, 8899, 2020, 5000];
   return priority.find((port) => available.has(port))
     || openPorts.find((port) => CAMERA_WEB_PORTS.includes(Number(port)))
     || openPorts[0]
@@ -574,9 +574,11 @@ function parseNmapUpHosts(stdout) {
 
 function selectedHostDiscoveryPorts() {
   const configured = Array.isArray(config.discoveryHostDiscoveryPorts) ? config.discoveryHostDiscoveryPorts : [];
-  const defaults = [80, 443, 554, 8000, 8080, 8443, 8554, 8899, 10554, 37777, 34567, 7681];
+  const defaults = [80, 443, 554, 8000, 8080, 888, 8443, 8554, 8899, 10554, 37777, 34567, 7681];
+  // Include newly supported ONVIF port 888 even when a previous installation
+  // retains the old DISCOVERY_HOST_DISCOVERY_PORTS value in .env after updating.
   const preferred = configured.length ? configured : defaults;
-  return [...new Set(preferred.map(Number))]
+  return [...new Set([...preferred, 888].map(Number))]
     .filter((port) => Number.isInteger(port) && port > 0 && port <= 65535)
     .slice(0, 16);
 }

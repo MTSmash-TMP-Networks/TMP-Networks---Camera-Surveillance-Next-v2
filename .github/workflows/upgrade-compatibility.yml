@@ -21,6 +21,8 @@ jobs:
           docker run --rm --entrypoint docker tmp-camera-updater-compose-v2-ci compose version
       - name: Validate go2rtc root API fallback
         run: node --test backend/test-node/go2rtc-control-api.test.mjs
+      - name: Validate Voscam ONVIF TCP 888 discovery and setup
+        run: node --test backend/test-node/voscam-onvif-port-888.test.mjs
       - name: Validate updater compatibility regressions
         run: node --test backend/test-node/update-compatibility.test.mjs
       - name: Validate snapshot fallback native stream re-probing

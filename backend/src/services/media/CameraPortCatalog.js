@@ -4,6 +4,7 @@ const PORTS = [
   { port: 82, service: 'http', label: 'Alternativer HTTP-Port', vendors: [] },
   { port: 83, service: 'http', label: 'Alternativer HTTP-Port', vendors: [] },
   { port: 88, service: 'http', label: 'Foscam/OEM Web', vendors: ['Foscam'] },
+  { port: 888, service: 'onvif', label: 'Voscam ONVIF Device Service', vendors: ['Voscam'] },
   { port: 322, service: 'rtsps', label: 'RTSP over TLS', vendors: [] },
   { port: 443, service: 'https', label: 'HTTPS/Web', vendors: [] },
   { port: 554, service: 'rtsp', label: 'RTSP', vendors: [] },
@@ -45,15 +46,15 @@ export const CAMERA_WEB_PORTS = Object.freeze(PORTS.filter((item) => item.servic
 // ONVIF HTTP endpoints can also run on vendor-specific ports (notably Reolink
 // port 8000). Keep 8000 out of general web-port classification: Hikvision uses
 // it for an unrelated SDK, so an open socket alone cannot prove ONVIF.
-export const CAMERA_ONVIF_PROBE_PORTS = Object.freeze([80, 8080, 8000, 8899, 2020, 443, 8443, 7681]);
-export const CAMERA_ONVIF_HTTP_VENDOR_PORTS = Object.freeze([8000]);
+export const CAMERA_ONVIF_PROBE_PORTS = Object.freeze([80, 8080, 8000, 888, 8899, 2020, 443, 8443, 7681]);
+export const CAMERA_ONVIF_HTTP_VENDOR_PORTS = Object.freeze([8000, 888]);
 export const CAMERA_TLS_PORTS = Object.freeze(PORTS.filter((item) => ['https', 'rtsps', 'rtmps'].includes(item.service)).map((item) => item.port));
 export const CAMERA_RTSP_PORTS = Object.freeze(PORTS.filter((item) => item.service === 'rtsp' || item.service === 'rtsps').map((item) => item.port));
 export const CAMERA_VENDOR_PORTS = Object.freeze(PORTS.filter((item) => ['vendor', 'onvif'].includes(item.service)).map((item) => item.port));
 
 // Diese Ports werden auf jedem Ziel geprüft. Seltenere Ports folgen erst, sobald ein Host auf einem Ankerport antwortet.
 export const CAMERA_PRIMARY_SCAN_PORTS = Object.freeze([
-  80, 81, 82, 83, 88, 443, 554, 558, 1935, 2020, 4520, 4524,
+  80, 81, 82, 83, 88, 443, 554, 558, 888, 1935, 2020, 4520, 4524,
   7441, 7681, 8000, 8080, 8081, 8088, 8443, 8554, 8800, 8899,
   9000, 10554, 34567, 37777,
 ]);
