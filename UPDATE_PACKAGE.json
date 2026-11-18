@@ -3,7 +3,7 @@
   "version": "2.20.71",
   "minimumVersion": "2.20.32",
   "title": "TMP Camera Surveillance Next 2.20.71",
-  "summary": "Start 26 cameras fairly in the background with short first attempts, then deferred full media fallback and per-camera timing metrics.",
+  "summary": "Fair 26-camera background startup plus fully verified frontend tests, robust session storage and WHEP timeout.",
   "createdAt": "2026-11-18T16:10:00+01:00",
   "changelogFile": "UPDATE_NOTES_2.20.71.md",
   "changes": [
@@ -11,7 +11,11 @@
     "Defer expensive ONVIF, encoder, alternate-profile and snapshot fallback attempts until each camera got a first chance",
     "Keep four simultaneous starts, per-camera serialization and existing restart/backoff safety",
     "Record queue wait and active startup durations by camera without credentials",
-    "Preserve legacy camera, recording, motion, HLS and fixed go2rtc broker behavior"
+    "Preserve legacy camera, recording, motion, HLS and fixed go2rtc broker behavior",
+    "Fix frontend initial sessionStorage import in non-browser and restricted contexts",
+    "Make WHEP SDP POST and response body bounded by a hard deadline",
+    "Run all legacy native node:test frontend suites separately from Vitest",
+    "Repair localized recording-storage translation and stale tests without disabling any tests"
   ],
   "preserve": [
     ".env",
@@ -38,8 +42,8 @@
   "packageId": "tmp-camera-surveillance-next-2.20.71",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Fair, bounded 26-camera background bootstrap without increasing concurrency, while preserving full recorder/motion fallback.",
+  "description": "Two-stage 26-camera bootstrap, backend stream metrics and frontend regression fixes with independent Vitest/node:test runners.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Direct upgrade from 2.20.32. 26 cameras receive a bounded 20-second first media attempt; failed profiles and snapshot recovery run in a second round after all cameras were admitted. Four start slots retained, with queue and active start time diagnostics. No database, camera settings, recordings, motion, patched go2rtc or .env changes.",
-  "fileCount": 496
+  "releaseNotes": "Direct upgrade from 2.20.32. 26 cameras receive a bounded 20-second first media attempt; failed profiles and snapshot recovery run in a second round after all cameras were admitted. Four start slots retained, with queue and active start time diagnostics. No database, camera settings, recordings, motion, patched go2rtc or .env changes. Frontend fixes: graceful storage-unavailable authentication token handling, hard timeout for WHEP SDP handshake, localization completeness for recording storage, corrected current behavior regression tests, and separate native Node test suites.",
+  "fileCount": 497
 }
