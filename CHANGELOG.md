@@ -1,3 +1,10 @@
+## 2.20.79 – Adaptive Kamera-Startkapazität und persistente Profilwahl
+
+- Kamera-Verbindungswarteschlange passt die Startkapazität kontrolliert an vorhandene CPU- und Docker-RAM-Reserven an; bei hohem Druck Rückregelung ohne laufende Starts abzubrechen.
+- N97-/Vierkern-Systeme können bei Reserven bis zu sechs gleichzeitige Starts erreichen; konfigurierbare Obergrenze bis acht, über konfigurierten Grundwert hinaus nur bei freien Reserven.
+- Zuletzt erfolgreich geprüfte ONVIF-Profile und Übertragungsart werden ohne Passwörter/RTSP-URLs serverseitig gespeichert und bei folgenden Kaltstarts bevorzugt.
+- Fallback bleibt erhalten, wenn gespeicherte Profile entfernt oder nicht erreichbar sind. Bestehende Aufnahmen, Kamera-Konfigurationen und Kioskansichten bleiben erhalten.
+
 ## 2.20.78 – Schnellere Kamera-Kaltstarts und faire Startwarteschlange
 
 - Kamera-Verbindungsplätze priorisieren neue zentrale Vorschauen sowie Bewegungs- und Aufnahmestarts gegenüber der langsamen zweiten Wiederaufbauwelle.
