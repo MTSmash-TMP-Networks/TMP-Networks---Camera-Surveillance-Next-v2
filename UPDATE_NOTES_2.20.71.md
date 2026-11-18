@@ -25,3 +25,11 @@ Bei einer Anlage mit 26 Kameras lief der eigene TMP-go2rtc-Broker ohne Abstuerze
 
 ## Installationshinweis
 Update-Center ueber `main`, idealerweise im Wartungsfenster. Der Neustart kann laufende Aufnahmen und Livebilder kurz unterbrechen. Bei Kameras mit instabiler Verbindung bleiben die vorhandenen Restart-/Backoff-Grenzen aktiv. Eine Garantie fuer problemlose 26 gleichzeitige Kamerastreams erfordert eine reale Messung auf dem Produktionsserver.
+
+
+## Frontend-Reparatur und CI-Qualitaet
+- Browserzugriff auf sessionStorage ist abgesichert: Das Frontend funktioniert auch in isolierten Browser-, SSR- und Testumgebungen, ohne dass ein sofortiger Importfehler die Kameraseite verhindert.
+- WHEP-Signalisierung bekommt eine harte Deadline inklusive SDP-Antwortbody. Ein aushaengender RTSP-/WebRTC-Aufbau blockiert den Browser nicht unbegrenzt.
+- Der Aufnahmespeicher-Reiter hat wieder vollstaendige deutsche und englische Sprachschluessel.
+- Aeltere Tests wurden auf die heute zentral gebuendelten Live-Videoplayer, die lokalisierte Aufnahme-/Update-Oberflaeche und echte FFmpeg-Snapshot-Video-Sessions aktualisiert, ohne sie zu deaktivieren.
+- Vitest und native node:test-Suiten werden in getrennten Prueflaeufen ausgefuehrt. Beide muessen bestehen, bevor ein Release als vollstaendig geprueft gilt.
