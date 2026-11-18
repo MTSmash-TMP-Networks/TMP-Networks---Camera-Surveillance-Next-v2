@@ -91,7 +91,7 @@ export const recordingPolicyRepository = {
     return db.prepare('SELECT * FROM recording_plans WHERE camera_id=? ORDER BY priority ASC, created_at ASC').all(cameraId).map(publicPlan);
   },
 
-  replacePlans(cameraId, plans = []) {
+  replacePlans(cameraId, plans = [], { externalTransaction = false } = {}) {
     const now = new Date().toISOString();
     const existing = new Map(db.prepare('SELECT id,created_at FROM recording_plans WHERE camera_id=?').all(cameraId).map((row) => [row.id, row]));
     const normalized = plans.map((plan, index) => normalizeRecordingPlan({ ...plan, priority: plan.priority ?? (index + 1) * 100 }));
@@ -103,7 +103,7 @@ export const recordingPolicyRepository = {
     ) VALUES(@id,@cameraId,@name,@mode,@enabled,@timezone,@weekdaysJson,@startTime,@endTime,@validFrom,@validUntil,
       @includeDatesJson,@excludeDatesJson,@holidayPolicy,@holidayDatesJson,@eventTypesJson,
       @prebufferSeconds,@postbufferSeconds,@priority,@quality,@profileToken,@createdAt,@updatedAt)`);
-    db.exec('BEGIN');
+    if (!externalTransaction) db.exec('BEGIN');
     try {
       remove.run(cameraId);
       normalized.forEach((plan) => {
@@ -119,12 +119,36 @@ export const recordingPolicyRepository = {
           createdAt: existing.get(id)?.created_at || now, updatedAt: now,
         });
       });
+      if (!externalTransaction) db.exec('COMMIT');
+    } catch (error) {
+      if (!externalTransaction) db.exec('ROLLBACK');
+      throw error;
+    }
+    return this.listPlans(cameraId);
+  },
+
+  // Apply the edited template to every configured camera as ONE SQLite
+  // transaction. Existing camera-specific plan IDs and ONVIF profile tokens
+  // must never be copied into a different camera.
+  applyPlanningToAll({ plans = [], retention = null, applyRetention = false } = {}) {
+    const cameraIds = db.prepare('SELECT id FROM cameras ORDER BY id').all().map((row) => row.id);
+    const template = plans.map(({ id: _id, cameraId: _cameraId, profileToken: _profileToken, ...plan }) => ({
+      ...plan, profileToken: null,
+    }));
+    if (!cameraIds.length) return { updated: 0, plansPerCamera: template.length, appliedRetention: false };
+
+    db.exec('BEGIN IMMEDIATE');
+    try {
+      for (const cameraId of cameraIds) {
+        this.replacePlans(cameraId, template, { externalTransaction: true });
+        if (applyRetention) this.saveRetention(cameraId, retention);
+      }
       db.exec('COMMIT');
     } catch (error) {
       db.exec('ROLLBACK');
       throw error;
     }
-    return this.listPlans(cameraId);
+    return { updated: cameraIds.length, plansPerCamera: template.length, appliedRetention: Boolean(applyRetention) };
   },
 
   getRetention(cameraId) {
