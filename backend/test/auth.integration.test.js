@@ -37,6 +37,57 @@ describe('Authentifizierte API', () => {
     await request(app).post('/api/ptz/missing/stop').set('Authorization', `Bearer ${viewer.body.token}`).send({}).expect(403);
   });
 
+  it('creates a revocable HttpOnly device grant only after explicit desktop password login', async () => {
+    const origin = 'http://camera.test';
+    const headers = (r) => r.set('Host', 'camera.test').set('Origin', origin);
+    const ordinary = await request(app).post('/api/auth/login')
+      .send({ username: 'admin', password: 'integration-password' }).expect(200);
+    expect(ordinary.headers['set-cookie'] || []).toHaveLength(0);
+
+    await headers(request(app).post('/api/auth/desktop/enroll'))
+      .send({ username: 'admin', password: 'integration-password', rememberDevice: false }).expect(400);
+    await request(app).post('/api/auth/desktop/enroll')
+      .set('Host', 'camera.test').set('Origin', 'http://evil.test')
+      .send({ username: 'admin', password: 'integration-password', rememberDevice: true }).expect(403);
+
+    const enroll = await headers(request(app).post('/api/auth/desktop/enroll'))
+      .send({ username: 'admin', password: 'integration-password', rememberDevice: true, label: 'Linux Kiosk Test' }).expect(200);
+    expect(enroll.body.token).toBeTruthy();
+    const cookie = enroll.headers['set-cookie']?.find((x) => x.startsWith('tmp_camera_desktop='));
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('SameSite=Strict');
+    expect(cookie).toContain('Path=/api/auth/desktop');
+    const grant = cookie.split(';')[0];
+    const renew = await headers(request(app).post('/api/auth/desktop/renew'))
+      .set('Cookie', grant).send({}).expect(200);
+    expect(renew.body.token).toBeTruthy();
+    expect(renew.body.token).not.toBe(enroll.body.token);
+    expect(renew.headers['set-cookie']?.join('')).toContain('Max-Age=');
+    const { db } = await import('../src/db/database.js');
+    const records = db.prepare("SELECT token_hash FROM desktop_sessions WHERE label='Linux Kiosk Test'").all();
+    expect(records).toHaveLength(1);
+    expect(records[0].token_hash).not.toBe(grant.split('=')[1]);
+    await request(app).get('/api/cameras').set('Cookie', grant).expect(401);
+    await headers(request(app).post('/api/auth/desktop/revoke')).set('Cookie', grant).send({}).expect(200);
+    await headers(request(app).post('/api/auth/desktop/renew')).set('Cookie', grant).send({}).expect(401);
+  });
+
+  it('revokes old desktop grants when the account password changes', async () => {
+    const prefix = 'device-revocation-' + Math.random().toString(36).slice(2, 10);
+    await request(app).post('/api/auth/users').set('Authorization', `Bearer ${adminToken}`)
+      .send({ username: prefix, password: 'device-password-123', role: 'viewer' }).expect(201);
+    const enroll = await request(app).post('/api/auth/desktop/enroll')
+      .set('Host', 'camera.test').set('Origin', 'http://camera.test')
+      .send({ username: prefix, password: 'device-password-123', rememberDevice: true }).expect(200);
+    const grant = enroll.headers['set-cookie'][0].split(';')[0];
+    await request(app).post('/api/auth/change-password')
+      .set('Authorization', `Bearer ${enroll.body.token}`)
+      .send({ currentPassword: 'device-password-123', newPassword: 'device-password-456' }).expect(200);
+    await request(app).post('/api/auth/desktop/renew')
+      .set('Host', 'camera.test').set('Origin', 'http://camera.test')
+      .set('Cookie', grant).send({}).expect(401);
+  });
+
   it('weist fremde ONVIF-Profil-Tokens serverseitig ab', async () => {
     const { cameraRepository } = await import('../src/services/cameraRepository.js');
     const camera = cameraRepository.create({ name: 'Testkamera', ip: '192.0.2.20', port: 80, username: 'u', password: 'p', capabilities: {} });
