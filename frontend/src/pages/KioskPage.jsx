@@ -305,6 +305,7 @@ export function KioskPage() {
   const [layoutSaving, setLayoutSaving] = useState(false);
   const [layoutError, setLayoutError] = useState('');
   const sharedRevision = useRef(0);
+  const sharedReady = useRef(false);
   const layoutMutation = useRef(false);
   const initialLocal = useRef({ layouts: loadKioskLayouts(), activeLayoutId: loadActiveKioskLayoutId() });
 
@@ -314,6 +315,7 @@ export function KioskPage() {
     setActiveLayoutId(remote.activeLayoutId);
     saveKioskLayouts(remote.layouts);
     saveActiveKioskLayoutId(remote.activeLayoutId);
+    sharedReady.current = true;
     setLayoutReady(true);
     setLayoutError('');
   }
@@ -342,13 +344,13 @@ export function KioskPage() {
             remote = await api.kioskLayouts();
           }
         }
-        if (!cancelled && !layoutMutation.current && (!layoutReady || remote.revision !== sharedRevision.current)) {
+        if (!cancelled && !layoutMutation.current && (!sharedReady.current || remote.revision !== sharedRevision.current)) {
           applySharedLayout(remote);
         }
       } catch (error) {
         if (!cancelled) {
           setLayoutError(error.message || 'Kiosk-Einstellungen konnten nicht geladen werden');
-          setLayoutReady(false);
+          if (!sharedReady.current) setLayoutReady(false);
         }
       } finally { fetching = false; }
     }
