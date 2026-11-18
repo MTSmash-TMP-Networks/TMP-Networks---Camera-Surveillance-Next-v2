@@ -45,6 +45,7 @@ authRouter.post('/desktop/enroll', asyncHandler(async (req, res) => {
 authRouter.post('/desktop/renew', asyncHandler(async (req, res) => {
   requireDesktopSameOrigin(req);
   const grant = desktopDeviceSessionService.renew(parseDesktopCookie(req));
+  setDesktopCookie(req, res, grant.token, grant.maxAgeSeconds);
   const session = authService.issueAccessToken(grant.user);
   // Keep renewal limited to same-origin explicit POST; cookie never readable
   // by frontend scripts, and is not accepted as a normal API bearer token.
