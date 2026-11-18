@@ -163,7 +163,7 @@ class DiscoveryJobService {
         ...job.input,
         onDevice: (device) => {
           // Partial results stay readable while the remaining hosts are checked.
-          if ((!device.verified && !device.likelyCamera && !job.input.includeUnverified) || cameraRepository.findDiscoveryDuplicate(device)) return;
+          if (!(device.verified || device.likelyCamera || (job.input.includeUnverified && device.cameraCandidate && Number(device.confidence || 0) >= 45)) || cameraRepository.findDiscoveryDuplicate(device)) return;
           const index = job.items.findIndex((item) => item.ip === device.ip);
           if (index >= 0) job.items[index] = device;
           else job.items.push(device);
