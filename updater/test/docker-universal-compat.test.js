@@ -12,6 +12,8 @@ test('Updater vermeidet docker:27-cli und nutzt kompatible Docker-Werkzeuge', ()
   assert.doesNotMatch(dockerfile, /FROM docker:/);
   assert.match(dockerfile, /FROM node:24\.18\.0-bookworm-slim/);
   assert.match(dockerfile, /docker\.io docker-compose/);
+  assert.match(dockerfile, /COPY --from=docker\/compose-bin:v2\.40\.3 \/docker-compose \/usr\/local\/lib\/docker\/cli-plugins\/docker-compose/);
+  assert.match(dockerfile, /RUN docker compose version/);
 });
 
 test('Start erzwingt keine Registry-Pulls und startet ohne optionalen Updater', () => {
