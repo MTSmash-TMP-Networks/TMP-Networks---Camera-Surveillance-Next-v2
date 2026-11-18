@@ -128,8 +128,9 @@ export function AddCameraPage() {
     if (channel === 'startup') setStartupScanJob(job);
     else setManualScanJob(job);
 
+    // Verified devices appear before all slow network checks have finished.
+    if ((job.items || []).length) setDevices((current) => mergeDiscoveredDevices(current, job.items));
     if (job.status === 'completed') {
-      setDevices((current) => mergeDiscoveredDevices(current, job.items || []));
       if (channel === 'manual') setScannerInfo(job.diagnostics || null);
       if (channel === 'manual') {
         setScanWarning('');

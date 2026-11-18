@@ -26,6 +26,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build race-fixed go2rtc with Go -race stress tests
         run: docker build --progress=plain -t tmp-hardened-go2rtc:ci mediamtx
+      - name: Build with legacy Docker builder (Docker Engine 20.10 compatibility)
+        run: DOCKER_BUILDKIT=0 docker build -t tmp-hardened-go2rtc:classic mediamtx
       - name: Check image preserves go2rtc command and the original FFmpeg runtime
         run: |
           docker image inspect tmp-hardened-go2rtc:ci --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}'

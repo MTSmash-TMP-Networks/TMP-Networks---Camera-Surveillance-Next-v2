@@ -1,10 +1,8 @@
-# syntax=docker/dockerfile:1.4
+# No BuildKit-only syntax: Docker Engine 20.10 classic builder is supported.
 # TMP hardened broker: pinned upstream go2rtc v1.9.14 + isolated Go race fixes.
 # Reuse the original go2rtc runtime image to preserve ffmpeg, VA-API drivers,
 # the /config volume, tini init and CMD ["go2rtc","-config",...].
-FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS build
-ARG TARGETOS=linux
-ARG TARGETARCH
+FROM golang:1.25-alpine AS build
 RUN apk add --no-cache git ca-certificates gcc musl-dev
 WORKDIR /src
 # Exact upstream revision for v1.9.14; no moving tags or master builds.
@@ -24,8 +22,11 @@ RUN go mod download
 RUN sed -i -e 's/stream1 := New(/stream1, _ := New(/g' \
            -e 's/stream2 := GetOrPatch(/stream2, _ := GetOrPatch(/g' \
            -e 's/stream2 := Patch(/stream2, _ := Patch(/g' internal/streams/stream_test.go
-RUN CGO_ENABLED=1 GOOS=linux GOARCH=$(go env GOHOSTARCH) go test -race -count=1 -run '^TestTMP' ./internal/streams ./internal/api
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/go2rtc .
+RUN CGO_ENABLED=1 go test -race -count=1 -run '^TestTMP' ./internal/streams ./internal/api
+# Build for the native architecture selected by Docker for BOTH stages.
+# Automatic BuildKit TARGETARCH is blank with the classic daemon builder;
+# never override Go's GOARCH with that empty variable.
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/go2rtc .
 
 # Preserve the existing encoder stack and working go2rtc.yaml unchanged.
 FROM alexxit/go2rtc:1.9.14

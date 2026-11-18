@@ -108,6 +108,7 @@ export const config = Object.freeze({
   discoveryScanConcurrency: integer('DISCOVERY_SCAN_CONCURRENCY', 64, { min: 4, max: 512 }),
   discoveryPerHostConcurrency: integer('DISCOVERY_PER_HOST_CONCURRENCY', 4, { min: 1, max: 16 }),
   discoveryFingerprintConcurrency: integer('DISCOVERY_FINGERPRINT_CONCURRENCY', 8, { min: 1, max: 32 }),
+  discoveryFingerprintMaxMs: integer('DISCOVERY_FINGERPRINT_MAX_MS', 12000, { min: 2500, max: 60000 }),
   discoveryPortTimeoutMs: integer('DISCOVERY_PORT_TIMEOUT_MS', 600, { min: 150, max: 5000 }),
   discoveryAutoTimeoutMs: integer('DISCOVERY_AUTO_TIMEOUT_MS', 6500, { min: 1500, max: 30_000 }),
   discoveryAutoHostCollapseThreshold: integer('DISCOVERY_AUTO_HOST_COLLAPSE_THRESHOLD', 8, { min: 0, max: 1024 }),

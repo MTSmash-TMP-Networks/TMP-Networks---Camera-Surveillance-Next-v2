@@ -39,7 +39,7 @@ function publicJob(job) {
     startedAt: job.startedAt,
     completedAt: job.completedAt || null,
     progress: job.progress || null,
-    items: job.status === 'completed' ? (job.items || []) : [],
+    items: job.items || [],
     diagnostics: job.diagnostics || null,
     error: job.error || null,
   };
@@ -161,6 +161,13 @@ class DiscoveryJobService {
     try {
       const result = await NetworkCameraDiscovery.discoverDetailed({
         ...job.input,
+        onDevice: (device) => {
+          // Partial results stay readable while the remaining hosts are checked.
+          if (!(device.verified || device.likelyCamera || (job.input.includeUnverified && device.cameraCandidate && Number(device.confidence || 0) >= 45)) || cameraRepository.findDiscoveryDuplicate(device)) return;
+          const index = job.items.findIndex((item) => item.ip === device.ip);
+          if (index >= 0) job.items[index] = device;
+          else job.items.push(device);
+        },
         onProgress: (progress) => {
           job.progress = { ...job.progress, ...progress, updatedAt: new Date().toISOString() };
         },

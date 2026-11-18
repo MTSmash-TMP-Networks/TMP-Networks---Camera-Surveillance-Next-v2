@@ -23,6 +23,10 @@ jobs:
         run: node --test backend/test-node/go2rtc-control-api.test.mjs
       - name: Validate Voscam ONVIF TCP 888 discovery and setup
         run: node --test backend/test-node/voscam-onvif-port-888.test.mjs
+      - name: Install backend dependencies for full discovery probe test
+        run: npm ci --prefix backend --no-audit --no-fund
+      - name: Validate camera discovery deadlines and progressive results
+        run: node --test backend/test-node/discovery-completion-timeout.test.mjs
       - name: Validate updater compatibility regressions
         run: node --test backend/test-node/update-compatibility.test.mjs
       - name: Validate snapshot fallback native stream re-probing
@@ -54,7 +58,6 @@ jobs:
         run: node --test frontend/test-node/desktop-client-distribution.test.mjs
       - name: Install package dependencies and run actual unit tests and frontend build
         run: |
-          npm ci --prefix backend --no-audit --no-fund
           npm ci --prefix frontend --no-audit --no-fund
           npm run test --prefix backend
           npm run test:critical --prefix backend
