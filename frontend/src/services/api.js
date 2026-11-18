@@ -1,12 +1,25 @@
 import { translate } from '../i18n/messages.js';
 
 const API = '/api';
-let accessToken = sessionStorage.getItem('tmp_camera_token') || '';
+
+// Storage is not available during SSR, unit tests or when a browser blocks
+// storage access. Keep the authenticated request flow operational in-memory.
+function tokenStorage() {
+  try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; }
+  catch { return null; }
+}
+let accessToken = (() => {
+  try { return tokenStorage()?.getItem('tmp_camera_token') || ''; }
+  catch { return ''; }
+})();
 
 export function setAccessToken(token) {
   accessToken = token || '';
-  if (token) sessionStorage.setItem('tmp_camera_token', token);
-  else sessionStorage.removeItem('tmp_camera_token');
+  try {
+    const storage = tokenStorage();
+    if (token) storage?.setItem('tmp_camera_token', token);
+    else storage?.removeItem('tmp_camera_token');
+  } catch { /* Storage disabled: keep session token in memory. */ }
 }
 
 function localizedErrorMessage(payload, fallback) {
