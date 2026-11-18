@@ -782,3 +782,23 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[r
 .kiosk-layout-slot-clear svg{width:15px;height:15px}
 @media(max-width:1100px){.kiosk-layout-editor-workspace{grid-template-columns:235px minmax(0,1fr)}.kiosk-camera-palette-item>.kiosk-camera-thumb{width:80px;flex-basis:80px}.kiosk-layout-dialog-visual .kiosk-layout-template-grid{grid-template-columns:repeat(2,minmax(135px,1fr))}}
 @media(max-width:760px){.kiosk-layout-dialog-visual .kiosk-layout-dialog-body{overflow:auto}.kiosk-layout-editor-workspace{display:flex;flex-direction:column;overflow:visible}.kiosk-camera-palette{min-height:235px;max-height:290px;border-right:0;border-bottom:1px solid #1b445c}.kiosk-camera-palette-list{flex-direction:row;overflow-x:auto;overflow-y:hidden;min-height:90px}.kiosk-camera-palette-item{flex:0 0 160px;flex-direction:column;align-items:stretch}.kiosk-camera-palette-item>.kiosk-camera-thumb{width:100%;flex:0 0 auto}.kiosk-layout-dialog-visual .kiosk-layout-editor-main{overflow:visible}.kiosk-layout-dialog-visual .kiosk-layout-saved-list{max-height:none}.kiosk-layout-saved-scroll>button{flex-basis:145px}.kiosk-layout-assignment-visual>.kiosk-layout-drop-slot{grid-column:auto!important;grid-row:auto!important;min-height:170px}.kiosk-layout-assignment-visual{grid-template-columns:1fr!important;grid-template-rows:none!important;aspect-ratio:auto}.kiosk-layout-slot-preview{min-height:112px}}
+
+/* Linux desktop sign-in: compact, balanced and touch/keyboard accessible. */
+.login-card-header{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.desktop-login-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #256780;border-radius:100px;padding:7px 11px;font-size:11px;font-weight:750;letter-spacing:.03em;color:#94e7ef;background:#0b3143}
+.desktop-login-badge svg{width:15px;height:15px}
+.login-page-desktop{display:flex;align-items:center;justify-content:center;min-height:calc(100dvh - var(--app-footer-height));padding:clamp(16px,3vw,40px);background:radial-gradient(circle at 50% 18%,#0b3448 0,transparent 60%),#061421}
+.login-page-desktop .login-visual{display:none}
+.login-page-desktop .login-card{width:min(460px,100%);max-width:100%;padding:clamp(22px,4vw,36px);border-radius:20px;background:linear-gradient(145deg,#0b2535,#081b29);box-shadow:0 24px 72px #0007}
+.login-page-desktop .login-card h2{font-size:clamp(25px,3vw,31px);line-height:1.2;margin:20px 0 6px}
+.login-page-desktop .login-card>p{font-size:13px;line-height:1.5;margin-bottom:24px}
+.login-page-desktop .login-card label:not(.desktop-remember-device){display:grid;gap:7px;margin-bottom:16px;font-size:12px;color:#c5d8e5}
+.login-page-desktop .login-card label:not(.desktop-remember-device) input{min-height:44px}
+.login-page-desktop .login-card .primary-button{min-height:46px;font-size:14px;margin-top:18px}
+.desktop-remember-device{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:12px!important;margin:20px 0 14px!important;padding:13px 14px;border:1px solid #24506a;border-radius:12px;background:#0b2b3c;cursor:pointer}
+.desktop-remember-device>input[type=checkbox]{appearance:auto;accent-color:#1fd8ed;display:block;flex:0 0 19px;width:19px!important;height:19px!important;min-height:19px;margin:2px 0 0;padding:0!important;border:0;box-shadow:none}
+.desktop-remember-device>span{display:grid;gap:4px;min-width:0;font-size:12px;line-height:1.45;font-weight:500;color:#b8d4df}
+.desktop-remember-device strong{font-size:13px;color:#e8f7fc;font-weight:750}
+.desktop-remember-device small{font-size:11px;color:#9bbac9;line-height:1.5}
+.login-page-desktop .form-error{font-size:12px;line-height:1.5;margin:12px 0;padding:11px 13px;overflow-wrap:anywhere}
+@media(max-height:620px){.login-page-desktop{align-items:flex-start}.login-page-desktop .login-card{margin:0 auto}}
