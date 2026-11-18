@@ -39,7 +39,9 @@ test('the visible repair state is delayed and each HLS player has one watchdog',
   assert.match(pool,/if \(entry\.hlsRecoveryTimer\) return; \/\/ one pending repair per player/);
   assert.match(pool,/HLS_RECOVERY_NOTICE_GRACE_MS/);
   assert.match(pool,/this\.finishHlsRecovery\(entry, 'playback-continues'/);
-  assert.match(pool,/confirmedFrameStall \? 15000 : HLS_RECOVERY_ESCALATION_MS/);
+  assert.match(pool,/confirmedFrameStall \? Math\.max\(30000, STALL_MS\) : HLS_RECOVERY_ESCALATION_MS/);
   assert.match(player,/SOFT_STALL_RETRY_COOLDOWN_MS = 12000/);
-  assert.match(player,/RECOVERY_WATCHDOG_MS = 25000/);
+  assert.match(player,/RECOVERY_WATCHDOG_MS = 45000/);
+  assert.match(player,/maxBufferLength: 40/);
+  assert.match(player,/bufferedAhead\(video\) >= 0\.75 && video\.readyState >= 2/);
 });
