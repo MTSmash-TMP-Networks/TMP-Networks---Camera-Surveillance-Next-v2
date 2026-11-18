@@ -41,5 +41,5 @@
   "description": "Live HLS sequence freshness and bounded snapshot fallback frames",
   "minVersion": "2.20.32",
   "releaseNotes": "Fix cached HLS fragments endlessly showing as live images. Check segment sequence every 2.5s, reconnect only the affected active browser player after 30s stale and at most once per 45s, and bound stale snapshot JPEG repetition to 15s. No database/.env changes. Maintains 2.20.71 startup speed and fixed go2rtc broker.",
-  "fileCount": 499
+  "fileCount": 500
 }
