@@ -494,4 +494,4 @@ b59c0702aa19bc59225480d8b0bdcc026bfcfdd42b6aa4c8fe23a47f7a39e96b  updater/test/c
 a264750ec72cec20a4bb413f78969a0018f83297f0ee87903417309870567059  updater/test/container-status.test.js
 b02e9cfbedd75287ea8251498f15b8512e3817e304500c7cb0136e9477b92be4  updater/test/docker-cache-cleanup.test.js
 a951b43273b9e92fa990f0a17a3baed0b749d531de16f39b118de0c75bd9ce82  updater/test/docker-universal-compat.test.js
-6f490799b790d26bd5a158277f57766fb6ec5edc496b203c8bb78a631f194889  updater/test/updater-recovery.test.js
+5dd403729e935128e0505e2486b739855f73ae162175d21294b23e97ee9994ed  updater/test/updater-recovery.test.js
