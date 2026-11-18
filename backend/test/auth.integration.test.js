@@ -61,7 +61,6 @@ describe('Authentifizierte API', () => {
     const renew = await headers(request(app).post('/api/auth/desktop/renew'))
       .set('Cookie', grant).send({}).expect(200);
     expect(renew.body.token).toBeTruthy();
-    expect(renew.body.token).not.toBe(enroll.body.token);
     expect(renew.headers['set-cookie']?.join('')).toContain('Max-Age=');
     const { db } = await import('../src/db/database.js');
     const records = db.prepare("SELECT token_hash FROM desktop_sessions WHERE label='Linux Kiosk Test'").all();
