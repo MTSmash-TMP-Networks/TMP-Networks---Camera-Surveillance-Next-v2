@@ -87,7 +87,11 @@ export function inferCameraPortSignature(openPorts = []) {
   if (ports.has(7681) && ports.has(8000) && rtsp && web) return { manufacturer: 'Hikvision', confidence: 94, reason: 'Hikvision WebSocket/SDK zusammen mit Web und RTSP', strong: true };
   if (ports.has(1935) && rtsp && web) return { manufacturer: null, confidence: 88, reason: 'Video-Appliance mit Web, RTSP und RTMP', strong: true };
   if (ports.has(37777) && (rtsp || web)) return { manufacturer: 'Dahua', confidence: 90, reason: 'Dahua TCP-Port zusammen mit Web/RTSP', strong: true };
-  if (ports.has(9000) && (rtsp || web || ports.has(1935))) return { manufacturer: 'Reolink', confidence: 88, reason: 'Reolink Media-Port zusammen mit Web/RTSP/RTMP', strong: true };
+  // TCP 9000 also belongs to many non-camera network services. A generic
+  // HTTPS admin page (e.g. 8443) plus 9000 is NOT proof of Reolink.
+  // Require a second independent video service such as RTSP or RTMP; real
+  // Reolink cameras with verified ONVIF/API evidence are handled separately.
+  if (ports.has(9000) && (rtsp || ports.has(1935))) return { manufacturer: 'Reolink', confidence: 88, reason: 'Reolink Media-Port zusammen mit RTSP/RTMP', strong: true };
   if (ports.has(2020) && (rtsp || web || ports.has(8800))) return { manufacturer: 'TP-Link', confidence: 87, reason: 'VIGI/Tapo ONVIF-Port zusammen mit Kamera-Diensten', strong: true };
   if (ports.has(8800) && (rtsp || web)) return { manufacturer: 'TP-Link', confidence: 84, reason: 'VIGI Video-Service zusammen mit Web/RTSP', strong: true };
   if (ports.has(8000) && rtsp && web) return { manufacturer: null, confidence: 86, reason: 'Typische Kamera-SDK-, Web- und RTSP-Portkombination', strong: true };
