@@ -1,3 +1,11 @@
+## 2.20.71 – Fairer Hintergrund-Kaltstart fuer 26 Kameras
+
+- Beim Backendstart bekommt jede aktivierte Kamera zuerst einen kurzen bevorzugten Video-/ONVIF-Streamversuch (maximal 20 Sekunden aktives HLS-Warten statt bis zu 60 Sekunden je Quelle). Vier parallele Kamerastartplaetze bleiben erhalten.
+- Fehlschlaege in der ersten Runde blockieren funktionierende Kameras nicht laenger durch alle Encoder-/Profil- und Snapshot-Fallbacks. Die vollstaendigen bestehenden Fallbacks werden nach der ersten Runde ueber den sicheren Restart- und Backoff-Mechanismus ausgefuehrt.
+- Kameras ohne gespeicherte Profile verhindern nicht mehr die erste Startrunde mit langsamer ONVIF-Neuerkennung; deren normaler ONVIF-Scan folgt in der Wiederherstellungsrunde.
+- Backend protokolliert `CAMERA_START_TIMING` je Start mit Queue-Wartezeit, Slot-Belegungszeit und Startstatus, ohne Zugangsdaten auszugeben.
+- Nur Kaltstart-Permanent-Preview betroffen: manuelle Mainstreams, Aufnahmen, Motion, HLS und normale Wiederherstellungen behalten ihre bisherigen Medien-/Fallback-Zeitgrenzen. Keine Anhebung der maximalen Startparallelitaet, keine Aenderung am gepatchten go2rtc-Broker.
+
 ## 2.20.70 – Falsch erkannte Reolink-Kameras ausblenden
 
 - TCP 9000 + generischer HTTPS-Port (z.B. 8443) ist kein Reolink-/Kameranachweis mehr. Die automatische Suche verlangt fuer diese Portsignatur mindestens RTSP oder RTMP; echte ONVIF-/API-Nachweise bleiben gueltig.
