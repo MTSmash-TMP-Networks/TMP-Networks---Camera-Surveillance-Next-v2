@@ -147,7 +147,10 @@ services:
       - /tmp:size=256m,mode=1777
 
   mediamtx:
-    image: alexxit/go2rtc:1.9.14
+    image: tmp-camera-surveillance-next-mediamtx:1.9.14-tmp-racefix1
+    build:
+      context: ./mediamtx
+      dockerfile: Dockerfile
     # Bound go2rtc + its spawned FFmpeg transcoders inside one Docker cgroup.
     # This prevents a broker/decoder memory surge from exhausting the VM.
     mem_limit: ${GO2RTC_MEMORY_LIMIT:-1536m}
