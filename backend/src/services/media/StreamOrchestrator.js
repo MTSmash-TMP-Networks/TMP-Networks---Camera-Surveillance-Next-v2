@@ -593,7 +593,8 @@ class StreamOrchestrator {
     let profiles = cameraRepository.profiles(camera.id);
     const hadStoredProfiles = profiles.length > 0;
     this.phase(session, 'profile_loading', hadStoredProfiles ? `${profiles.length} gespeicherte ONVIF-Profile und ${mediaSources.length} alternative Quellen werden geprüft` : 'ONVIF-Profile und alternative Medienquellen werden geladen', { storedProfiles: profiles.length, alternativeSources: mediaSources.length, sourcePolicy: session.sourcePolicy });
-    if (!profiles.length && !directStream) {
+    // Defer slow ONVIF profile discovery until every camera had a first turn.
+    if (!profiles.length && !directStream && !fastBootstrap) {
       try {
         profiles = await onvif.profiles();
         cameraRepository.replaceProfiles(camera.id, profiles);
@@ -610,7 +611,7 @@ class StreamOrchestrator {
     }
     const failures = [];
     if (directStream) this.log(session, 'info', 'stream', 'DIRECT_STREAM_SOURCE', 'Direkter Netzwerkstream wird ohne ONVIF-Profilauflösung gestartet', { alternativeSources: mediaSources.length });
-    const passes = hadStoredProfiles && !directStream ? 2 : 1;
+    const passes = fastBootstrap ? 1 : (hadStoredProfiles && !directStream ? 2 : 1);
 
     for (let pass = 0; pass < passes; pass += 1) {
       this.assertStartCurrent(session, startEpoch);
@@ -635,7 +636,7 @@ class StreamOrchestrator {
       const batches = session.permanent && pass === 0 && !directStream && profiles.length > 1
         ? [{ profileOffset: 0, profileLimit: 1, includeManual: true }, { profileOffset: 1, includeManual: false }]
         : [{}];
-      for (const batch of batches) {
+      for (const batch of (fastBootstrap ? batches.slice(0, 1) : batches)) {
         const attempts = await this.orderedAttempts(onvif, profiles, session, viewportWidth, failures, mediaSources, batch);
         session.attemptCount = attempts.length;
       this.log(session, 'info', 'stream', 'ATTEMPTS_PREPARED', `${attempts.length} Streamvarianten werden systematisch geprüft`, {
@@ -801,9 +802,29 @@ class StreamOrchestrator {
             ffmpeg: session.stderrLines.slice(-30),
           });
           await this.kill(session);
+          if (fastBootstrap) {
+            // A failed first attempt must not occupy one of four slots for
+            // many alternate profiles, software encoders and snapshots.
+            session.bootstrapDeferredFallback = true;
+            this.log(session, 'info', 'stream', 'BOOTSTRAP_SLOW_FALLBACK_DEFERRED',
+              'Langsame Profil- und Encoder-Fallbacks folgen nach der ersten Kamerarunde', {
+                attemptedProfile: profile.name,
+                previousErrorCode: error?.code || null,
+              });
+            throw new AppError(503, 'BOOTSTRAP_FALLBACK_DEFERRED',
+              'Keine ersten Medienframes; voller Fallback folgt nach der ersten Kamerarunde');
+          }
         }
       }
       }
+    }
+    if (fastBootstrap) {
+      // No source was available from cached profiles or direct media URLs.
+      // Normal ONVIF refresh and snapshot emergency video remain available
+      // in the deferred recovery wave; never start them in cold-start wave 1.
+      session.bootstrapDeferredFallback = true;
+      throw new AppError(503, 'BOOTSTRAP_FALLBACK_DEFERRED',
+        'Keine sofort nutzbare Quelle; volle Fallbacks folgen nach der ersten Kamerarunde');
     }
     // Snapshot-H.264 is an emergency source for every consumer, including
     // permanent previews, recording, motion and prebuffer. Resource control is
@@ -2227,7 +2248,11 @@ class StreamOrchestrator {
         this.deferredPermanentRestartKeys.clear();
         for (const key of deferredKeys) {
           const session = this.sessions.get(key);
-          if (session?.permanent && session.state === 'failed' && !session.restartTimer) this.scheduleRestart(session);
+          if (session?.permanent && session.state === 'failed' && !session.restartTimer) {
+            const deferred = Boolean(session.bootstrapDeferredFallback);
+            session.bootstrapDeferredFallback = false;
+            this.scheduleRestart(session, deferred ? 1500 : null);
+          }
         }
       }
       logger.info({ started, quality: permanentQuality(), permanentIngest: true, ready: cameras.filter((camera) => this.hasReadyPermanent(camera.id)).length }, 'Kamera-Bootstrap wurde abgeschlossen');
