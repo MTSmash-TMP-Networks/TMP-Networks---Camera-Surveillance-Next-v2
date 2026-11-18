@@ -48,6 +48,8 @@ test('Voscam setup honors ONVIF 888 without changing the discovered XAddr or try
   assert.equal(options.port, 888);
   assert.equal(options.path, '/onvif/device_service');
   assert.equal(options.useSecure, false);
+  const olderScan = onvifProbeCandidates({ ip: '192.0.2.88', manufacturer: 'Voscam', port: 80, openPorts: [80, 554] });
+  assert.ok(olderScan.some((item) => item.port === 888), 'Voscam vendor fallback must try ONVIF 888 even when old scans omitted it');
 });
 
 test('confirmed SOAP on port 888 identifies the camera; generic login does not', () => {
