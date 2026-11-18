@@ -146,6 +146,20 @@ export function migrate() {
   addColumn('camera_profiles', 'media_service', "TEXT NOT NULL DEFAULT 'auto'");
   addColumn('users', 'auth_version', 'INTEGER NOT NULL DEFAULT 1');
   addColumn('users', 'last_login_at', 'TEXT');
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS desktop_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      user_auth_version INTEGER NOT NULL,
+      label TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      last_seen_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_desktop_sessions_user ON desktop_sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_desktop_sessions_expiration ON desktop_sessions(expires_at);
+  `);
 
   const recordingColumns = {
     trigger_type: "TEXT NOT NULL DEFAULT 'manual'",
