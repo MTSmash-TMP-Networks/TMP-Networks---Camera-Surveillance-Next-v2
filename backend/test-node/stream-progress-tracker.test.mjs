@@ -15,3 +15,11 @@ test('non numeric and backwards values cannot fake progress', () => {
   assert.equal(consumeFfmpegProgress(tracker, ['frame=20']), true);
   assert.equal(consumeFfmpegProgress(tracker, ['frame=19']), false);
 });
+
+test('FFmpeg initial zero progress is not evidence of active media', () => {
+  const tracker = createStreamProgressTracker();
+  assert.equal(consumeFfmpegProgress(tracker, ['frame=0', 'out_time_us=0', 'total_size=0']), false);
+  assert.equal(tracker.updates, 0);
+  assert.equal(consumeFfmpegProgress(tracker, ['frame=1', 'out_time_us=40000']), true);
+  assert.equal(tracker.updates, 1);
+});
