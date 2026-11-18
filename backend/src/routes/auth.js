@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { authService } from '../services/authService.js';
+import { desktopDeviceSessionService, parseDesktopCookie, requireDesktopSameOrigin, setDesktopCookie } from '../services/DesktopDeviceSessionService.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { demoModeStatus } from '../middleware/demoMode.js';
@@ -26,6 +27,37 @@ authRouter.post('/login', asyncHandler(async (req, res) => {
   res.set('Cache-Control', 'private, no-store, max-age=0');
   res.json({ ...authService.authenticate(input.username, input.password), runtime: { ...demoModeStatus(), version: config.appVersion } });
 }));
+// Desktop enrollment explicitly requires a normal user/password login and
+// user consent. It never turns an ordinary browser login into a device grant.
+authRouter.post('/desktop/enroll', asyncHandler(async (req, res) => {
+  requireDesktopSameOrigin(req);
+  const input = loginSchema.extend({
+    label: z.string().max(80).optional(),
+    rememberDevice: z.literal(true),
+  }).parse(req.body || {});
+  const session = authService.authenticate(input.username, input.password);
+  const grant = desktopDeviceSessionService.issue(session.user.id, input.label);
+  setDesktopCookie(req, res, grant.token, grant.maxAgeSeconds);
+  res.json({ ...session, runtime: { ...demoModeStatus(), version: config.appVersion } });
+}));
+
+authRouter.post('/desktop/renew', asyncHandler(async (req, res) => {
+  requireDesktopSameOrigin(req);
+  const grant = desktopDeviceSessionService.renew(parseDesktopCookie(req));
+  const session = authService.issueAccessToken(grant.user);
+  // Keep renewal limited to same-origin explicit POST; cookie never readable
+  // by frontend scripts, and is not accepted as a normal API bearer token.
+  res.set('Cache-Control', 'private, no-store, max-age=0');
+  res.json({ ...session, runtime: { ...demoModeStatus(), version: config.appVersion } });
+}));
+
+authRouter.post('/desktop/revoke', asyncHandler(async (req, res) => {
+  requireDesktopSameOrigin(req);
+  desktopDeviceSessionService.revoke(parseDesktopCookie(req));
+  setDesktopCookie(req, res, '', 0);
+  res.json({ ok: true });
+}));
+
 authRouter.get('/me', authenticate, (req, res) => res.json({ user: req.user, runtime: { ...demoModeStatus(), version: config.appVersion } }));
 authRouter.post('/ws-token', authenticate, (req, res) => {
   res.set('Cache-Control', 'private, no-store, max-age=0');
