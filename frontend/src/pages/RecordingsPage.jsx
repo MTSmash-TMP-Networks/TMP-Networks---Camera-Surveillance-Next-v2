@@ -191,6 +191,7 @@ export function RecordingsPage() {
   const playbackAdvanceRef = useRef(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [applyGlobalRetention, setApplyGlobalRetention] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const allowed = ['admin', 'operator'].includes(user?.role);
@@ -418,6 +419,30 @@ export function RecordingsPage() {
     }
     finally { setBusy(false); }
   }
+  async function saveGlobalPlanning() {
+    if (!plans.length) {
+      setError(t('recordings.global.empty'));
+      return;
+    }
+    const validationErrors = validateRecordingPlans(plans, { prebufferMaxSeconds: capabilities?.recordingPrebufferMaxSeconds || 10, t });
+    if (validationErrors.length) { setError(validationErrors.join(' ')); return; }
+    const targets = cameras.length;
+    if (!window.confirm(t('recordings.global.confirm', { count: targets }))) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const result = await api.saveGlobalRecordingPlanning({
+        plans,
+        applyRetention: applyGlobalRetention,
+        ...(applyGlobalRetention ? { retention: sanitizeRetentionPolicy(retention) } : {}),
+        confirmation: 'ALL_CAMERAS',
+      });
+      setNotice(t('recordings.global.saved', { count: result.updated }));
+      // Re-fetch the selected camera's records, now with new per-camera IDs.
+      await loadPlanning();
+    } catch (e) {
+      setError(recordingErrorMessage(e, { t, locale }));
+    } finally { setBusy(false); }
+  }
   async function cleanup(dryRun) {
     setBusy(true); setError(''); setNotice('');
     try {
@@ -567,6 +592,13 @@ export function RecordingsPage() {
         <section className="recording-mode-guide"><article><strong>{t('recordings.guide.typeTitle')}</strong><span>{t('recordings.guide.typeDescription')}</span></article><article><strong>{t('recordings.guide.retentionTitle')}</strong><span>{t('recordings.guide.retentionDescription')}</span></article><article><strong>{t('recordings.guide.exportTitle')}</strong><span>{t('recordings.guide.exportDescription')}</span></article></section>
         <div className="planner-status-row"><span className={scheduler?.running ? 'ok' : 'warn'}>{t('recordings.planning.schedulerState', { state: scheduler?.running ? t('recordings.planning.active') : t('recordings.planning.inactive') })}</span><span className={retentionStatus?.running ? 'ok' : 'warn'}>{t('recordings.planning.cleanupState', { state: retentionStatus?.running ? t('recordings.planning.active') : t('recordings.planning.inactive') })}</span>{activePlans.length > 0 && <small>{t('recordings.planning.activePlans', { count: activePlans.length, plans: activePlans.slice(0, 3).map((plan) => modeSummary(plan, t)).join(', '), more: activePlans.length > 3 ? ' …' : '' })}</small>}</div>
         <RecordingPlanEditor plans={plans} onChange={setPlans} disabled={!allowed || busy} prebufferMaxSeconds={capabilities?.recordingPrebufferMaxSeconds || 10}/>
+        <section className="planner-section global-recording-panel">
+          <header><div><Camera/><span><strong>{t('recordings.global.title')}</strong><small>{t('recordings.global.description', { count: cameras.length })}</small></span></div></header>
+          <label className="global-recording-retention"><input type="checkbox" checked={applyGlobalRetention} disabled={!allowed || busy} onChange={(event) => setApplyGlobalRetention(event.target.checked)}/><span>{t('recordings.global.retention')}</span></label>
+          <button type="button" className="secondary-button" onClick={saveGlobalPlanning} disabled={!allowed || busy || !retention || !cameras.length || !plans.length}><Save/> {busy ? t('recordings.planning.processing') : t('recordings.global.apply')}</button>
+          <p className="global-recording-warning">{t('recordings.global.warning')}</p>
+        </section>
+
         <RetentionPolicyEditor policy={retention} onChange={setRetention} disabled={!allowed || busy} onCleanup={cleanup} cleanupBusy={busy}/>
         {cleanupResult && <div className="cleanup-preview"><strong>{cleanupResult.dryRun ? t('recordings.cleanup.previewTitle') : t('recordings.cleanup.resultTitle')}</strong><span>{t('recordings.cleanup.summary', { candidates: cleanupResult.candidates, deleted: cleanupResult.deleted, size: size(cleanupResult.freedBytes) })}</span>{cleanupResult.items?.slice(0, 10).map((item) => <small key={item.recordingId}>#{item.recordingId}: {(item.reasons || []).join(', ')}</small>)}</div>}
         <div className="planner-savebar">{allowed && <button className="secondary-button" onClick={testMotionEvent} disabled={busy}><Zap/> {t('recordings.planning.testMotion')}</button>}<button className="primary-button" onClick={savePlanning} disabled={!allowed || busy || !retention}><Save/> {busy ? t('recordings.planning.processing') : t('recordings.planning.save')}</button></div>
