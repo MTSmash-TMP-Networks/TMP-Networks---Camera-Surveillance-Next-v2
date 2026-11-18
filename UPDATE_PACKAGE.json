@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.75",
+  "version": "2.20.76",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.75",
-  "summary": "Persistente serverseitige Kameravorschauen alle 60 Sekunden; Linux Desktop Login mit Host-Port-Fix und neuem Layout.",
-  "createdAt": "2026-11-18T17:02:09.093Z",
-  "changelogFile": "UPDATE_NOTES_2.20.75.md",
+  "title": "TMP Camera Surveillance Next 2.20.76",
+  "summary": "Globale Aufnahmepläne für alle Kameras mit atomarem Speichern und 24-Stunden-Zeitfenster.",
+  "createdAt": "2026-11-18T19:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.76.md",
   "changes": [
-    "Persist one compressed JPEG per camera using the existing local HLS ring, no extra camera connections",
-    "Refresh each thumbnail every 60 seconds with globally single-flight background FFmpeg work",
-    "Serve authenticated cached thumbnails to overview and Kiosk layout editor without live probes",
-    "Fix LAN Desktop session Origin/Host checks by preserving Host with port in Nginx",
-    "Polish desktop login and checkbox layout without weakening existing authentication"
+    "Apply the selected camera recording plans to every configured camera in one atomic transaction",
+    "Offer optional bulk retention policies while preserving them by default",
+    "Add 24-hour all-day schedule selection to weekday/event recording windows",
+    "Preserve all camera credentials, archive files and camera-specific ONVIF profiles",
+    "Regression tests for global rollback, 24-hour calendar and UI safeguards"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.75.md",
+  "changelog": "UPDATE_NOTES_2.20.76.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.75",
-  "packageId": "tmp-camera-surveillance-next-2.20.75",
+  "name": "TMP Camera Surveillance Next v2.20.76",
+  "packageId": "tmp-camera-surveillance-next-2.20.76",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Shared persistent camera thumbnail cache with bounded local-HLS extraction and fixed Linux Desktop sign-in Origin/Host handling.",
+  "description": "Global recording plan template with opt-in retention bulk-apply and calendar-accurate 24h setting.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.75 stores staggered 60-second camera previews in /data/thumbnails, generated only from existing central local HLS streams. Overview and layout editor no longer probe cameras when opened; the last good JPEG survives transient outages. Nginx keeps the original Host including port so secure same-origin Desktop sign-in works on LAN addresses such as 192.168.0.231:8080. Responsive login checkbox. Existing Electron ZIP remains compatible and unchanged; credentials, recordings, camera sources and Kiosk layouts are preserved.",
-  "fileCount": 510
+  "releaseNotes": "2.20.76 introduces an explicitly confirmed global apply action for recording plans on all cameras, plus optionally retention rules. Plans are saved transactionally, each camera receives independent plan IDs and source-specific profiles are not copied. The scheduled/event time editor offers a full-day (00:00 to 00:00) option while respecting selected weekdays and holiday exceptions. Existing archives are unaffected.",
+  "fileCount": 512
 }

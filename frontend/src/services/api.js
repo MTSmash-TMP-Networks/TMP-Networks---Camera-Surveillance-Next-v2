@@ -278,6 +278,7 @@ export const api = {
   retentionPolicy: (cameraId) => request(`/recordings/cameras/${encodeURIComponent(cameraId)}/retention`),
   saveRetentionPolicy: (cameraId, input) => request(`/recordings/cameras/${encodeURIComponent(cameraId)}/retention`, { method: 'PUT', body: input }),
   saveRecordingPlanning: (cameraId, input) => request(`/recordings/cameras/${encodeURIComponent(cameraId)}/planning`, { method: 'PUT', body: input }),
+  saveGlobalRecordingPlanning: (input) => request('/recordings/planning/all', { method: 'PUT', body: input }),
   recordingEvents: (cameraId, limit = 200) => request(`/recordings/cameras/${encodeURIComponent(cameraId)}/events?limit=${encodeURIComponent(limit)}`),
   createRecordingEvent: (input) => request('/recordings/events', { method: 'POST', body: input }),
   recordingSchedulerStatus: () => request('/recordings/scheduler/status'),

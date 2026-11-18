@@ -42,6 +42,7 @@ UPDATE_NOTES_2.20.72.md
 UPDATE_NOTES_2.20.73.md
 UPDATE_NOTES_2.20.74.md
 UPDATE_NOTES_2.20.75.md
+UPDATE_NOTES_2.20.76.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -257,6 +258,7 @@ backend/test/onvif-media-soap.test.js
 backend/test/onvif-profile-discovery.test.js
 backend/test/profileRanker.test.js
 backend/test/recording-command.test.js
+backend/test/recording-global-planning.test.js
 backend/test/recording-repository.test.js
 backend/test/recording-schedule.test.js
 backend/test/retention-manager.test.js
