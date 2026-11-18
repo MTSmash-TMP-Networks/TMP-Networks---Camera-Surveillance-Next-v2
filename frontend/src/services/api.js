@@ -42,6 +42,8 @@ async function fetchApi(resource, options) {
 }
 
 export const isDesktopKiosk = () => typeof window !== 'undefined' && window.tmpCameraDesktop?.isDesktop === true;
+export const hasDesktopGrant = () => { try { return sessionStorage.getItem('tmp_camera_desktop_enrolled') === '1'; } catch { return false; } };
+function markDesktopGrant(active) { try { if (active) sessionStorage.setItem('tmp_camera_desktop_enrolled', '1'); else sessionStorage.removeItem('tmp_camera_desktop_enrolled'); } catch {} }
 let desktopRenewFlight = null;
 
 export async function renewDesktopSession() {
@@ -65,6 +67,7 @@ export async function renewDesktopSession() {
     }
     const result = await response.json();
     setAccessToken(result.token);
+    markDesktopGrant(true);
     // The Redux layer listens for successfully recovered credentials.
     window.dispatchEvent(new CustomEvent('tmp-desktop-session-renewed', { detail: result }));
     return result;
@@ -90,10 +93,13 @@ export async function enrollDesktopSession(username, password) {
     error.status = response.status;
     throw error;
   }
-  return response.json();
+  const result = await response.json();
+  markDesktopGrant(true);
+  return result;
 }
 
 export async function revokeDesktopSession() {
+  markDesktopGrant(false);
   if (!isDesktopKiosk()) return;
   try {
     await fetchApi(`${API}/auth/desktop/revoke`, {
