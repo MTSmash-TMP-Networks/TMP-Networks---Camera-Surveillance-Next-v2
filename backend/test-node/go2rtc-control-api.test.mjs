@@ -63,6 +63,32 @@ test('legacy root endpoint probes base_path first and remembers the working endp
   }
 });
 
+test('configured go2rtc base_path falls back to root API when runtime ignores the prefix', async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    if (String(url).startsWith('http://go2rtc:1984/media/go2rtc/')) {
+      return { ok: false, status: 404, text: async () => '404 page not found' };
+    }
+    return okJson({});
+  };
+  try {
+    const client = new Go2RtcClient({ baseUrl: 'http://go2rtc:1984/media/go2rtc', fallbackUrls: [] });
+    await client.paths();
+    assert.deepEqual(calls, [
+      'http://go2rtc:1984/media/go2rtc/api/streams',
+      'http://go2rtc:1984/api/streams',
+    ]);
+    assert.equal(client.streamTsUrl('cam'), 'http://go2rtc:1984/api/stream.ts?src=cam');
+    calls.length = 0;
+    await client.paths();
+    assert.deepEqual(calls, ['http://go2rtc:1984/api/streams']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('speculative 404 does not hide the configured endpoint connection failure', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
