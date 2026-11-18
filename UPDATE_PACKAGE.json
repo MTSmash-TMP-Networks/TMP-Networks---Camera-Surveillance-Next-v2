@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.72",
+  "version": "2.20.73",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.72",
-  "summary": "Fix stale HLS video replay with monotonic live segment checks and snapshot freshness watchdog.",
-  "createdAt": "2026-11-18T16:10:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.72.md",
+  "title": "TMP Camera Surveillance Next 2.20.73",
+  "summary": "Visual Kiosk grid editor with authenticated camera thumbnails, left-hand camera palette, drag-and-drop tile assignment and no extra live streams.",
+  "createdAt": "2026-11-18T17:10:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.73.md",
   "changes": [
-    "Detect stale HLS sequence despite active buffered video playback",
-    "Prevent old cached frames from marking recovered HLS playback as connected",
-    "Reconnect only stalled active viewer with a 45-second cooldown",
-    "Stop manufacturing fresh-looking snapshot HLS frames from last image after 15 seconds without successful fetch",
-    "Retain stable go2rtc broker and 26-camera fair startup"
+    "Visual searchable camera thumbnail palette on the left of Kiosk layout editor",
+    "Drag-and-drop cameras onto grid slots and swap two occupied slots",
+    "Click-to-select camera and place into tile; dropdown/clear controls remain accessible",
+    "Lightweight lazy snapshots without additional video streams, max two simultaneous camera requests",
+    "Persist layouts with existing version 1 schema, keep recordings, motion and stream configuration unchanged"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.72.md",
+  "changelog": "UPDATE_NOTES_2.20.73.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.72",
-  "packageId": "tmp-camera-surveillance-next-2.20.72",
+  "name": "TMP Camera Surveillance Next v2.20.73",
+  "packageId": "tmp-camera-surveillance-next-2.20.73",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Live HLS sequence freshness and bounded snapshot fallback frames",
+  "description": "Visual kiosk camera placement and lightweight snapshot thumbnails, preserving existing layouts and central media architecture.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Fix cached HLS fragments endlessly showing as live images. Check segment sequence every 2.5s, reconnect only the affected active browser player after 30s stale and at most once per 45s, and bound stale snapshot JPEG repetition to 15s. No database/.env changes. Maintains 2.20.71 startup speed and fixed go2rtc broker.",
-  "fileCount": 500
+  "releaseNotes": "Upgrade from 2.20.32. Kiosk layout manager now provides a searchable left camera thumbnail palette and right-hand drag-and-drop grid. Snapshot previews are lazy, limited to two concurrent authenticated requests and aborted/cleaned up on close. Click/keyboard/dropdown alternatives, swap, clear and previous saved layouts remain supported. Preserves existing 2.20.72 HLS replay fix, patched go2rtc broker, recordings/motion and database.",
+  "fileCount": 504
 }
