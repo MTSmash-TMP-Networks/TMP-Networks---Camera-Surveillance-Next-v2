@@ -45,6 +45,7 @@ UPDATE_NOTES_2.20.75.md
 UPDATE_NOTES_2.20.76.md
 UPDATE_NOTES_2.20.77.md
 UPDATE_NOTES_2.20.78.md
+UPDATE_NOTES_2.20.79.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -106,12 +107,14 @@ backend/src/services/credentialVault.js
 backend/src/services/events/DomainEventBus.js
 backend/src/services/events/EventWebSocketHub.js
 backend/src/services/healthMonitor.js
+backend/src/services/media/AdaptiveCameraStartCapacity.js
 backend/src/services/media/BrokerPipeline.js
 backend/src/services/media/CameraDiscoveryPolicy.js
 backend/src/services/media/CameraHostClassifier.js
 backend/src/services/media/CameraPathCatalog.js
 backend/src/services/media/CameraPortCatalog.js
 backend/src/services/media/CameraStartLimiter.js
+backend/src/services/media/CameraStartupProfileMemory.js
 backend/src/services/media/CameraThumbnailCache.js
 backend/src/services/media/CameraWebFingerprint.js
 backend/src/services/media/DeepCameraPaths.js
@@ -181,6 +184,7 @@ backend/src/utils/containerBranding.js
 backend/src/utils/errors.js
 backend/src/utils/logger.js
 backend/src/utils/url.js
+backend/test-node/adaptive-camera-start.test.mjs
 backend/test-node/ai-event-analysis-regression.test.mjs
 backend/test-node/broker-pipeline.test.mjs
 backend/test-node/camera-bootstrap-fairness-26.test.mjs
@@ -240,6 +244,7 @@ backend/test/camera-default-name.test.js
 backend/test/camera-event-log.test.js
 backend/test/camera-identity-dedup.test.js
 backend/test/camera-path-catalog.test.js
+backend/test/camera-startup-profile-memory.test.js
 backend/test/camera-web-fingerprint.test.js
 backend/test/credentialVault.test.js
 backend/test/discovery-filter.test.js
