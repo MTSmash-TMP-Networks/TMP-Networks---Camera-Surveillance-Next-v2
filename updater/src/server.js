@@ -1186,7 +1186,7 @@ async function restoreBackup(backup, context) {
     await replaceComposeService(context, 'frontend', { noBuild: true });
   } catch (error) {
     log('warn', 'Rollback konnte vorhandene Images nicht direkt starten; Images werden neu gebaut', { issueCode: 'ROLLBACK_NO_BUILD_START_FAILED', error });
-    await compose(['build', 'backend', 'frontend', 'updater'], context, { timeoutMs: 45 * 60_000 });
+    await compose(['build', 'backend', 'frontend', 'mediamtx', 'updater'], context, { timeoutMs: 45 * 60_000 });
     await replaceComposeService(context, 'backend');
     await replaceComposeService(context, 'mediamtx');
     await replaceComposeService(context, 'frontend');
@@ -1283,7 +1283,9 @@ async function performInstall(input) {
     await execute('rsync', ['-a', '--delete', '--exclude', '.env', '--exclude', 'data/', '--exclude', '.git/', '--exclude', 'node_modules/', '--exclude', 'dist/', `${inspected.root}/`, `${PROJECT_DIR}/`], { timeoutMs: 10 * 60_000 });
     await repairDataPermissions('before-build');
     await updateStatus({ phase: 'building', progress: 42, message: 'Docker-Images werden neu gebaut' });
-    await compose(composeBuildArgs(['backend', 'frontend']), context, { timeoutMs: 60 * 60_000 });
+    // Build the patched go2rtc broker before stopping/replacing ANY services.
+    // A failed source checkout, race patch or Go build aborts the update safely.
+    await compose(composeBuildArgs(['backend', 'frontend', 'mediamtx']), context, { timeoutMs: 60 * 60_000 });
     try {
       await compose(composeBuildArgs(['updater']), context, { timeoutMs: 60 * 60_000 });
       newUpdaterImage = (await compose(['images', '-q', 'updater'], context, { timeoutMs: 60_000 })).stdout.trim().split(/\r?\n/).filter(Boolean).at(-1);
