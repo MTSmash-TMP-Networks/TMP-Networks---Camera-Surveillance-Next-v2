@@ -27,8 +27,10 @@ export function latestHlsSegment(directory, now = Date.now()) {
     const segments = [...playlist.matchAll(/^\s*(seg_[0-9]+\.ts)\s*$/gm)];
     for (let i = segments.length - 1; i >= 0; i -= 1) {
       const candidate = path.join(directory, segments[i][1]);
-      const stat = fs.statSync(candidate);
-      if (stat.isFile() && stat.size > 1880 && now - stat.mtimeMs <= SEGMENT_MAX_AGE_MS) return candidate;
+      try {
+        const stat = fs.statSync(candidate);
+        if (stat.isFile() && stat.size > 1880 && now - stat.mtimeMs <= SEGMENT_MAX_AGE_MS) return candidate;
+      } catch { /* The latest segment may disappear during HLS rotation. */ }
     }
   } catch {
     // A stream can be starting or rotating segments. Never open a new camera
