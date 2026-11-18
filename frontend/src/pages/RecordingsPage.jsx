@@ -96,6 +96,7 @@ function cameraLabel(camera, t) {
 function modeSummary(plan, t) {
   if (plan.mode === 'continuous') return t('recordings.plan.modeContinuous');
   if (plan.mode === 'event') return t('recordings.plan.modeEvent');
+  if (plan.startTime === plan.endTime) return t('recordings.plan.allDay');
   return t('recordings.plan.range', { start: plan.startTime || '00:00', end: plan.endTime || '23:59' });
 }
 function triggerLabel(value, t) {
