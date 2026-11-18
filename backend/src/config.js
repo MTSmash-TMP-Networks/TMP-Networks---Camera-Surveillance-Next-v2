@@ -114,7 +114,7 @@ export const config = Object.freeze({
   discoveryScanEngine: configurableString('DISCOVERY_SCAN_ENGINE', 'auto'),
   discoveryNmapPath: configurableString('DISCOVERY_NMAP_PATH', 'nmap'),
   discoveryNmapTimeoutMs: integer('DISCOVERY_NMAP_TIMEOUT_MS', 120_000, { min: 5_000, max: 900_000 }),
-  discoveryHostDiscoveryPorts: integerList('DISCOVERY_HOST_DISCOVERY_PORTS', '80,443,554,8000,8080,8443,8554,8899,10554,37777,34567'),
+  discoveryHostDiscoveryPorts: integerList('DISCOVERY_HOST_DISCOVERY_PORTS', '80,443,554,8000,8080,888,8443,8554,8899,10554,37777,34567'),
   discoveryHostDiscoveryTimeoutMs: integer('DISCOVERY_HOST_DISCOVERY_TIMEOUT_MS', 350, { min: 100, max: 3000 }),
   discoveryFullScanFallbackHostLimit: integer('DISCOVERY_FULL_SCAN_FALLBACK_HOST_LIMIT', 32, { min: 0, max: 1024 }),
   discoveryInitialEnabled: boolean('DISCOVERY_INITIAL_ENABLED', true),
