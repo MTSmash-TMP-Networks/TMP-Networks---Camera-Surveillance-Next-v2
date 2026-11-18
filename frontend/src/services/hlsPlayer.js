@@ -1,11 +1,11 @@
 import Hls from 'hls.js';
 
 // Allow the HLS internal retry to finish before the outer player gives up.
-const RECOVERY_WATCHDOG_MS = 25000;
+const RECOVERY_WATCHDOG_MS = 45000;
 const WAITING_GRACE_MS = 6000;
 const SOFT_STALL_RETRY_COOLDOWN_MS = 12000;
-const TARGET_LIVE_DELAY_SECONDS = 8;
-const MAX_LIVE_LATENCY_SECONDS = 20;
+const TARGET_LIVE_DELAY_SECONDS = 10;
+const MAX_LIVE_LATENCY_SECONDS = 28;
 const ptzSeekers = new WeakMap();
 
 export function nudgeHlsForPtz(video) {
@@ -165,10 +165,10 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
     lowLatencyMode: false,
     liveSyncDuration: liveDelay,
     liveMaxLatencyDuration: liveDelay < TARGET_LIVE_DELAY_SECONDS ? 12 : MAX_LIVE_LATENCY_SECONDS,
-    maxLiveSyncPlaybackRate: liveDelay < TARGET_LIVE_DELAY_SECONDS ? 1.08 : 1.05,
-    backBufferLength: 15,
-    maxBufferLength: 30,
-    maxMaxBufferLength: 60,
+    maxLiveSyncPlaybackRate: liveDelay < TARGET_LIVE_DELAY_SECONDS ? 1.08 : 1.035,
+    backBufferLength: 20,
+    maxBufferLength: 40,
+    maxMaxBufferLength: 80,
     maxBufferHole: 1.5,
     manifestLoadingTimeOut: 10000,
     manifestLoadingMaxRetry: 4,
@@ -241,7 +241,14 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
   const armRecoveryWatchdog = () => {
     clearRecoveryTimer();
     recoveryTimer = setTimeout(() => {
-      if (recovering) failRecovery({ recoveryTimedOut: true, recoveryTimeoutMs: RECOVERY_WATCHDOG_MS });
+      if (!recovering) return;
+      if (bufferedAhead(video) >= 0.75 && video.readyState >= 2 && !video.paused) {
+        // A manifest retry must not detach a decoder with usable buffered
+        // surveillance frames. Keep hls.js in control of fragment retries.
+        armRecoveryWatchdog();
+        return;
+      }
+      failRecovery({ recoveryTimedOut: true, recoveryTimeoutMs: RECOVERY_WATCHDOG_MS });
     }, RECOVERY_WATCHDOG_MS);
   };
   const beginRecovery = (details, action) => {
@@ -276,7 +283,7 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
       failRecovery({ ...details, reason: details.reason || 'network-recovery-exhausted', attempts: networkRecoveries });
       return;
     }
-    const reloadManifest = /manifest|level/i.test(String(details.details || ''));
+    const reloadManifest = /manifest|level/i.test(String(details.details || '')) && bufferedAhead(video) < 0.75;
     beginRecovery({ ...details, attempt: networkRecoveries, stage: reloadManifest ? 'reload-source' : 'resume-load' }, () => {
       setTimeout(() => {
         if (destroyed || !recovering) return;
@@ -357,7 +364,10 @@ export function connectHls({ url, tokenRef, video, onState, targetLiveDelaySecon
     }
     if (data.type === Hls.ErrorTypes.NETWORK_ERROR) recoverNetwork(details);
     else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) recoverMedia(details);
-    else failRecovery(details);
+    else if (bufferedAhead(video) >= 0.75 && video.readyState >= 2 && !video.paused) {
+      // Defer a decoder reset while actual buffered media remains playable.
+      beginRecovery({ ...details, stage: 'buffered-playback' }, () => hls.startLoad(-1));
+    } else failRecovery(details);
   });
 
   return () => {
