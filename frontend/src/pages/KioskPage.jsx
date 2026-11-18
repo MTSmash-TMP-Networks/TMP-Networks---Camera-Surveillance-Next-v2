@@ -336,7 +336,8 @@ export function KioskPage() {
           try {
             remote = await api.saveKioskLayouts({
               layouts: initialLocal.current.layouts,
-              activeLayoutId: initialLocal.current.activeLayoutId,
+              activeLayoutId: initialLocal.current.layouts.some((layout) => layout.id === initialLocal.current.activeLayoutId)
+                ? initialLocal.current.activeLayoutId : 'auto',
               expectedRevision: 0,
             });
           } catch (error) {
