@@ -191,7 +191,7 @@ async function mapLimit(items, limit, mapper) {
   return output;
 }
 
-function requestPage(url, timeoutMs = 1600, maxBytes = 256 * 1024) {
+export function requestPage(url, timeoutMs = 1600, maxBytes = 256 * 1024) {
   return new Promise((resolve) => {
     let parsed;
     try { parsed = new URL(url); } catch { resolve(null); return; }
