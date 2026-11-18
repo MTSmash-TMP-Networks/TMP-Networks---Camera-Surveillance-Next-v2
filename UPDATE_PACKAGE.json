@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.67",
+  "version": "2.20.68",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.67",
-  "summary": "Detect Voscam cameras using ONVIF TCP port 888 in automatic network discovery, authenticated setup and vendor SOAP probing.",
-  "createdAt": "2026-11-18T12:55:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.67.md",
+  "title": "TMP Camera Surveillance Next 2.20.68",
+  "summary": "Stabilize Local-HLS across 25 simultaneous cameras by preserving active publishers and browser decoder continuity.",
+  "createdAt": "2026-11-18T14:20:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.68.md",
   "changes": [
-    "Add Voscam ONVIF TCP 888 to camera port definitions, scan defaults and host discovery",
-    "Probe real ONVIF SOAP endpoint on open TCP 888 without treating arbitrary open ports as cameras",
-    "Preserve existing XAddr and ONVIF setup on port 888",
-    "Include TCP 888 at runtime even when existing .env host scan ports were saved before this release",
-    "Retain all background-stream, recording, HLS and Compose V2 updater fixes"
+    "Inspect newest completed TS segments instead of statting all playlist fragments every request",
+    "Tolerate transient HLS playlist rotation for running healthy previews for at most 10 seconds",
+    "Retain at least 60 HLS segments by default without changing saved .env or video-copy policy",
+    "Keep browser HLS decoder buffered during transient fragment/network retries and delay aggressive reconnect",
+    "Preserve recordings, motion, go2rtc and all previous updates"
   ],
   "preserve": [
     ".env",
@@ -31,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.67.md",
+  "changelog": "UPDATE_NOTES_2.20.68.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.67",
-  "packageId": "tmp-camera-surveillance-next-2.20.67",
+  "name": "TMP Camera Surveillance Next v2.20.68",
+  "packageId": "tmp-camera-surveillance-next-2.20.68",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Add Voscam ONVIF TCP 888 to the camera scanner, host discovery, SOAP verification and camera setup.",
+  "description": "Local-HLS ring continuity, O(1) newest segment health verification, 60 segment minimum and durable browser recovery.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Compatible from 2.20.32. Port 888 is scanned in automatic and manual camera discovery and proven via ONVIF SOAP before declaring a camera. Old .env host-scan lists automatically include 888 in runtime. Camera recordings and other settings are preserved.",
-  "fileCount": 486
+  "releaseNotes": "Compatible from 2.20.32. Retain active Local-HLS producers for short playlist rotation races while requiring live FFmpeg and genuine prior readiness. Increase minimum retained ring to 60 segments despite old .env. Stabilize hls.js buffer and recovery. No camera or recording setting migrations.",
+  "fileCount": 487
 }
