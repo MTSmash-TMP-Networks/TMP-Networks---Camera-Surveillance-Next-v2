@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.66",
+  "version": "2.20.67",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.66",
-  "summary": "Prepare every configured camera centrally at backend startup, prioritize video-first preview and avoid stale 1500 ms legacy startup delays.",
-  "createdAt": "2026-11-18T12:35:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.66.md",
+  "title": "TMP Camera Surveillance Next 2.20.67",
+  "summary": "Detect Voscam cameras using ONVIF TCP port 888 in automatic network discovery, authenticated setup and vendor SOAP probing.",
+  "createdAt": "2026-11-18T12:55:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.67.md",
   "changes": [
-    "Start all central camera publishers at backend boot rather than after recording and remote-storage recovery",
-    "First try the preferred ONVIF camera profile and lazily resolve other profiles only after a failure",
-    "Skip optional audio for always-on shared preview to reduce video first-frame latency",
-    "Use dedicated BACKGROUND_CAMERA_BOOTSTRAP_STAGGER_MS=250 to bypass stale in-app update .env settings",
-    "Preserve bounded camera-start concurrency, stream fallback, recording, motion and watchdog behavior"
+    "Add Voscam ONVIF TCP 888 to camera port definitions, scan defaults and host discovery",
+    "Probe real ONVIF SOAP endpoint on open TCP 888 without treating arbitrary open ports as cameras",
+    "Preserve existing XAddr and ONVIF setup on port 888",
+    "Include TCP 888 at runtime even when existing .env host scan ports were saved before this release",
+    "Retain all background-stream, recording, HLS and Compose V2 updater fixes"
   ],
   "preserve": [
     ".env",
@@ -31,14 +31,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.66.md",
+  "changelog": "UPDATE_NOTES_2.20.67.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.66",
-  "packageId": "tmp-camera-surveillance-next-2.20.66",
+  "name": "TMP Camera Surveillance Next v2.20.67",
+  "packageId": "tmp-camera-surveillance-next-2.20.67",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Front-end independent proactive camera publisher bootstrap, lazy ONVIF URI resolution, video-first Kiosk previews.",
+  "description": "Add Voscam ONVIF TCP 888 to the camera scanner, host discovery, SOAP verification and camera setup.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Direct update compatible from 2.20.32. All enabled central camera publishers start in backend background as soon as the service is listening, before recording/storage recovery. Legacy startup stagger bypassed via dedicated 250ms value. Prefer video over optional audio in Kiosk preview, preserving recording and explicit-live audio.",
-  "fileCount": 484
+  "releaseNotes": "Compatible from 2.20.32. Port 888 is scanned in automatic and manual camera discovery and proven via ONVIF SOAP before declaring a camera. Old .env host-scan lists automatically include 888 in runtime. Camera recordings and other settings are preserved.",
+  "fileCount": 486
 }
