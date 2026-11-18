@@ -41,6 +41,7 @@ UPDATE_NOTES_2.20.71.md
 UPDATE_NOTES_2.20.72.md
 UPDATE_NOTES_2.20.73.md
 UPDATE_NOTES_2.20.74.md
+UPDATE_NOTES_2.20.75.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -106,6 +107,7 @@ backend/src/services/media/CameraHostClassifier.js
 backend/src/services/media/CameraPathCatalog.js
 backend/src/services/media/CameraPortCatalog.js
 backend/src/services/media/CameraStartLimiter.js
+backend/src/services/media/CameraThumbnailCache.js
 backend/src/services/media/CameraWebFingerprint.js
 backend/src/services/media/DeepCameraPaths.js
 backend/src/services/media/DiscoveryUrlSafety.js
@@ -180,6 +182,7 @@ backend/test-node/camera-bootstrap-fairness-26.test.mjs
 backend/test-node/camera-discovery-final-policy-regression.test.mjs
 backend/test-node/camera-discovery-precision-regression.test.mjs
 backend/test-node/camera-discovery-ui-state.test.mjs
+backend/test-node/camera-thumbnail-cache.test.mjs
 backend/test-node/container-status-branding.test.mjs
 backend/test-node/demo-mode-regression.test.mjs
 backend/test-node/demo-user-service.test.mjs
