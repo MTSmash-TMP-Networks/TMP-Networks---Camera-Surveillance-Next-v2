@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { api, setAccessToken, enrollDesktopSession, isDesktopKiosk, renewDesktopSession } from '../../services/api.js';
 
 export const loadRuntime = createAsyncThunk('auth/runtime', async () => api.runtime());
-export const login = createAsyncThunk('auth/login', async ({ username, password }) => isDesktopKiosk()
+export const login = createAsyncThunk('auth/login', async ({ username, password, rememberDevice = false }) => isDesktopKiosk() && rememberDevice
   ? enrollDesktopSession(username, password)
   : api.login(username, password));
 export const restoreDesktopSession = createAsyncThunk('auth/desktopRestore', async (_, { rejectWithValue }) => {
@@ -13,9 +13,9 @@ export const restoreSession = createAsyncThunk('auth/restore', async () => api.m
 
 const slice = createSlice({
   name: 'auth',
-  initialState: { user: null, token: (() => { try { return sessionStorage.getItem('tmp_camera_token'); } catch { return null; } })(), status: 'idle', desktopRestoring: isDesktopKiosk(), error: null, runtime: { demoMode: false, readOnly: false, allowExports: false, version: null } },
+  initialState: { user: null, token: (() => { try { return sessionStorage.getItem('tmp_camera_token'); } catch { return null; } })(), status: 'idle', desktopRestoring: isDesktopKiosk(), desktopOffline: false, error: null, runtime: { demoMode: false, readOnly: false, allowExports: false, version: null } },
   reducers: {
-    logout(state) { state.user = null; state.token = null; setAccessToken(''); },
+    logout(state) { state.user = null; state.token = null; state.desktopOffline = false; setAccessToken(''); },
     sessionUpdated(state, action) {
       if (action.payload?.user) state.user = action.payload.user;
       if (action.payload?.token) {
@@ -31,6 +31,7 @@ const slice = createSlice({
     .addCase(restoreDesktopSession.pending, (state) => { state.desktopRestoring = true; })
     .addCase(restoreDesktopSession.fulfilled, (state, action) => {
       state.desktopRestoring = false;
+      state.desktopOffline = false;
       state.user = action.payload.user;
       state.token = action.payload.token;
       state.runtime = action.payload.runtime || state.runtime;
@@ -39,6 +40,7 @@ const slice = createSlice({
     })
     .addCase(restoreDesktopSession.rejected, (state, action) => {
       state.desktopRestoring = false;
+      state.desktopOffline = !action.payload?.status;
       // A network outage is temporary. Do not discard a valid device grant.
       // A 401 is an explicit server-side revocation or expiration.
       if (action.payload?.status === 401) {
