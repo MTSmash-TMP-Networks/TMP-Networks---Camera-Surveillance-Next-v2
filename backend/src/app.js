@@ -34,7 +34,7 @@ app.use(axisEvidenceGuardMiddleware2208);
   app.use(demoModeGuard);
   app.use(auditTrail);
 
-  app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tmp-camera-backend', version: config.appVersion, time: new Date().toISOString() }));
+  app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'tmp-camera-backend', version: config.appVersion, features: { remoteProxy: true, automaticCloudRegistration: true }, time: new Date().toISOString() }));
   app.use('/internal', internalRouter);
   app.use('/api/auth/login', rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: true, legacyHeaders: false }));
   app.use('/api/auth/desktop/enroll', rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: true, legacyHeaders: false }));
