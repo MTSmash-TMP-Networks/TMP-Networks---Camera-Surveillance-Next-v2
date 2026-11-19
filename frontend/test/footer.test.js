@@ -16,8 +16,9 @@ describe('Globaler Footer', () => {
     expect(translate('de', 'common.version')).toBe('Version');
     expect(footer).toContain('__APP_VERSION__');
   });
-  it('renders outside routes on all pages', () => {
-    expect(app).toContain('<AppFooter />');
-    expect(app.indexOf('<AppFooter />')).toBeGreaterThan(app.indexOf('</Routes>'));
+  it('renders the desktop footer after routes but leaves room for mobile bottom navigation', () => {
+    expect(app).toContain('<RouteAwareFooter />');
+    expect(app.indexOf('<RouteAwareFooter />')).toBeGreaterThan(app.indexOf('</Routes>'));
+    expect(app).toContain("pathname.startsWith('/mobile') ? null : <AppFooter />");
   });
 });
