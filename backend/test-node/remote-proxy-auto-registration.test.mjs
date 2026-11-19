@@ -27,3 +27,24 @@ test('auto-registration preserves an existing identity and encrypted secret', ()
   assert.match(agent, /readSetting\(ID_KEY\)/);
   assert.match(agent, /if \(\/[\^].+\.test\(id\)\) return id/);
 });
+
+const bootstrap = readFileSync(new URL('../src/server.js', import.meta.url), 'utf8');
+
+test('backend bootstrap assigns cloud agent and PTZ to the matching Promise.all imports', () => {
+  const bindings = bootstrap.match(/const\\s+\\[([\\s\\S]*?)\\]\\s*=\\s*await Promise\\.all\\(/);
+  const imports = bootstrap.match(/await Promise\\.all\\(\\[([\\s\\S]*?)\\]\\)/);
+  assert.ok(bindings && imports, 'backend bootstrap must retain the parallel module import list');
+  const slots = [...bindings[1].matchAll(/\\{([^}]+)\\}/g)]
+    .map((match) => match[1].split(',').map((name) => name.trim()));
+  const sources = [...imports[1].matchAll(/import\\('([^']+)'\\)/g)]
+    .map((match) => match[1]);
+  assert.equal(slots.length, sources.length, 'destructuring and import counts must match');
+  for (const [variable, path] of [
+    ['remoteProxyService', './services/RemoteProxyService.js'],
+    ['ptzService', './services/ptz/PtzService.js'],
+  ]) {
+    const slot = slots.findIndex((names) => names.includes(variable));
+    assert.notEqual(slot, -1, variable + ' binding missing');
+    assert.equal(sources[slot], path, variable + ' was bound to wrong module');
+  }
+});
