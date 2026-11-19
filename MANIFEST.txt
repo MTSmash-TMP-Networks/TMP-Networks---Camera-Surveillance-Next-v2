@@ -49,6 +49,7 @@ UPDATE_NOTES_2.20.79.md
 UPDATE_NOTES_2.20.80.md
 UPDATE_NOTES_2.20.81.md
 UPDATE_NOTES_2.20.82.md
+UPDATE_NOTES_2.20.83.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -338,6 +339,7 @@ frontend/src/components/BrandIcon.jsx
 frontend/src/components/CameraCard.jsx
 frontend/src/components/CameraCardSkeleton.jsx
 frontend/src/components/CameraLogPanel.jsx
+frontend/src/components/MobileShell.jsx
 frontend/src/components/MotionZoneEditor.jsx
 frontend/src/components/PtzControls.jsx
 frontend/src/components/RecordingArchivePlayer.jsx
@@ -381,6 +383,7 @@ frontend/src/i18n/legacyPhrases.js
 frontend/src/i18n/legacyStatusTranslations.js
 frontend/src/i18n/licenseContent.js
 frontend/src/i18n/messages.js
+frontend/src/i18n/mobileMessages.js
 frontend/src/i18n/networkStreamMessages.js
 frontend/src/i18n/networkStreams.test.mjs
 frontend/src/i18n/notificationMessages.js
@@ -407,6 +410,7 @@ frontend/src/pages/KioskPage.jsx
 frontend/src/pages/LicensePage.jsx
 frontend/src/pages/LivePage.jsx
 frontend/src/pages/LoginPage.jsx
+frontend/src/pages/MobilePages.jsx
 frontend/src/pages/NotificationsPage.jsx
 frontend/src/pages/OverviewPage.jsx
 frontend/src/pages/RecordingsPage.jsx
@@ -426,6 +430,7 @@ frontend/src/services/kioskStatus.test.js
 frontend/src/services/kioskThumbnailLoader.js
 frontend/src/services/kioskThumbnailLoader.test.js
 frontend/src/services/liveStreamPool.js
+frontend/src/services/mobileRouting.js
 frontend/src/services/quality.js
 frontend/src/services/scheduleValidation.js
 frontend/src/services/scheduleValidation.test.js
@@ -461,6 +466,8 @@ frontend/test/hls-auto-recovery.test.js
 frontend/test/kiosk-visual-layout-editor.test.js
 frontend/test/live-player-single-window.test.js
 frontend/test/live-stable-protocol.test.js
+frontend/test/mobile-portal.test.js
+frontend/test/mobile-route.test.js
 frontend/test/multi-source-streaming.test.js
 frontend/test/quality.test.js
 frontend/test/recordings-planning-usability.test.js
