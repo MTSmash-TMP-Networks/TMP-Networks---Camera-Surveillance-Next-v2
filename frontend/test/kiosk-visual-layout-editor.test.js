@@ -17,6 +17,22 @@ describe('Visual kiosk grid layout editor', () => {
     expect(api).toContain("kioskLayouts: () => request('/kiosk/layouts'");
     expect(api).toContain("saveKioskLayouts: (input) => request('/kiosk/layouts'");
   });
+  it('zooms a clicked camera in place without mounting another live player or updating shared layouts', () => {
+    expect(kiosk).toContain('kiosk-tile-focused');
+    expect(kiosk).toContain('focused={Boolean(camera && focusedSlotId === item.id)}');
+    expect(kiosk).toContain('onExpand={(event) => openCameraFocus(item.id, event)}');
+    expect(kiosk).toContain('onClick={(event) => { if (!focused) onExpand?.(event); }}');
+    expect(kiosk).toContain("event.key === 'Enter' || event.key === ' '");
+    expect(kiosk).toContain("event.key !== 'Escape'");
+    expect(kiosk).toContain('aria-modal={focused ? true : undefined}');
+    expect(kiosk).toContain('ref={closeButtonRef}');
+    expect(kiosk).toContain('focusedSlotId && <div className="kiosk-focus-backdrop"');
+    expect((kiosk.match(/<SeamlessLivePlayer/g) || [])).toHaveLength(1);
+    expect(css).toContain('.kiosk-layout-grid .kiosk-tile-focused .live-media-host>video{object-fit:contain}');
+    expect(css).toContain('position:fixed;inset:clamp(8px,2vw,26px)');
+    expect(kioskMessages.de['kiosk.focus.close']).toBe('Großansicht schließen');
+    expect(kioskMessages.en['kiosk.focus.expand']).toContain('{name}');
+  });
   it('uses cached lazy thumbnails, never extra live video players', () => {
     expect(kiosk).toContain('createKioskThumbnailLoader');
     expect(kiosk).toContain('maxConcurrent: 2');
