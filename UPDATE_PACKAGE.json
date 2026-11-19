@@ -1,17 +1,18 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.95",
+  "version": "2.20.96",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.95",
-  "summary": "Optionaler Live-Ton in der HTTPS-Cloud-WebApp, nur wenn Kunden eine Kamera ausdrücklich mit Audio öffnen.",
+  "title": "TMP Camera Surveillance Next 2.20.96",
+  "summary": "Live-Ton repariert: lokale Liveansicht und Cloud erhalten auf Anforderung eine echte AAC-HLS-Audiospur; Vorschau/Kiosk bleiben stabil stumm.",
   "createdAt": "2026-11-20T00:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.95.md",
+  "changelogFile": "UPDATE_NOTES_2.20.96.md",
   "changes": [
-    "Add authenticated POST /api/streams/:id/cloud-audio to start an optional live stream with audio",
-    "Keep permanent camera previews and kiosk HLS video-only to preserve startup speed and stability",
-    "Strict outbound-HTTPS proxy allowlist: only opt-in POST, no session-management or admin writes",
-    "Private Plesk PHP 3.1.1 adds text-only Ton einschalten/ausschalten controls, iPhone playback gesture support and audio token renewal",
-    "Preserve all original recordings, NAS data, camera identities, database and existing Cloud login sessions"
+    "Restore explicit live audio mode in both native Live page and private PHP cloud viewer",
+    "Fix missing audioEnabled in public camera stream session responses, which made cloud audio always appear unavailable",
+    "Attach optional AAC branch even when video broker was previously initialized without sound or ONVIF audio metadata is missing",
+    "Verify actual AAC track in completed local HLS segment before advertising sound capability",
+    "Keep default permanent preview and kiosk streams video-only and make local Safari audio playback opt-in with explicit speaker gesture",
+    "Add audio session regression tests while preserving MySQL, NAS archives, original camera data and cloud registration"
   ],
   "preserve": [
     ".env",
@@ -32,14 +33,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.95.md",
+  "changelog": "UPDATE_NOTES_2.20.96.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.95",
-  "packageId": "tmp-camera-surveillance-next-2.20.95",
+  "name": "TMP Camera Surveillance Next v2.20.96",
+  "packageId": "tmp-camera-surveillance-next-2.20.96",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Add opt-in, protected live camera sound to mobile HTTPS cloud portal without altering the fast default live HLS",
+  "description": "Fix live camera audio transport and verified HLS sound in both native frontend and private HTTPS cloud",
   "minVersion": "2.20.32",
-  "releaseNotes": "Deploy private Plesk PHP 3.1.1 first, then update camera backend to 2.20.95. Cloud live audio is only available when the camera source actually provides a usable microphone track. Safari might require an additional user tap.",
-  "fileCount": 559
+  "releaseNotes": "Keep private Plesk PHP 3.1.1 unchanged. Upgrade camera server to 2.20.96. Open camera live view and request audio using the speaker control; a second tap may be necessary on iPhone. Requires a working camera microphone track. No production iPhone audio test has been performed.",
+  "fileCount": 561
 }
