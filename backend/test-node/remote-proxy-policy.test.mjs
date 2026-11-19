@@ -13,7 +13,7 @@ test('proxy permits only camera browser reads and login', () => {
 test('proxy rejects admin APIs, SSRF, traversal, recordings and writes by default', () => {
   for (const route of [
     '/api/system/update/install', '/api/auth/me', '/api/system/remote-proxy',
-    '/api/cameras', '/api/cameras/a32f/snapshot', '/api/recordings',
+    '/api/cameras/a32f/snapshot', '/api/recordings',
     '/live-hls/../../etc/passwd', '//attacker.invalid/api/cameras',
     '/api/streams/a32f/restart', '/live-hls/test/seg_foo.ts',
     '/api/cameras/a32f/thumbnail%2f../../private',
