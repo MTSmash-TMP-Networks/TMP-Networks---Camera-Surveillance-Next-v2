@@ -23,6 +23,8 @@ jobs:
         run: node --test backend/test-node/go2rtc-control-api.test.mjs
       - name: Validate Voscam ONVIF TCP 888 discovery and setup
         run: node --test backend/test-node/voscam-onvif-port-888.test.mjs
+      - name: Validate cloud media relay chunk encoding and concurrency contracts
+        run: node --test backend/test-node/remote-proxy-transfer.test.mjs
       - name: Install backend dependencies for full discovery probe test
         run: npm ci --prefix backend --no-audit --no-fund
       - name: Validate Reolink vendor-port evidence and non-camera false positives
