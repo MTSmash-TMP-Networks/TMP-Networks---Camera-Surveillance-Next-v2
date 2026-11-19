@@ -113,6 +113,7 @@ async function shutdown(signal) {
   }, 85_000);
   forceExit.unref();
 
+  remoteProxyService.stop();
   healthMonitor.stop?.();
   cameraThumbnailCache.stop();
   motionDetectionService.stop();
