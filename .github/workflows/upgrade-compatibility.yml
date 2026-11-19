@@ -31,6 +31,8 @@ jobs:
           node --test backend/test-node/cloud-recording-clip.test.mjs
       - name: Validate bounded MP4 cloud downloads and proxy read-only allowlist
         run: node --test backend/test-node/cloud-recording-download.test.mjs
+      - name: Validate cached cloud archive HLS windows and proxy authorization
+        run: node --test backend/test-node/cloud-archive-hls-cache.test.mjs
       - name: Install backend dependencies for full discovery probe test
         run: npm ci --prefix backend --no-audit --no-fund
       - name: Validate Reolink vendor-port evidence and non-camera false positives
