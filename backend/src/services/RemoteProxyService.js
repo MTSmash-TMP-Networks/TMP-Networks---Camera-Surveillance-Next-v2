@@ -44,7 +44,7 @@ async function postPortal(kind, identity, payload, timeoutMs = 12_000) {
 }
 
 export class RemoteProxyService {
-  constructor() { this.running = false; this.generation = 0; this.lastContactAt = null; this.lastError = null; this.lastAgentJobs = 0; }
+  constructor() { this.running = false; this.generation = 0; this.lastContactAt = null; this.lastError = null; this.lastAgentJobs = 0; this.shuttingDown = false; }
   installationId() {
     let id = readSetting(ID_KEY);
     if (/^[0-9a-f-]{36}$/.test(id)) return id;
@@ -82,19 +82,19 @@ export class RemoteProxyService {
     return this.status();
   }
   start() {
-    if (this.running) return;
+    if (this.running || this.shuttingDown) return;
     const state = storedState();
     if (!state.enabled) return;
     this.running = true;
     void this.run().finally(() => {
       this.running = false;
-      if (storedState().enabled) setTimeout(() => this.start(), 3000).unref?.();
+      if (!this.shuttingDown && storedState().enabled) setTimeout(() => this.start(), 3000).unref?.();
     });
   }
   stop() {
+    // A restart must not erase the operator's persistent enablement.
+    this.shuttingDown = true;
     this.generation++;
-    const state = storedState();
-    if (state.enabled) { state.enabled = false; writeSetting(SETTINGS_KEY, JSON.stringify(state)); }
   }
   async run() {
     const generation = this.generation;
