@@ -1,3 +1,11 @@
+## 2.20.87 – iPhone-WebApp-Link für jeden Kamera-Server
+
+- Systemstatus zeigt einen direkten HTTPS-Link mit der festen Installations-ID, einschließlich Kopieren und Öffnen.
+- Der Link enthält keine Kamera-Zugangsdaten und kein Login-Token.
+- Neues privates PHP-Portal 3.0.3 (separater Download außerhalb von GitHub) bietet ein dynamisches Web-App-Manifest, Startadresse, App-Namen und Marken-Icons je Server-ID.
+- Login und Logout im privaten Portal erhalten die Server-ID für spätere WebApp-Starts; Kamera-Benutzer müssen sich weiterhin authentifizieren.
+- Kamera-Streams, Aufnahmen, Kiosk und bestehende Konfiguration bleiben unverändert.
+
 ## 2.20.86 – Cloud-Zugang automatisch aktiv und API-Version geprueft
 
 - HTTPS-Cloud-Agent wird bei der Installation automatisch aktiviert, bisherige AUS-Einstellungen werden einmalig eingeschaltet.

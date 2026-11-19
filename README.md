@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.86
+# TMP Camera Surveillance Next 2.20.87
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -131,3 +131,7 @@ Never enable VAAPI without the hardware test. The Intel iGPU shares system RAM, 
 ## Automatischer HTTPS-Fernzugriff ab 2.20.86
 
 Die neue Version aktiviert den ausgehenden Cloud-Zugang bei der Installation und migriert bisher deaktivierte Altinstallationen einmalig. Der lokale Administrator kann spaeter bewusst deaktivieren. Wenn der Systemstatus eine nicht gefundene Cloud-API meldet, bitte Backend und Frontend gemeinsam aktualisieren. Mehr in `UPDATE_NOTES_2.20.86.md`.
+
+## iPhone-WebApp-Zugang pro Installation (ab 2.20.87)
+
+In **Systemstatus → Sicherer HTTPS-Fernzugriff** zeigt der Kameraserver einen kopierbaren Link zur Cloud-Anmeldung mit seiner permanenten Installations-ID. Der Link enthaelt nur die UUID, keine Passwoerter oder Zugangstokens. Auf dem iPhone den Link in Safari oeffnen und unter **Teilen → Zum Home-Bildschirm** als Web-App speichern. Die private Plesk-PHP-Portalversion **3.0.3** muss separat auf `support.tmp-networks.de/cam` installiert sein; sie liefert das zur Installation passende Webmanifest. Login mit normalem Kamera-Benutzernamen und Passwort ist weiterhin erforderlich.

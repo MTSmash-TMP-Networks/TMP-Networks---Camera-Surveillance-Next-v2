@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Activity, AlertTriangle, Box, CheckCircle2, CircuitBoard, Cpu, Gauge, HardDrive,
+  Activity, AlertTriangle, Box, CheckCircle2, CircuitBoard, Copy, Cpu, ExternalLink, Gauge, HardDrive,
   MemoryStick, Power, RefreshCw, Server, ShieldCheck, Thermometer, TimerReset,
 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { useI18n } from '../i18n/index.js';
 import { api } from '../services/api.js';
+import { cloudWebAppLink } from '../services/cloudWebAppLink.js';
 import { appendMetricSample, formatBitRate, formatBytes, formatDuration, metricSeverity } from '../services/systemStatus.js';
 import { waitForSystemRestart } from '../services/systemRestart.js';
 import { loadRuntime } from '../features/auth/authSlice.js';
@@ -141,6 +142,9 @@ export function SystemStatusPage() {
   const [proxySaving, setProxySaving] = useState(false);
   const [proxyError, setProxyError] = useState('');
   const [proxyMessage, setProxyMessage] = useState('');
+  const [webAppLinkMessage, setWebAppLinkMessage] = useState('');
+  const webAppLinkInputRef = useRef(null);
+  const webAppUrl = cloudWebAppLink(proxyStatus?.installationId);
   useEffect(() => {
     let alive = true;
     async function refreshProxyStatus() {
@@ -170,6 +174,27 @@ export function SystemStatusPage() {
       setProxyMessage(enabled ? 'Ausgehender HTTPS-Proxy wurde aktiviert.' : 'HTTPS-Proxy wurde deaktiviert.');
     } catch (reason) { setProxyError(reason.message || 'Proxy-Konfiguration fehlgeschlagen'); }
     finally { setProxySaving(false); }
+  }
+
+  async function copyWebAppLink() {
+    if (!webAppUrl) return;
+    try {
+      if (typeof navigator !== 'undefined' && typeof window !== 'undefined' &&
+          window.isSecureContext && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(webAppUrl);
+      } else {
+        const field = webAppLinkInputRef.current;
+        if (!field) throw new Error('Linkfeld fehlt');
+        field.focus();
+        field.select();
+        if (!document.execCommand('copy')) throw new Error('Kopieren nicht unterstützt');
+      }
+      setWebAppLinkMessage('WebApp-Link kopiert. Er kann jetzt an das iPhone gesendet werden.');
+    } catch {
+      webAppLinkInputRef.current?.focus();
+      webAppLinkInputRef.current?.select();
+      setWebAppLinkMessage('Bitte den markierten Link manuell kopieren.');
+    }
   }
 
   const timerRef = useRef(null);
@@ -311,6 +336,16 @@ export function SystemStatusPage() {
         <span className={proxyStatus?.enabled ? 'system-status-pill ok' : 'system-status-pill warning'}>{!proxyStatus ? 'NICHT VERFÜGBAR' : proxyStatus.enabled ? 'AKTIV' : 'AUS'}</span>
       </div>
       <div className="remote-proxy-id"><strong>Installations-ID</strong> <code>{proxyStatus?.installationId || (proxyError ? 'Backend prüfen' : 'wird geladen …')}</code></div>
+      {webAppUrl && <div className="remote-proxy-webapp">
+        <strong>iPhone-WebApp-Link</strong>
+        <div className="remote-proxy-webapp-actions">
+          <input type="text" aria-label="HTTPS-WebApp-Link mit Installations-ID" ref={webAppLinkInputRef} value={webAppUrl} readOnly onFocus={(event) => event.target.select()} />
+          <button type="button" className="secondary-button" onClick={copyWebAppLink}><Copy size={16} /> Link kopieren</button>
+          <a className="secondary-button" href={webAppUrl} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} /> Öffnen</a>
+        </div>
+        <small>Auf dem iPhone in Safari öffnen, dann Teilen → Zum Home-Bildschirm → Als Web-App öffnen. Die Server-ID ist bereits eingetragen; Benutzername und Passwort bleiben erforderlich.</small>
+        {webAppLinkMessage && <span className="remote-proxy-webapp-message" role="status">{webAppLinkMessage}</span>}
+      </div>
       <div className="remote-proxy-id"><strong>Portalstatus</strong> <span>{!proxyStatus ? 'Noch nicht abrufbar' : !proxyStatus.enabled ? 'Lokal deaktiviert' : proxyStatus.paired ? 'Automatisch registriert' : 'Registrierung läuft automatisch'}</span></div>
       {proxyStatus?.lastContactAt && <div className="remote-proxy-id"><strong>Letzter Kontakt</strong> <span>{proxyStatus.lastContactAt}</span></div>}
       {proxyStatus?.lastError && <div className="form-error">Agentenfehler: {proxyStatus.lastError}</div>}

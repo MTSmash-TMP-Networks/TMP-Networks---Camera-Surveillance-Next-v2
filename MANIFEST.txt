@@ -53,6 +53,7 @@ UPDATE_NOTES_2.20.83.md
 UPDATE_NOTES_2.20.84.md
 UPDATE_NOTES_2.20.85.md
 UPDATE_NOTES_2.20.86.md
+UPDATE_NOTES_2.20.87.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -426,6 +427,7 @@ frontend/src/pages/UpdatePage.jsx
 frontend/src/pages/UsersPage.jsx
 frontend/src/services/api.js
 frontend/src/services/cameraDiscoveryState.js
+frontend/src/services/cloudWebAppLink.js
 frontend/src/services/eventSocket.js
 frontend/src/services/hlsLiveSequencePolicy.js
 frontend/src/services/hlsPlayer.js
@@ -458,6 +460,7 @@ frontend/src/utils/smbLocation.js
 frontend/src/utils/smbLocation.test.mjs
 frontend/test-node/autonomous-desktop-client.test.mjs
 frontend/test-node/camera-add-validation-regression.test.mjs
+frontend/test-node/cloud-webapp-link.test.mjs
 frontend/test-node/container-status-branding.test.mjs
 frontend/test-node/coreui-shell-foundation.test.mjs
 frontend/test-node/desktop-client-distribution.test.mjs
