@@ -79,6 +79,7 @@ export async function renderCloudRecordingClip({ filePath, part, durationSeconds
   if (!Number.isFinite(duration) || duration <= 0 || offset >= duration) {
     throw Object.assign(new Error('CLOUD_CLIP_OUT_OF_RANGE'), { status: 404 });
   }
+  const segmentDuration = Math.min(CLOUD_CLIP_SECONDS, duration - offset);
   const key = JSON.stringify([filePath, part, duration, ffmpegPath]);
   const hit = getCached(key);
   if (hit) return hit;
