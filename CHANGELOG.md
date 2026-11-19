@@ -1,3 +1,11 @@
+## 2.20.91 – Cloud-Aufnahmen abspielen und Mobilansicht reparieren
+
+- Warteschlange fuer bis zu acht wartende Cloud-Aufnahmeclips statt sofortigem HTTP-503 bei zwei laufenden Encodern.
+- Deduplizierung paralleler identischer Clip-Anfragen und begrenzter 90-Sekunden-Zwischenspeicher (max. 24 MiB).
+- Cloud-Wiedergabe auf 360p, 12 Bilder/s und 580 kbit/s reduziert, um Server-CPU und Tunnel zu entlasten; Originalaufnahmen bleiben unveraendert.
+- Private PHP-Version 3.0.8: responsiver Datumsfilter und verbesserte HLS-Fehlerdiagnose auf iPhone und Desktop.
+- Bestehende Cloud-Registrierungen, MySQL, Aufnahmen und Benutzer werden nicht veraendert.
+
 ## 2.20.90 – Aufnahmen im HTTPS-Cloud-Portal
 
 - Aufnahme-Archiv kann nun ueber das bestehende HTTPS-Proxy-Verfahren gelesen werden.

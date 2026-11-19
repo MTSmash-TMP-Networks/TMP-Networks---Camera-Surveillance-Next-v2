@@ -3,7 +3,67 @@ import { spawn } from 'node:child_process';
 export const CLOUD_CLIP_SECONDS = 4;
 export const CLOUD_CLIP_MAX_BYTES = 3_500_000;
 const MAX_CONCURRENT_CLIPS = 2;
+const MAX_PENDING_CLIPS = 8;
+const MAX_CACHED_BYTES = 24 * 1024 * 1024;
+const CACHE_TTL_MS = 90_000;
+const WAIT_TIMEOUT_MS = 9_000;
 let activeRenders = 0;
+let pendingRenders = 0;
+let cachedBytes = 0;
+const waiters = [];
+const cache = new Map();
+const inFlight = new Map();
+
+function acquireSlot() {
+  if (activeRenders < MAX_CONCURRENT_CLIPS) {
+    activeRenders++;
+    return Promise.resolve();
+  }
+  if (pendingRenders >= MAX_PENDING_CLIPS) {
+    return Promise.reject(Object.assign(new Error('CLOUD_CLIP_BUSY'), { status: 503 }));
+  }
+  pendingRenders++;
+  return new Promise((resolve, reject) => {
+    const waiter = {
+      resolve: () => { clearTimeout(waiter.timer); pendingRenders--; activeRenders++; resolve(); },
+      reject: (reason) => { clearTimeout(waiter.timer); pendingRenders--; reject(reason); },
+      timer: null,
+    };
+    waiter.timer = setTimeout(() => {
+      const index = waiters.indexOf(waiter);
+      if (index >= 0) { waiters.splice(index, 1); waiter.reject(Object.assign(new Error('CLOUD_CLIP_QUEUE_TIMEOUT'), { status: 503 })); }
+    }, WAIT_TIMEOUT_MS);
+    waiter.timer.unref?.();
+    waiters.push(waiter);
+  });
+}
+function releaseSlot() {
+  activeRenders--;
+  const next = waiters.shift();
+  if (next) next.resolve();
+}
+function getCached(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (entry.until <= Date.now()) {
+    cachedBytes -= entry.bytes.length;
+    cache.delete(key);
+    return null;
+  }
+  cache.delete(key); cache.set(key, entry);
+  return entry.bytes;
+}
+function saveCached(key, bytes) {
+  for (const [cacheKey, entry] of cache) {
+    if (entry.until <= Date.now() || cachedBytes + bytes.length > MAX_CACHED_BYTES) {
+      cache.delete(cacheKey); cachedBytes -= entry.bytes.length;
+    }
+    if (cachedBytes + bytes.length <= MAX_CACHED_BYTES) break;
+  }
+  if (bytes.length > MAX_CACHED_BYTES || cachedBytes + bytes.length > MAX_CACHED_BYTES) return;
+  cache.set(key, { bytes, until: Date.now() + CACHE_TTL_MS });
+  cachedBytes += bytes.length;
+}
 
 /**
  * Produce one self-contained H.264/AAC MPEG-TS archive clip.
@@ -19,22 +79,34 @@ export async function renderCloudRecordingClip({ filePath, part, durationSeconds
   if (!Number.isFinite(duration) || duration <= 0 || offset >= duration) {
     throw Object.assign(new Error('CLOUD_CLIP_OUT_OF_RANGE'), { status: 404 });
   }
-  if (activeRenders >= MAX_CONCURRENT_CLIPS) {
-    throw Object.assign(new Error('CLOUD_CLIP_BUSY'), { status: 503 });
-  }
   const segmentDuration = Math.min(CLOUD_CLIP_SECONDS, duration - offset);
-  activeRenders++;
-  try {
+  const key = JSON.stringify([filePath, part, duration, ffmpegPath]);
+  const hit = getCached(key);
+  if (hit) return hit;
+  if (inFlight.has(key)) return inFlight.get(key);
+  const task = (async () => {
+    await acquireSlot();
+    try {
+      const result = await encodeClip();
+      saveCached(key, result);
+      return result;
+    } finally { releaseSlot(); }
+  })();
+  inFlight.set(key, task);
+  try { return await task; }
+  finally { inFlight.delete(key); }
+
+  async function encodeClip() {
     return await new Promise((resolve, reject) => {
       const args = [
         '-hide_banner', '-loglevel', 'error', '-nostdin',
         '-ss', offset.toFixed(3), '-i', filePath,
         '-t', segmentDuration.toFixed(3),
         '-map', '0:v:0', '-map', '0:a?',
-        '-vf', 'scale=-2:540', '-r', '15',
+        '-vf', 'scale=-2:360', '-r', '12',
         '-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency',
-        '-pix_fmt', 'yuv420p', '-b:v', '850k', '-maxrate', '1100k', '-bufsize', '2200k',
-        '-g', '30', '-keyint_min', '30', '-sc_threshold', '0',
+        '-pix_fmt', 'yuv420p', '-b:v', '580k', '-maxrate', '750k', '-bufsize', '1500k',
+        '-g', '24', '-keyint_min', '24', '-sc_threshold', '0',
         '-c:a', 'aac', '-b:a', '64k', '-ar', '32000', '-ac', '2',
         '-mpegts_flags', '+resend_headers',
         '-avoid_negative_ts', 'make_zero', '-f', 'mpegts', 'pipe:1',
@@ -73,7 +145,5 @@ export async function renderCloudRecordingClip({ filePath, part, durationSeconds
         finish(null, Buffer.concat(chunks, bytes));
       });
     });
-  } finally {
-    activeRenders--;
   }
 }
