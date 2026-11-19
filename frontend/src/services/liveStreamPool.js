@@ -413,7 +413,10 @@ class LiveStreamPool {
     let released = false;
     return {
       entry,
-      setMuted: (muted) => { entry.video.muted = muted; },
+      setMuted: (muted) => {
+        entry.video.muted = muted;
+        if (!muted) entry.video.play?.().catch(() => {});
+      },
       reconnect: () => this.reconnect(entry, 'Manuell neu verbunden', 0),
       release: () => {
         if (released) return;
@@ -542,7 +545,8 @@ class LiveStreamPool {
     entry.forceTranscode = Boolean(forceTranscode);
     entry.backendSessionMode = session.mode || null;
     entry.hlsTokenRef.current = session.tokens?.hls || '';
-    entry.update({ hasAudio: Boolean(session.media?.audio) });
+    // Actual HLS media, not ONVIF metadata, determines whether audio is playable.
+    entry.update({ hasAudio: Boolean(session.audioEnabled) });
     if (session.mode === 'snapshot') {
       entry.update({ state: 'ready', protocol: 'Snapshot', message: 'Snapshot-Livemodus · stabiler Notfallweg ohne Audio', hasAudio: false, snapshotMode: true });
       this.startHeartbeat(entry);
@@ -600,7 +604,9 @@ class LiveStreamPool {
       await waitForFrameProgress(entry.video, 10000, entry.abort.signal);
       if (stale()) return true;
       const sharedPreview = session.purpose === 'ingest' && entry.purpose === 'live' && entry.quality === 'auto';
-      entry.update({ state: 'ready', protocol: forceLocalHls ? 'Local-HLS' : 'LL-HLS', message: forceTranscode ? `${session.profile?.name || 'Live'} · Browser-Fallback aktiv` : sharedPreview ? `${session.profile?.name || 'Live'} · warmer Vorschau-Stream` : forceLocalHls ? `${session.profile?.name || 'Live'} · lokaler HLS-Ring` : `${session.profile?.name || 'Live'} · stabiler Live-Stream` });
+      entry.update({ state: 'ready', protocol: forceLocalHls ? 'Local-HLS' : 'LL-HLS', message: entry.purpose === 'live-audio'
+        ? session.audioEnabled ? 'Audiokanal bereit – Lautsprechertaste erneut drücken, um Ton zu starten' : 'Keine AAC-Audiospur im Kamerastream nachgewiesen – Lautsprechertaste für stumme Vorschau drücken'
+        : forceTranscode ? `${session.profile?.name || 'Live'} · Browser-Fallback aktiv` : sharedPreview ? `${session.profile?.name || 'Live'} · warmer Vorschau-Stream` : forceLocalHls ? `${session.profile?.name || 'Live'} · lokaler HLS-Ring` : `${session.profile?.name || 'Live'} · stabiler Live-Stream` });
       this.startHeartbeat(entry);
       this.startMonitor(entry);
       this.report(entry, 'info', forceTranscode ? 'HLS_FALLBACK_PLAYING' : forceLocalHls ? 'LOCAL_HLS_PLAYING' : 'HLS_PLAYING', forceTranscode ? 'Browser spielt den bedarfsgesteuerten lokalen HLS-Transcode ab' : forceLocalHls ? 'Browser spielt den lokalen HLS-Ring ab' : 'Browser spielt den HLS-Livestream ab', forceLocalHls ? 'Local-HLS' : 'LL-HLS', { url: hlsSourceUrl, transportMode: entry.transportMode });
