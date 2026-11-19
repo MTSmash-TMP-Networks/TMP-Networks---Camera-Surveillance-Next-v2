@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.83",
+  "version": "2.20.84",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.83",
-  "summary": "Eigene, geschützte und für Smartphones optimierte Online-Oberfläche mit Kamera-Liveansicht, Vorschaubildern und Aufnahmen.",
+  "title": "TMP Camera Surveillance Next 2.20.84",
+  "summary": "Optionaler ausgehender HTTPS-Kameraproxy mit persistenter Installations-ID und privatem, separat bereitgestelltem PHP-Portal.",
   "createdAt": "2026-11-18T18:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.83.md",
+  "changelogFile": "UPDATE_NOTES_2.20.84.md",
   "changes": [
-    "Automatically route mobile browser sessions to the dedicated authenticated /mobile portal",
-    "Offer cached thumbnails, status and search without starting extra camera streams",
-    "Reuse central low-bandwidth HLS for a single selected live camera",
-    "View and play recordings with existing authenticated APIs",
-    "Enable touch-oriented navigation, safe areas and explicit desktop override"
+    "Generate persistent per-installation UUID in the SQLite settings store",
+    "Add optional outbound HTTPS polling agent with strict camera-read allowlist",
+    "Manage one-time pairing and relay status through admin-only system endpoints",
+    "Keep the private PHP server entirely outside GitHub",
+    "Allow optional HTTP_BIND_ADDRESS=127.0.0.1 to close WAN/LAN cleartext web access"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.83.md",
+  "changelog": "UPDATE_NOTES_2.20.84.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.83",
-  "packageId": "tmp-camera-surveillance-next-2.20.83",
+  "name": "TMP Camera Surveillance Next v2.20.84",
+  "packageId": "tmp-camera-surveillance-next-2.20.84",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Authenticated mobile-first frontend at /mobile with cached thumbnails and an on-demand central HLS player.",
+  "description": "Optional outbound-only secure camera relay and pairing with a separately deployed private PHP portal.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.83 introduces an independent protected mobile portal for phone/tablet logins: cached camera list, one on-demand central HLS live view, recording playback, responsive touch navigation, session logout and desktop switch. Media backend and kiosk layouts are untouched.",
-  "fileCount": 532
+  "releaseNotes": "2.20.84 adds persistent installation UUID, opt-in HTTPS polling relay, individual encrypted agent key, 10-minute pairing code and admin controls. Private portal PHP code is distributed separately and never stored in the camera GitHub repository. Local camera streaming and recording paths remain unchanged.",
+  "fileCount": 536
 }
