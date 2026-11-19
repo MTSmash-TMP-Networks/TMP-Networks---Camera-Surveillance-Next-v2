@@ -1,18 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.96",
+  "version": "2.20.97",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.96",
-  "summary": "Live-Ton repariert: lokale Liveansicht und Cloud erhalten auf Anforderung eine echte AAC-HLS-Audiospur; Vorschau/Kiosk bleiben stabil stumm.",
-  "createdAt": "2026-11-20T00:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.96.md",
+  "title": "TMP Camera Surveillance Next 2.20.97",
+  "summary": "Live-Kamerawechsel korrigiert: nur ein sichtbarer Stream, Audiozustand kameragebunden.",
+  "createdAt": "2026-11-20T00:40:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.97.md",
   "changes": [
-    "Restore explicit live audio mode in both native Live page and private PHP cloud viewer",
-    "Fix missing audioEnabled in public camera stream session responses, which made cloud audio always appear unavailable",
-    "Attach optional AAC branch even when video broker was previously initialized without sound or ONVIF audio metadata is missing",
-    "Verify actual AAC track in completed local HLS segment before advertising sound capability",
-    "Keep default permanent preview and kiosk streams video-only and make local Safari audio playback opt-in with explicit speaker gesture",
-    "Add audio session regression tests while preserving MySQL, NAS archives, original camera data and cloud registration"
+    "Restore a persistent single Live player when switching cameras",
+    "Replace media host video node instead of appending another stream",
+    "Scope opt-in audio and mute state to the selected camera",
+    "Strengthen regression tests for camera switching and single video host",
+    "Leave private PHP 3.1.1, cloud agent, backend media, database and recordings untouched"
   ],
   "preserve": [
     ".env",
@@ -33,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.96.md",
+  "changelog": "UPDATE_NOTES_2.20.97.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.96",
-  "packageId": "tmp-camera-surveillance-next-2.20.96",
+  "name": "TMP Camera Surveillance Next v2.20.97",
+  "packageId": "tmp-camera-surveillance-next-2.20.97",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Fix live camera audio transport and verified HLS sound in both native frontend and private HTTPS cloud",
+  "description": "Fix duplicate live video on camera switch while preserving AAC audio opt-in",
   "minVersion": "2.20.32",
-  "releaseNotes": "Keep private Plesk PHP 3.1.1 unchanged. Upgrade camera server to 2.20.96. Open camera live view and request audio using the speaker control; a second tap may be necessary on iPhone. Requires a working camera microphone track. No production iPhone audio test has been performed.",
-  "fileCount": 561
+  "releaseNotes": "Upgrade camera server to 2.20.97; private PHP 3.1.1 stays unchanged. After updating, switch cameras repeatedly and verify that only one live video is shown. Activate sound again per camera when needed. Live browser verification remains required.",
+  "fileCount": 562
 }

@@ -28,8 +28,12 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const reconnectSignalRef = useRef(reconnectSignal);
   const onStatusChangeRef = useRef(onStatusChange);
   const [viewportWidth, setViewportWidth] = useState(null);
-  const [muted, setMuted] = useState(true);
-  const [audioRequested, setAudioRequested] = useState(false);
+  const [audioMuted, setMuted] = useState(true);
+  const [audioRequestedRaw, setAudioRequested] = useState(false);
+  const [audioCameraId, setAudioCameraId] = useState(null);
+  // Ignore audio state from the previously selected camera before effects run.
+  const audioRequested = audioRequestedRaw && audioCameraId === camera.id;
+  const muted = !audioRequested || audioMuted;
   const [status, setStatus] = useState({ state: 'starting', protocol: null, message: t('live.streamPreparing'), hasAudio: null, snapshotMode: false });
   const [clock, setClock] = useState(() => new Date());
   const [fullscreen, setFullscreen] = useState(false);
@@ -42,7 +46,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const waitingForAdaptiveMeasurement = false;
 
   useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
-  useEffect(() => { setAudioRequested(false); setMuted(true); }, [camera.id]);
+  useEffect(() => { setAudioRequested(false); setAudioCameraId(null); setMuted(true); }, [camera.id]);
 
   useEffect(() => {
     if (compact) return undefined;
@@ -129,12 +133,14 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
       // Keep the existing preview playing silently while a dedicated audio
       // source starts. Browser autoplay must never be required to carry sound.
       setMuted(true);
+      setAudioCameraId(camera.id);
       setAudioRequested(true);
       return;
     }
     if (status.state !== 'ready' || status.hasAudio === false) {
       setMuted(true);
       setAudioRequested(false);
+      setAudioCameraId(null);
       return;
     }
     const nextMuted = !muted;

@@ -21,6 +21,17 @@ describe('Shared live player behavior', () => {
     expect(live).not.toContain('<SeamlessLivePlayer key={camera.id}');
     expect(live).toContain('<SeamlessLivePlayer camera={camera}');
   });
+  it('enforces a single visible video element even during rapid camera switches', () => {
+    expect(pool).toContain('host.replaceChildren(entry.video)');
+    expect(pool).not.toContain('host.appendChild(entry.video)');
+    expect(pool).toContain('this.stagingRoot()?.appendChild(entry.video)');
+  });
+  it('scopes optional live audio to the active camera', () => {
+    expect(player).toContain('audioRequestedRaw && audioCameraId === camera.id');
+    expect(player).toContain('const muted = !audioRequested || audioMuted');
+    expect(player).toContain('setAudioCameraId(camera.id)');
+    expect(player).toContain('setAudioCameraId(null)');
+  });
   it('tracks backend and actual video-frame progress, not only the network link', () => {
     for (const marker of ['api.streamHeartbeat', 'requestVideoFrameCallback', 'getVideoPlaybackQuality', 'BACKEND_STREAM_HEARTBEAT_STALLED', 'BROWSER_STREAM_STALLED', 'markTransportStatsProgress', 'lastStatsProgressAt', 'hasReliableFrameSignal']) expect(pool).toContain(marker);
     expect(api).toContain('streamHeartbeat');
@@ -35,7 +46,7 @@ describe('Shared live player behavior', () => {
     expect(kiosk).toContain('reconnectSignal={refreshEpoch}');
   });
   it('never rebinds backend central preview on resize', () => {
-    expect(player).toContain("const requestedQuality = compact ? 'low' : (quality === 'auto' ? 'auto' : quality)");
+    expect(player).toContain("const requestedQuality = compact ? 'low' : audioRequested ? 'high' : (quality === 'auto' ? 'auto' : quality)");
     expect(player).toContain('const connectionViewportWidth = compact ? 640');
     expect(player).toContain('const waitingForAdaptiveMeasurement = false');
     expect(player).toContain('viewportWidth: connectionViewportWidth');

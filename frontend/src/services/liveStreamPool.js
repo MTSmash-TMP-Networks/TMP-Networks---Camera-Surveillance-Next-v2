@@ -402,7 +402,10 @@ class LiveStreamPool {
     entry.subscribers.add(subscriber);
     subscriber(entry.state);
     entry.host = host;
-    host.appendChild(entry.video); // Moving the same node keeps MediaSource/WebRTC alive.
+    // This host must contain exactly one video. On camera or audio-mode changes
+    // a previous player is replaced, never left stacked under the new one.
+    // Moving the pooled node preserves its MediaSource/WebRTC decoder state.
+    host.replaceChildren(entry.video);
     entry.video.muted = options.muted !== false;
     if (entry.state.state === 'ready') {
       entry.video.play?.().catch(() => this.reconnect(entry, 'Browser-Wiedergabe wird nach dem Ansichtswechsel neu synchronisiert …', 0));

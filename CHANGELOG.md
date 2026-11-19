@@ -1,3 +1,11 @@
+## 2.20.97 – Kamerawechsel im Livebild repariert
+
+- Ruecknahme des versehentlich eingefuehrten React-Player-Remounts bei Kamerawechseln.
+- Pro Media-Host bleibt genau ein sichtbarer Videoknoten: Videoelement wird ersetzt statt angehaengt.
+- Optionales Audio wird an die ausgewaehlte Kamera gebunden; neue Kameras starten immer stumm.
+- Einzelplayer- und Audioregressionstests aktualisiert und erweitert.
+- HLS-/go2rtc-Backend, Kiosk, Aufnahmen, gespeicherte Daten und das private Plesk-PHP-Portal 3.1.1 unveraendert.
+
 ## 2.20.96 – Live-Ton in lokalem Frontend und Cloud repariert
 
 - Lokale Liveansicht: Lautsprechertaste aktiviert jetzt einen dedizierten `live-audio`-HLS-Stream anstatt nur `muted` bei einem stummen Vorschau-Stream umzuschalten.

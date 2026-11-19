@@ -171,3 +171,7 @@ Die private PHP-WebApp 3.1.1 bietet im vergoesserten Livebild pro Kamera einen T
 ## Live-Ton Hotfix 2.20.96
 
 Die lokale Liveansicht und die private PHP-Cloud-WebApp 3.1.1 koennen den Audiokanal einer Kamera nun ueber eine dedizierte, geschuetzte `live-audio`-Sitzung aktivieren. Die normale, schnelle und stumme Kameravorschau bleibt unveraendert. Das Backend meldet einen Audiokanal erst nach Nachweis einer AAC-Spur in den erzeugten HLS-Dateien. Am iPhone kann wegen Safari-Autoplay-Regeln ein zweiter Fingertipp notwendig sein. Siehe `UPDATE_NOTES_2.20.96.md`.
+
+## Live-Kamerawechsel Hotfix 2.20.97
+
+Die lokale Liveansicht behaelt ihren einzigen persistenten Player beim Kamerawechsel. Der Media-Host ersetzt alte Videoknoten, anstatt weitere Streams darunter anzuhaengen. Die optionale `live-audio`-Funktion aus 2.20.96 bleibt erhalten, muss aber nach jedem Kamerawechsel erneut bewusst aktiviert werden. Die private Plesk-PHP-WebApp 3.1.1 ist unveraendert. Details: `UPDATE_NOTES_2.20.97.md`.
