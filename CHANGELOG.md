@@ -1,3 +1,15 @@
+## 2.20.96 – Live-Ton in lokalem Frontend und Cloud repariert
+
+- Lokale Liveansicht: Lautsprechertaste aktiviert jetzt einen dedizierten `live-audio`-HLS-Stream anstatt nur `muted` bei einem stummen Vorschau-Stream umzuschalten.
+- Cloud-Endpunkt `/api/streams/:id/cloud-audio` verwendet denselben isolierten Audiomodus.
+- Kritischer Datenfehler: `audioEnabled` fehlte in der oeffentlichen Session-Antwort und ist jetzt vorhanden.
+- Auf Wunsch auch bei fehlenden ONVIF-Audioangaben optionalen AAC-Brokerpfad versuchen; bereits laufende Video-Broker werden nicht unterbrochen.
+- Audiokanal wird erst als verfuegbar gemeldet, wenn ein echtes HLS-TS-Segment per `ffprobe` AAC nachweist.
+- Lokaler HLS-Vorschauring und Kiosk bleiben standardmaessig stumm, damit die Startzeit nicht beeintraechtigt wird.
+- Die bisherige statische Falschaussage `Audio wird fuer die stabile Browseransicht deaktiviert` in der lokalen Liveansicht wurde entfernt.
+- Private PHP-WebApp 3.1.1 ohne Emojis bleibt unveraendert und wird nicht in GitHub veroeffentlicht.
+- Tests fuer gesicherte Cloud-Audio-Anforderung, reale HLS-Audioverifikation und lokale Lautsprecherbedienung.
+
 ## 2.20.95 – Optionaler Live-Ton im HTTPS-Cloud-Portal
 
 - Geschuetzter POST-Endpunkt `/api/streams/:id/cloud-audio` schaltet nur auf ausdruecklichen Kundenwunsch eine dedizierte Live-HLS-Sitzung mit Audiokanal frei.
