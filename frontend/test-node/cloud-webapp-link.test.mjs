@@ -20,3 +20,12 @@ test('system status offers copy/open buttons without generating camera credentia
   assert.match(page, /document\.execCommand\('copy'\)/);
   assert.doesNotMatch(page, /webAppUrl\s*=.*(?:accessToken|password)/);
 });
+
+test('conditional iPhone WebApp block closes before the next sibling JSX node', () => {
+  const page = readFileSync(new URL('../src/pages/SystemStatusPage.jsx', import.meta.url), 'utf8');
+  const start = page.indexOf('{webAppUrl && <div className="remote-proxy-webapp">');
+  const next = page.indexOf('<div className="remote-proxy-id"><strong>Portalstatus</strong>', start);
+  assert.ok(start >= 0 && next > start, 'WebApp block and portal status must exist');
+  const boundary = page.slice(start, next);
+  assert.match(boundary, /<\/div>\s*\}\s*$/, 'conditional JSX block must be closed before the next section');
+});
