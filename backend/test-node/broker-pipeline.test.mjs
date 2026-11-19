@@ -5,6 +5,7 @@ import {
   nativeBrokerSource,
   normalizedVideoSource,
   optionalAudioSource,
+  optionalMicrophoneSource,
   profileMedia,
   normalizedBrokerPolicy,
   brokerEncoderCandidates,
@@ -28,9 +29,10 @@ test('normalized stream consumes the raw stream name', () => {
 });
 
 test('optional audio stream is isolated from the stable video-only path', () => {
-  assert.equal(optionalAudioSource('cam_1_raw'), 'ffmpeg:cam_1_raw#audio=aac#timeout=20');
+  assert.equal(optionalAudioSource('cam_1_raw'), 'ffmpeg:cam_1_raw#video=h264#audio=aac#timeout=20');
   assert.doesNotMatch(normalizedVideoSource('cam_1_raw'), /audio=/);
-  assert.doesNotMatch(optionalAudioSource('cam_1_raw'), /#video=/);
+  assert.equal(optionalMicrophoneSource('cam_1_raw'), 'ffmpeg:cam_1_raw#audio=aac#timeout=20');
+  assert.doesNotMatch(optionalMicrophoneSource('cam_1_raw'), /#video=/);
 });
 
 test('broker paths are stable and credentials do not affect identity', () => {
@@ -54,7 +56,7 @@ test('profile metadata replaces camera ffprobe as non-blocking diagnostics', () 
 
 test('Intel VAAPI is opt-in for broker encoder and has unchanged CPU fallback path', () => {
   assert.equal(normalizedVideoSource('cam_1_raw', 20, 'vaapi'), 'ffmpeg:cam_1_raw#video=h264#timeout=20#hardware=vaapi');
-  assert.equal(optionalAudioSource('cam_1_raw', 20, 'vaapi'), 'ffmpeg:cam_1_raw#audio=aac#timeout=20');
+  assert.equal(optionalAudioSource('cam_1_raw', 20, 'vaapi'), 'ffmpeg:cam_1_raw#video=h264#audio=aac#timeout=20#hardware=vaapi');
   assert.equal(normalizedVideoSource('cam_1_raw', 20, 'none'), normalizedVideoSource('cam_1_raw'));
   assert.doesNotMatch(normalizedVideoSource('cam_1_raw', 20, 'unknown'), /hardware=/);
 });
@@ -74,7 +76,7 @@ test('H.264 uses copy first, other video codecs use VAAPI if available', () => {
 
 test('Copy avoids video encoding and is isolated from VAAPI/software paths', () => {
   assert.equal(normalizedVideoSource('cam_test', 20, 'copy'), 'ffmpeg:cam_test#video=copy#timeout=20');
-  assert.equal(optionalAudioSource('cam_test', 20, 'copy'), 'ffmpeg:cam_test#audio=aac#timeout=20');
+  assert.equal(optionalAudioSource('cam_test', 20, 'copy'), 'ffmpeg:cam_test#video=copy#audio=aac#timeout=20');
   assert.equal(normalizedBrokerPolicy({videoCodec:'H264'}, 'copy').copyVideo, true);
   const args={token:'sub',videoCodec:'H264'};
   const source={uri:'rtsp://user:pass@camera/sub'};
