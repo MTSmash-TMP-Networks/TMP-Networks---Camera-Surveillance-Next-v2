@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.92
+# TMP Camera Surveillance Next 2.20.93
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -155,3 +155,7 @@ Bei ausgelasteten Kameraservern werden kurze Cloud-Aufnahmeclips jetzt geordnet 
 ## MP4-Download statt HLS in der privaten Cloud (2.20.92)
 
 Mit dem separat unter Plesk installierten PHP-Portal 3.0.9 koennen registrierte Benutzer kurze MP4-Aufnahmeausschnitte direkt herunterladen. Ein Download benoetigt keine vorherige Abfrage der Aufnahmeblockliste und versendet keine Zugangstokens in der URL. Aus Sicherheits- und Lastgruenden enthaelt jeder Download maximal 15 Sekunden Video bei reduzierter Qualitaet; vollstaendige Original-Exports werden weiterhin lokal durchgefuehrt. Siehe `UPDATE_NOTES_2.20.92.md`.
+
+## Cloud-Aufnahme-HLS auf Basis vorbereiteter Segmente (2.20.93)
+
+Der lokale Kameraserver stellt gespeicherte Aufnahmen ueber geschuetzte, 30 Sekunden lange HLS-VOD-Fenster bereit. FFmpeg erzeugt kleine Segmente einmalig; Wiederholungsabrufe werden aus einem begrenzten lokalen Cache bedient. Das private Plesk-PHP-Portal 3.1.0 wird separat ausgeliefert, benutzt nur das bestehende HTTPS-Agentenprotokoll und enthaelt keine Emojis. PHP 3.1.0 **zuerst**, dann Kamera 2.20.93 installieren. Details in `UPDATE_NOTES_2.20.93.md`.
