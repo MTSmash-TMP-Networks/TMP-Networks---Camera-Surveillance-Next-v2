@@ -936,3 +936,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[r
 .tmp-mobile-switch:hover{border-color:#3ca4bb;color:#e3fcff}
 .tmp-mobile-switch:focus-visible{outline:3px solid #2ccde6;outline-offset:2px}
 @media(max-width:700px){.tmp-mobile-switch{padding:9px;min-width:43px}.tmp-mobile-switch>span{display:none}}
+
+/* Secure per-server iPhone web app link: read-only URL, copy/open controls. */
+.remote-proxy-webapp{margin:14px 0 16px;padding:16px;border:1px solid #225b6c;border-radius:14px;background:#0b2534;display:grid;gap:10px;min-width:0}
+.remote-proxy-webapp>strong{font-size:14px;color:#e9f4fb}
+.remote-proxy-webapp-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.remote-proxy-webapp-actions input{flex:1 1 340px;min-width:0;max-width:100%;padding:11px 12px;border:1px solid #29637c;border-radius:10px;background:#061827;color:#aedfe9;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+.remote-proxy-webapp-actions .secondary-button{min-height:43px;display:inline-flex;align-items:center;gap:7px;text-decoration:none;white-space:nowrap;margin:0}
+.remote-proxy-webapp-actions .secondary-button svg{width:16px;height:16px}
+.remote-proxy-webapp>small{display:block;font-size:12px;line-height:1.6;color:#9cbbc9}
+.remote-proxy-webapp-message{color:#97e7c9;font-size:12px}
+@media(max-width:620px){.remote-proxy-webapp-actions input{flex-basis:100%}.remote-proxy-webapp-actions .secondary-button{flex:1;justify-content:center}}
