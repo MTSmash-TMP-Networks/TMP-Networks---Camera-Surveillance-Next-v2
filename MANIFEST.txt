@@ -62,6 +62,7 @@ UPDATE_NOTES_2.20.92.md
 UPDATE_NOTES_2.20.93.md
 UPDATE_NOTES_2.20.94.md
 UPDATE_NOTES_2.20.95.md
+UPDATE_NOTES_2.20.96.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -233,6 +234,7 @@ backend/test-node/go2rtc-control-api.test.mjs
 backend/test-node/hls-recovery-stability.test.mjs
 backend/test-node/intel-vaapi-deployment.test.mjs
 backend/test-node/kiosk-broker-oom-guard.test.mjs
+backend/test-node/live-audio-session.test.mjs
 backend/test-node/local-hls-command.test.mjs
 backend/test-node/local-hls-health.test.mjs
 backend/test-node/local-hls-http-runtime.test.mjs
