@@ -8,6 +8,16 @@ export function allowedProxyRequest(method, pathname) {
     if (parsed.origin !== 'http://camera.internal') return false;
     path = parsed.pathname;
   } catch { return false; }
+  if (method === 'GET') {
+    // Cloud archive: list/segments/short transcoded clips only. Reject writes,
+    // raw recordings, privileged exports, arbitrary filters and token URLs.
+    if (path === '/api/recordings') {
+      return pathname === '/api/recordings?limit=100'
+        || /^\/api\/recordings\?cameraId=[A-Za-z0-9_-]{1,90}&limit=100$/.test(pathname);
+    }
+    if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/segments$/.test(path)) return parsed.search === '';
+    if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/cloud\/(?:file|[1-9][0-9]{0,9})\/clip\/(?:0|[1-9][0-9]{0,3})\.ts$/.test(path)) return parsed.search === '';
+  }
   if (method === 'POST') return path === '/api/auth/login';
   if (method !== 'GET') return false;
   return path === '/api/cameras'
