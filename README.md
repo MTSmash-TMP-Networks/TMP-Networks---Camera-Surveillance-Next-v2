@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.94
+# TMP Camera Surveillance Next 2.20.95
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -163,3 +163,7 @@ Der lokale Kameraserver stellt gespeicherte Aufnahmen ueber geschuetzte, 30 Seku
 ## Kritischer Fix fuer das HTTPS-HLS-Aufnahme-Archiv (2.20.94)
 
 Version 2.20.93 konnte die Archiv-HLS-Dateien nicht freigeben, weil eine JavaScript-`URL`-Variable ausserhalb ihres Geltungsbereichs verwendet wurde. Version 2.20.94 korrigiert die Proxy-Freigabe und ergaenzt Regressionstests. Die private PHP-Datei 3.1.0 bleibt unveraendert, bestehende Daten und Aufnahmen bleiben erhalten. Siehe `UPDATE_NOTES_2.20.94.md`.
+
+## Optionaler Live-Ton in der Cloud (ab 2.20.95)
+
+Die private PHP-WebApp 3.1.1 bietet im vergoesserten Livebild pro Kamera einen Textschalter zum bewussten Aktivieren des Audiokanals. Das schnelle standardmaessige Videovorschaubild bleibt stumm. Der Kameraserver startet einen separaten, authentifizierten HLS-Audiostream nur nach ausdruecklicher Anforderung; die Kamera muss eine funktionierende Audioquelle besitzen. iOS Safari kann einen zweiten Fingertipp zum Starten benoetigen. Weitere Informationen in `UPDATE_NOTES_2.20.95.md`.
