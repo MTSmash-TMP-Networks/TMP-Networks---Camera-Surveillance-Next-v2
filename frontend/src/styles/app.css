@@ -812,3 +812,22 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[r
 .global-recording-panel>header small{line-height:1.5}
 .global-recording-panel>.secondary-button{margin:14px 0 0;min-height:43px}
 .global-recording-warning{font-size:12px;line-height:1.55;color:var(--muted);margin:12px 0 0}
+
+/* v2.20.82: Single-camera kiosk focus. Same pooled video element, no new ingest. */
+.kiosk-tile-interactive{position:relative;cursor:zoom-in;outline-offset:3px}
+.kiosk-tile-interactive:focus-visible{outline:3px solid #20d4f4}
+.kiosk-tile-expand-hint{position:absolute;z-index:10;bottom:10px;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid #38677d;border-radius:9px;background:#051522d9;color:#e4faff;pointer-events:none;opacity:.6;transition:opacity .15s}
+.kiosk-tile-expand-hint svg{width:17px;height:17px}
+.kiosk-tile-interactive:hover .kiosk-tile-expand-hint,.kiosk-tile-interactive:focus-visible .kiosk-tile-expand-hint{opacity:1}
+.kiosk-focus-backdrop{position:fixed;inset:0;z-index:280;background:#000e;backdrop-filter:blur(8px)}
+.kiosk-layout-grid .kiosk-tile-focused{position:fixed;inset:clamp(8px,2vw,26px);z-index:290;width:auto;height:auto;min-width:0;min-height:0;margin:0;border:1px solid #317c99;border-radius:14px;background:#000;box-shadow:0 26px 95px #000e;cursor:default;overflow:hidden}
+.kiosk-layout-grid .kiosk-tile-focused .live-player-compact{width:100%;height:100%;min-height:0;border:0;border-radius:0}
+.kiosk-layout-grid .kiosk-tile-focused .live-media-host>video{object-fit:contain}
+.kiosk-layout-grid .kiosk-tile-focused .kiosk-camera-label{right:68px;top:14px;max-width:calc(100% - 175px);font-size:15px}
+.kiosk-layout-grid .kiosk-tile-focused .kiosk-camera-label strong{font-size:16px}
+.kiosk-layout-grid .kiosk-tile-focused .kiosk-status-badges{top:68px;right:14px}
+.kiosk-tile-focus-close{position:absolute;z-index:30;top:14px;right:14px;display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid #44748c;border-radius:12px;color:#fff;background:#0b2333e8;cursor:pointer}
+.kiosk-tile-focus-close:hover{background:#17435a;border-color:#20d4f4}
+.kiosk-tile-focus-close:focus-visible{outline:3px solid #20d4f4;outline-offset:3px}
+.kiosk-tile-focus-close svg{width:23px;height:23px}
+@media(max-width:700px){.kiosk-layout-grid .kiosk-tile-focused{inset:6px;border-radius:8px}.kiosk-layout-grid .kiosk-tile-focused .kiosk-camera-label{right:62px;top:8px;max-width:calc(100% - 140px)}.kiosk-tile-focus-close{right:8px;top:8px}.kiosk-layout-grid .kiosk-tile-focused .kiosk-status-badges{top:60px;right:8px;left:auto;bottom:auto}}

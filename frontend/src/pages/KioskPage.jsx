@@ -42,14 +42,34 @@ function KioskClock({ locale, t }) {
   </div>;
 }
 
-const KioskTile = memo(function KioskTile({ camera, refreshEpoch, quality, runtimeStatus, startDelayMs = 0, style, t }) {
+const KioskTile = memo(function KioskTile({ camera, refreshEpoch, quality, runtimeStatus, startDelayMs = 0, style, t, focused = false, onExpand, onClose }) {
+  const closeButtonRef = useRef(null);
+  useEffect(() => {
+    if (focused) closeButtonRef.current?.focus();
+  }, [focused]);
+
   if (!camera) {
     return <article className="kiosk-tile kiosk-tile-empty" style={style}>
       <Grid2X2/>
       <span>{t('kiosk.tile.empty')}</span>
     </article>;
   }
-  return <article className="kiosk-tile" style={style}>
+  return <article
+    className={`kiosk-tile kiosk-tile-interactive${focused ? ' kiosk-tile-focused' : ''}`}
+    style={style}
+    role={focused ? 'dialog' : 'button'}
+    aria-modal={focused ? true : undefined}
+    aria-label={focused ? t('kiosk.focus.title', { name: camera.name }) : t('kiosk.focus.expand', { name: camera.name })}
+    tabIndex={focused ? -1 : 0}
+    onClick={(event) => { if (!focused) onExpand?.(event); }}
+    onKeyDown={(event) => {
+      if (focused || event.target !== event.currentTarget) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        onExpand?.(event);
+      }
+    }}
+  >
     <SeamlessLivePlayer
       camera={camera}
       quality={quality}
@@ -61,6 +81,13 @@ const KioskTile = memo(function KioskTile({ camera, refreshEpoch, quality, runti
       connectDelayMs={startDelayMs}
       isolateFailure
     />
+    {focused
+      ? <button ref={closeButtonRef} type="button" className="kiosk-tile-focus-close"
+          onClick={(event) => { event.stopPropagation(); onClose?.(); }}
+          aria-label={t('kiosk.focus.close')} title={t('kiosk.focus.close')}>
+          <X/>
+        </button>
+      : <span className="kiosk-tile-expand-hint" aria-hidden="true"><Expand/></span>}
   </article>;
 });
 
@@ -295,6 +322,10 @@ export function KioskPage() {
   const [fullscreen, setFullscreen] = useState(Boolean(document.fullscreenElement));
   const [runtimeStatus, setRuntimeStatus] = useState({});
   const [statusError, setStatusError] = useState('');
+  // Ephemeral single-camera focus: never persisted, never changes the
+  // camera/session identity and therefore never reopens a backend stream.
+  const [focusedSlotId, setFocusedSlotId] = useState(null);
+  const focusedOriginRef = useRef(null);
   const kioskStatusFailures = useRef(0);
   // Browser storage is only a one-time migration source/offline mirror.
   // The server owns the canonical raster and selected view for every client.
@@ -436,6 +467,36 @@ export function KioskPage() {
   const statusSummary = useMemo(() => summarizeKioskStatus(Object.fromEntries(assignedCameraIds.map((cameraId) => [cameraId, runtimeStatus[cameraId]]).filter(([, value]) => value))), [assignedCameraIds, runtimeStatus]);
   const activeLayoutName = activeLayoutId === 'auto' ? t('kiosk.layout.automatic') : activeLayout.name;
 
+  function openCameraFocus(slotId, event) {
+    focusedOriginRef.current = event.currentTarget;
+    setFocusedSlotId(slotId);
+  }
+
+  function closeCameraFocus() {
+    setFocusedSlotId(null);
+    const origin = focusedOriginRef.current;
+    if (origin) window.requestAnimationFrame?.(() => origin.focus());
+  }
+
+  useEffect(() => {
+    if (!focusedSlotId) return undefined;
+    function onEscape(event) {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      closeCameraFocus();
+    }
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
+  }, [focusedSlotId]);
+
+  useEffect(() => {
+    if (focusedSlotId && !activeLayout.slots.some((slot) =>
+      slot.id === focusedSlotId && camerasById.has(slot.cameraId))) {
+      setFocusedSlotId(null);
+    }
+  }, [focusedSlotId, activeLayout, camerasById]);
+
+
   function selectLayout(layoutId) {
     void persistSharedLayout(layouts, layoutId);
   }
@@ -489,12 +550,16 @@ export function KioskPage() {
         {!fullscreen && <Link to="/live"><Radio/> {t('kiosk.action.liveView')}</Link>}
       </div>
     </header>
+    {focusedSlotId && <div className="kiosk-focus-backdrop" aria-hidden="true" onClick={closeCameraFocus}/>}
     {cameras.length
       ? <section className="kiosk-grid kiosk-layout-grid" style={gridStyle}>{activeLayout.slots.map((item, index) => {
         const camera = camerasById.get(item.cameraId);
         return <KioskTile
           key={`${item.id}:${camera?.id || 'empty'}`}
           camera={camera}
+          focused={Boolean(camera && focusedSlotId === item.id)}
+          onExpand={(event) => openCameraFocus(item.id, event)}
+          onClose={closeCameraFocus}
           refreshEpoch={refreshEpoch}
           quality="low"
           runtimeStatus={camera ? runtimeStatus[camera.id] : null}

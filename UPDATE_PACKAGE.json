@@ -1,16 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.81",
+  "version": "2.20.82",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.81",
-  "summary": "Gezielter Encoder-Fallback für belegte H.264-Parameter- und HLS-Zeitstempelfehler sowie korrekte FFmpeg-Exitprotokolle.",
+  "title": "TMP Camera Surveillance Next 2.20.82",
+  "summary": "Großansicht von Kamerabildern per Klick im Kioskmodus ohne zusätzliche Kamera- oder Medienverbindungen.",
   "createdAt": "2026-11-18T18:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.81.md",
+  "changelogFile": "UPDATE_NOTES_2.20.82.md",
   "changes": [
-    "Allow codec-evidenced copy-to-encoder fallback for PPS/SPS initialization faults",
-    "Allow timestamp-evidenced fallback on HLS packets with zero duration",
-    "Avoid encoder retries on EOF or no-frame stalls",
-    "Preserve FFMPEG_EXIT event code alongside separate numeric exitCode"
+    "Open any kiosk live tile large on click or keyboard without a second player",
+    "Close with Escape, large close button or backdrop click",
+    "Keep existing pooled video, central camera connection and recording indicators intact",
+    "Display entire video image with aspect-preserving contain mode",
+    "Preserve layout synchronization and the 2.20.81 streaming fixes"
   ],
   "preserve": [
     ".env",
@@ -31,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.81.md",
+  "changelog": "UPDATE_NOTES_2.20.82.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.81",
-  "packageId": "tmp-camera-surveillance-next-2.20.81",
+  "name": "TMP Camera Surveillance Next v2.20.82",
+  "packageId": "tmp-camera-surveillance-next-2.20.82",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Evidence-based copy-video fallback for broken PPS and packet durations; preserve accurate FFmpeg exit events.",
+  "description": "Enlarge a single kiosk camera in place while keeping the shared live player connected.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.81 retries the next existing encoder only for evidenced H264 parameter-set or packet timestamp faults in the copy path. EOF and empty video streams do not cause extra encoder attempts. FFMPEG_EXIT is preserved as an event code and exitCode is logged separately. All camera and recording settings remain unchanged.",
-  "fileCount": 524
+  "releaseNotes": "2.20.82 adds click, keyboard and Escape access to enlarged live camera tiles in both browser and Linux kiosk. The same mounted pooled video stays alive without extra camera/FFmpeg/go2rtc starts, and the original server-synchronized kiosk grid is preserved. Recording and stream backends are unchanged.",
+  "fileCount": 525
 }
