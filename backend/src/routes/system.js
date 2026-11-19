@@ -21,7 +21,6 @@ export const systemRouter = Router();
 systemRouter.use(authenticate, authorize('admin'));
 const remoteProxySettingsSchema = z.object({
   enabled: z.boolean(),
-  pairingCode: z.string().regex(/^[a-f0-9]{48}$/i).optional(),
 }).strict();
 
 systemRouter.get('/remote-proxy', (_req, res) => {
