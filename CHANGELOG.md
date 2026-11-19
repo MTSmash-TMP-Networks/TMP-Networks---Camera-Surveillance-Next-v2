@@ -1,3 +1,11 @@
+## 2.20.94 – Kritischer Cloud-Archiv-HLS-Agenten-Fix
+
+- Fehler `ReferenceError: parsed is not defined` in `backend/src/services/remoteProxyPolicy.js` behoben.
+- Ursachenkorrektur: `URL`-Parserobjekt steht jetzt auch fuer die geschuetzten Archiv-HLS-Pfade im gueltigen JavaScript-Geltungsbereich zur Verfuegung.
+- Anfragevalidierung fuer fremde Query-Parameter und URL-Fragmente bleibt strikt; kein direkter Zugriff auf private Aufnahme-Dateien.
+- Echte Regressionstests fuer HLS-Archiv-Playlists, HLS-Segmente und weitere bereits freigegebene Aufnahme-Endpunkte ergaenzt.
+- Plesk PHP 3.1.0 bleibt unveraendert, Kamera-Livebild und Originalaufnahmen ebenso.
+
 ## 2.20.93 – HLS-Aufnahme-Archiv nach dem Live-HLS-Prinzip
 
 - Statt bei jeder Anfrage einen neuen Videoclip zu kodieren, bereitet der Kameraserver einmalig kurze 30-Sekunden-Fenster einer Aufnahme vor.

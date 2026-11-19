@@ -3,9 +3,10 @@ export function allowedProxyRequest(method, pathname) {
       pathname.startsWith('//') || pathname.includes('\\') ||
       /%2f|%5c|%00|\.\./i.test(pathname)) return false;
   let path;
+  let parsed;
   try {
-    const parsed = new URL(pathname, 'http://camera.internal');
-    if (parsed.origin !== 'http://camera.internal') return false;
+    parsed = new URL(pathname, 'http://camera.internal');
+    if (parsed.origin !== 'http://camera.internal' || parsed.hash) return false;
     path = parsed.pathname;
   } catch { return false; }
   if (method === 'GET') {

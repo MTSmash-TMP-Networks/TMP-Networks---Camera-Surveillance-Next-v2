@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.93",
+  "version": "2.20.94",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.93",
-  "summary": "Cloud-Aufnahme-Archiv nutzt zwischengespeicherte HLS-Videosegmente statt MP4-Download und pro-Segment-Konvertierung.",
-  "createdAt": "2026-11-19T23:05:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.93.md",
+  "title": "TMP Camera Surveillance Next 2.20.94",
+  "summary": "Kritischer Cloud-Archiv-Fix: Aufnahme-HLS blockierte durch JavaScript ReferenceError im HTTPS-Agenten.",
+  "createdAt": "2026-11-19T23:57:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.94.md",
   "changes": [
-    "Generate 30-second cached HLS VOD windows from finalized archive blocks on demand",
-    "Serve 2-second pre-existing HLS segments over the same authenticated cloud relay approach as live feeds",
-    "Use H264 copy-first and AAC normalization; bound and cache H264 transcoding when needed",
-    "Limit concurrent archive preparation to two, queue eight, and enforce 384MiB disk cache with 90-minute retention",
-    "Private PHP 3.1.0: read-only archive list and iPhone HLS VOD player, no emojis and no MP4 downloads"
+    "Fix ReferenceError: parsed is not defined in outbound HTTPS agent recording allowlist",
+    "Restore archive HLS playlist and segment relay to the camera backend",
+    "Deny unexpected query tokens and URL fragments on protected archive media URLs",
+    "Add regression coverage for cloud HLS, segments, MP4 and legacy clip allowlist routes",
+    "No change to Plesk PHP 3.1.0, NAS files, original recording data or live camera playback"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.93.md",
+  "changelog": "UPDATE_NOTES_2.20.94.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.93",
-  "packageId": "tmp-camera-surveillance-next-2.20.93",
+  "name": "TMP Camera Surveillance Next v2.20.94",
+  "packageId": "tmp-camera-surveillance-next-2.20.94",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Rebuild cloud recording archive playback on secure cached HLS segments like the working live HLS route",
+  "description": "Repair camera cloud HLS archive request dispatch by fixing URL parser variable scope",
   "minVersion": "2.20.32",
-  "releaseNotes": "Deploy private Plesk PHP 3.1.0 first, then update camera backend to 2.20.93. Original recordings stay unchanged. Production Plesk/iPhone end-to-end tests are still required.",
-  "fileCount": 556
+  "releaseNotes": "Keep private Plesk portal at PHP 3.1.0. Update camera server only to 2.20.94. Retry previously failed archive playback. Existing MySQL, IDs, NAS and camera recordings remain unchanged.",
+  "fileCount": 557
 }
