@@ -29,6 +29,10 @@ describe('Shared live player behavior', () => {
   it('scopes optional live audio to the active camera', () => {
     expect(player).toContain('audioRequestedRaw && audioCameraId === camera.id');
     expect(player).toContain('const muted = !audioRequested || audioMuted');
+    expect(player).toContain('audioHostRef');
+    expect(player).toContain("purpose: 'live-audio'");
+    expect(player).toContain('audioHandleRef.current?.setMuted(nextMuted)');
+    expect(player).toContain("setAudioQuality('high')");
     expect(player).toContain('setAudioCameraId(camera.id)');
     expect(player).toContain('setAudioCameraId(null)');
   });
@@ -46,7 +50,8 @@ describe('Shared live player behavior', () => {
     expect(kiosk).toContain('reconnectSignal={refreshEpoch}');
   });
   it('never rebinds backend central preview on resize', () => {
-    expect(player).toContain("const requestedQuality = compact ? 'low' : audioRequested ? 'high' : (quality === 'auto' ? 'auto' : quality)");
+    expect(player).toContain("const requestedQuality = compact ? 'low' : (quality === 'auto' ? 'auto' : quality)");
+    expect(player).toContain("const requestedPurpose = compact ? 'kiosk' : 'live'");
     expect(player).toContain('const connectionViewportWidth = compact ? 640');
     expect(player).toContain('const waitingForAdaptiveMeasurement = false');
     expect(player).toContain('viewportWidth: connectionViewportWidth');
