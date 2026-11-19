@@ -37,7 +37,9 @@ function sessionSlot(quality, viewportWidth, purpose = 'live') {
   // carry legacy 'balanced' plan values, which must not defeat the architecture.
   if (purpose === 'motion' && config.motionPreferSubstream) return 'low';
   if (purpose === 'recording' && config.recordingPreferMainstream) return 'high';
-  if (purpose === 'live-audio') return 'high';
+  // Use the same source tier as the working live preview first. The private
+  // cloud endpoint explicitly requests high quality and remains unchanged.
+  if (purpose === 'live-audio') return quality === 'auto' ? permanentQuality() : quality;
   if (quality !== 'auto') return quality;
   if (purpose === 'kiosk' && config.kioskPreferSubstream) return 'low';
   if (purpose === 'live' && config.livePreferMainstream) return 'high';
@@ -254,7 +256,7 @@ class StreamOrchestrator {
         // preview. Adding an optional audio branch must not restart that broker.
         if (wantsAudio && !existing.audioConfigured) {
           try {
-            await go2RtcClient.upsertStream(paths.audio, optionalAudioSource(paths.raw, 20, encoder, profile?.videoCodec));
+            await go2RtcClient.upsertStream(paths.audio, optionalAudioSource(paths.raw, 20));
             await go2RtcClient.waitUntilRegistered(paths.audio);
             existing.audioConfigured = true;
             existing.audio = paths.audio;
@@ -309,7 +311,7 @@ class StreamOrchestrator {
       // explicit live-mainstream sessions keep their own audio capability.
       const videoOnlyPreview = session.permanent || ['motion', 'prebuffer'].includes(session.purpose || '');
       if (wantsAudio && !videoOnlyPreview) {
-        const audioSource = optionalAudioSource(paths.raw, 20, encoder, profile?.videoCodec);
+        const audioSource = optionalAudioSource(paths.raw, 20);
         try {
           await go2RtcClient.upsertStream(paths.audio, audioSource);
           await go2RtcClient.waitUntilRegistered(paths.audio);
@@ -1048,7 +1050,7 @@ class StreamOrchestrator {
     session.lastProgressSource = 'go2rtc-broker-start';
     const outputDir = this.localHlsDirectory(session);
 
-    const startRing = async (brokerName, includeAudio) => {
+    const startRing = async (brokerName, includeAudio, audioBrokerName = null) => {
       this.cleanLocalHls(session);
       fs.mkdirSync(outputDir, { recursive: true });
       session.stderr = '';
@@ -1060,8 +1062,10 @@ class StreamOrchestrator {
       // caused by stale/duplicate Docker DNS targets or an RTSP registry that
       // is not the same runtime instance as the Control API.
       const brokerReadUrl = go2RtcClient.streamTsUrl(brokerName);
+      const audioReadUrl = includeAudio && audioBrokerName ? go2RtcClient.streamTsUrl(audioBrokerName) : null;
       const args = buildLocalHlsRingArgs({
         sourceUri: brokerReadUrl,
+        audioSourceUri: audioReadUrl,
         outputDir,
         includeAudio,
         segmentSeconds: config.localHlsSegmentSeconds,
@@ -1083,6 +1087,7 @@ class StreamOrchestrator {
         normalizedBroker: brokerName,
         brokerReused: broker.reused,
         audioRequested: includeAudio,
+        audioBroker: audioBrokerName,
         brokerInput: 'go2rtc-http-mpegts',
         output: this.publicLocalHlsUrl(session),
       });
@@ -1115,7 +1120,9 @@ class StreamOrchestrator {
     // doubles startup time on cameras with unavailable/incompatible audio,
     // and can keep a global connection slot busy for another 12-20 seconds.
     if (broker.audioConfigured && !session.permanent) {
-      ring = await startRing(broker.audio, true);
+      // Video remains the shared normalized H.264 producer. The optional
+      // broker supplies AAC only; never convert video again for sound.
+      ring = await startRing(broker.video, true, broker.audio);
       if (!ring.outcome.ready) {
         await this.stopMediaChild(session, ring.child);
         this.cleanLocalHls(session);
@@ -1201,18 +1208,29 @@ class StreamOrchestrator {
     // ONVIF profile metadata alone do not prove that a camera sends audio.
     let verifiedAudioCodec = null;
     if (ring.includeAudio) {
-      const recent = fs.readdirSync(outputDir).filter((name) => /^seg_[0-9]+\.ts$/.test(name)).sort().reverse().slice(0, 4);
-      for (const name of recent) {
-        try {
-          const { stdout } = await execFileAsync(config.ffprobePath, [
-            '-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name',
-            '-of', 'default=noprint_wrappers=1:nokey=1', path.join(outputDir, name),
-          ], { timeout: 3500, maxBuffer: 16 * 1024 });
-          if (String(stdout || '').trim().toLowerCase() === 'aac') {
-            verifiedAudioCodec = 'aac';
-            break;
-          }
-        } catch { /* Camera audio may be absent or still initializing. */ }
+      // Audio may begin a few fragments later than the first H.264 video.
+      // Verify newly completed TS segments, with a strict bounded deadline.
+      const audioProbeDeadline = Date.now() + 6000;
+      const checkedAudioSegments = new Set();
+      while (!verifiedAudioCodec && Date.now() < audioProbeDeadline) {
+        const recent = fs.readdirSync(outputDir)
+          .filter((name) => /^seg_[0-9]+\.ts$/.test(name)).sort().reverse().slice(0, 6);
+        for (const name of recent) {
+          if (checkedAudioSegments.has(name)) continue;
+          checkedAudioSegments.add(name);
+          try {
+            const { stdout } = await execFileAsync(config.ffprobePath, [
+              '-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name',
+              '-of', 'default=noprint_wrappers=1:nokey=1', path.join(outputDir, name),
+            ], { timeout: 1500, maxBuffer: 16 * 1024 });
+            if (String(stdout || '').trim().toLowerCase() === 'aac') {
+              verifiedAudioCodec = 'aac';
+              break;
+            }
+          } catch { /* Camera audio may be absent or the segment may be rotating. */ }
+        }
+        if (verifiedAudioCodec || session.process?.exitCode !== null) break;
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
       if (!verifiedAudioCodec) {
         this.log(session, 'warn', 'stream', 'LOCAL_HLS_AUDIO_NOT_PRESENT',
