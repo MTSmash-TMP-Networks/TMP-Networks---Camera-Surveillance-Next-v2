@@ -1,3 +1,11 @@
+## 2.20.86 – Cloud-Zugang automatisch aktiv und API-Version geprueft
+
+- HTTPS-Cloud-Agent wird bei der Installation automatisch aktiviert, bisherige AUS-Einstellungen werden einmalig eingeschaltet.
+- Vorhandene Installations-IDs und verschluesselte Geraeteschluessel bleiben unveraendert; spaetere manuelle Deaktivierung wird weiterhin respektiert.
+- Frontend zeigt bei fehlender Backend-Cloud-Route NICHT VERFUEGBAR statt faelschlich AUS und aktualisiert den Agentenstatus regelmaessig.
+- Updater ueberprueft ab 2.20.86 die Cloud-API-Faehigkeit des tatsaechlich gestarteten Backend-Containers.
+- Kameraaufnahmen, Medienpipeline, Kiosk, bestehende Nutzer und das private PHP-Portal bleiben unveraendert.
+
 ## 2.20.85 – Automatische Cloud-Registrierung ohne Einmalcode
 
 - Jede Installation registriert ihre bestehende, dauerhafte UUID beim Backend-Start automatisch bei support.tmp-networks.de/cam. Kein Kopplungskennwort und keine manuelle Serverfreigabe notwendig.
