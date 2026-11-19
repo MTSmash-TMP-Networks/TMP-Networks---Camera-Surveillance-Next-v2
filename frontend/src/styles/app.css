@@ -97,6 +97,10 @@ html,body,#root{min-height:100%}
 /* The media node is owned by liveStreamPool and can move between Live/Kiosk. */
 .live-media-host { position: absolute; inset: 0; overflow: hidden; }
 .live-media-host > video { width: 100%; height: 100%; object-fit: cover; }
+/* Optional microphone player is hidden and never replaces the camera image. */
+.live-audio-media-host { position: absolute; width: 1px; height: 1px; left: 0; bottom: 0; opacity: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.live-audio-media-host > video { width: 1px; height: 1px; }
+.live-audio-notice { position: absolute; z-index: 4; left: 12px; bottom: 56px; max-width: calc(100% - 80px); color: #d5f1ff; background: rgba(5, 22, 36, .88); border: 1px solid #23536c; border-radius: 9px; padding: 7px 10px; font-size: 11px; line-height: 1.35; pointer-events: none; }
 .scan-progress { display: flex; align-items: center; gap: .85rem; margin: 1rem 0; padding: .9rem 1rem; border-radius: 12px; background: rgba(57, 189, 248, .08); border: 1px solid rgba(57, 189, 248, .22); }
 .scan-progress svg { animation: spin 2s linear infinite; }
 .scan-progress div { display: flex; flex-direction: column; gap: .2rem; }
