@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.85
+# TMP Camera Surveillance Next 2.20.86
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -127,3 +127,7 @@ Intel GPU discovery in the status page does not automatically mean FFmpeg is usi
 3. The go2rtc normalized video path now requests `#hardware=vaapi`. If stream startup times out with VAAPI, the orchestrator retries using software encoding once. For removal, run `sudo sh ./scripts/intel-vaapi.sh --disable`, then recreate updater, mediamtx and backend.
 
 Never enable VAAPI without the hardware test. The Intel iGPU shares system RAM, so dedicated VRAM figures are normally unavailable. GPU busy percentages are driver-dependent and 0% or unavailable do not prove whether hardware encoding is used. Archive compression remains software-based in this version.
+
+## Automatischer HTTPS-Fernzugriff ab 2.20.86
+
+Die neue Version aktiviert den ausgehenden Cloud-Zugang bei der Installation und migriert bisher deaktivierte Altinstallationen einmalig. Der lokale Administrator kann spaeter bewusst deaktivieren. Wenn der Systemstatus eine nicht gefundene Cloud-API meldet, bitte Backend und Frontend gemeinsam aktualisieren. Mehr in `UPDATE_NOTES_2.20.86.md`.
