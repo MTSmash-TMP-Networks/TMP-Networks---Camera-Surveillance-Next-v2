@@ -1308,6 +1308,7 @@ async function performInstall(input) {
     const backendHealth = await waitForUrl(BACKEND_HEALTH_ENDPOINT.url, 150_000, 'Backend');
     const backendPayload = await backendHealth.json().catch(() => ({}));
     if (backendPayload.version !== inspected.version) throw new Error(`Backend meldet Version ${backendPayload.version || 'unbekannt'}, erwartet wurde ${inspected.version}`);
+    if (compareVersions(inspected.version, '2.20.86') >= 0 && backendPayload.features?.remoteProxy !== true) throw new Error('Backend meldet keine HTTPS-Proxy-Funktion. Backend-Image und Container sind nicht konsistent aktualisiert.');
     // Services were already recreated above. A second cycle disrupts fresh HLS
     // publishers and can truncate recording segments.
     await appendStatusLog('Einmaliger kontrollierter Neustart abgeschlossen');
