@@ -70,7 +70,6 @@ export function LivePage() {
   function handlePlaybackStatus(next) {
     const state = next?.state || null;
     setLivePlaybackState(state);
-    setLiveAudioAvailable(next?.hasAudio ?? null);
     if (state === 'ready' && camera?.status !== 'online') {
       dispatch(cameraUpserted({ ...camera, status: 'online', lastError: null }));
     }
@@ -138,7 +137,7 @@ export function LivePage() {
         return <button key={item.id} className={selected ? 'selected' : ''} onClick={() => setParams({ camera: item.id })}><span className={`dot ${railState}`}/><span><strong>{item.name}</strong><small>{item.location || t('overview.locationUnknown')}</small></span></button>;
       })}</aside>
       <div className="live-main">
-        <SeamlessLivePlayer camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)} onStatusChange={handlePlaybackStatus}/>
+        <SeamlessLivePlayer camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)} onStatusChange={handlePlaybackStatus} onAudioStatusChange={(next) => setLiveAudioAvailable(next?.state === 'ready' && next?.hasAudio === true)}/>
         <div className="stream-info"><span><Volume2/> Livebild: lokaler HLS-Ring über go2rtc-Broker · {liveAudioAvailable ? 'Audiokanal bereit, über Lautsprechertaste aktivierbar' : 'Ton bei Bedarf über die Lautsprechertaste anfordern'}</span><span>{t('live.profileLabel')}: {selectedProfileName || t('live.automatic')} · {profileToken ? t('live.manualSelected') : codecPreferenceLabel(details?.camera?.codecPreference)}</span></div>
         <CameraLogPanel key={camera.id} cameraId={camera.id} canClear={allowed} open={diagnosticOpen} onOpenChange={setDiagnosticOpen}/>
       </div>
