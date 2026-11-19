@@ -13,7 +13,7 @@ if (insecureDefaults()) {
 const [
   { createApp }, { migrate, db }, { healthMonitor }, { discoveryJobService },
   { recordingScheduler }, { retentionManager }, { recordingService }, { recordingCompressionService }, { motionDetectionService },
-  { recordingEventDispatcher }, { ptzService }, { remoteProxyService }, { cameraRuntimeCoordinator },
+  { recordingEventDispatcher }, { remoteProxyService }, { ptzService }, { cameraRuntimeCoordinator },
   { ptzAutomationInterlock }, { streamOrchestrator }, { cameraThumbnailCache }, { eventWebSocketHub }, { domainEventBus }, { aiEventAnalysisService }, { emailNotificationService }, { demoModeSettingsService }, { networkRecordingStorageService },
 ] = await Promise.all([
   import('./app.js'),

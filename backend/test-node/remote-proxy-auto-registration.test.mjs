@@ -27,3 +27,22 @@ test('auto-registration preserves an existing identity and encrypted secret', ()
   assert.match(agent, /readSetting\(ID_KEY\)/);
   assert.match(agent, /if \(\/[\^].+\.test\(id\)\) return id/);
 });
+
+const bootstrap = readFileSync(new URL('../src/server.js', import.meta.url), 'utf8');
+
+test('backend bootstrap correctly assigns cloud agent and PTZ services', () => {
+  const expectedBinding = '{ recordingEventDispatcher }, { remoteProxyService }, { ptzService }, { cameraRuntimeCoordinator }';
+  const expectedImport = [
+    "import('./services/recording/RecordingEventDispatcher.js')",
+    "import('./services/RemoteProxyService.js')",
+    "import('./services/ptz/PtzService.js')",
+    "import('./services/runtime/CameraRuntimeCoordinator.js')",
+  ];
+  assert.ok(bootstrap.includes(expectedBinding), 'cloud and PTZ binding order must match import order');
+  let last = -1;
+  for (const statement of expectedImport) {
+    const current = bootstrap.indexOf(statement);
+    assert.ok(current > last, 'missing or misordered startup import: ' + statement);
+    last = current;
+  }
+});
