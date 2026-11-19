@@ -1,3 +1,11 @@
+## 2.20.90 – Aufnahmen im HTTPS-Cloud-Portal
+
+- Aufnahme-Archiv kann nun ueber das bestehende HTTPS-Proxy-Verfahren gelesen werden.
+- Genaue Nur-Lese-Freigaben: Aufnahmeliste, Blockliste und authentifizierte vier Sekunden lange Videoteile. Kein Loeschen, Aendern von Zeitplaenen, Export oder Rohdatei-Download.
+- Der Kameraserver erzeugt auf Anforderung kurze H.264/AAC-MPEG-TS-Clips (540p, 15 Bilder/s, 850 kbit/s) zur Wiedergabe ueber PHP/MySQL, ohne die Originalaufnahmen zu veraendern.
+- Der Videozugriff ist durch die normale Kamera-Anmeldung und Session der PHP-WebApp geschuetzt.
+- PHP-Portal 3.0.7 wird separat unter Plesk installiert und bietet Kamera- und Datumsfilter sowie eine iPhone-geeignete Aufnahme-Ansicht.
+
 ## 2.20.89 – Zuverlaessiger HTTPS-Cloud-Medienrelay bei mehreren Kameras
 
 - Erhoeht die Poll- und Portal-Timeouts des ausgehenden Kamera-Agenten, um vorzeitige `AbortError` bei stark ausgelastetem PHP-FPM zu vermeiden.
