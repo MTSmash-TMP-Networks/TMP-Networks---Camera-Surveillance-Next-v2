@@ -13,7 +13,7 @@ import { demoModeSettingsService } from '../services/DemoModeSettingsService.js'
 
 export const streamsRouter = Router();
 streamsRouter.use(authenticate);
-const sessionSchema = z.object({ quality: z.enum(['auto', 'high', 'balanced', 'low']).default('auto'), viewportWidth: z.coerce.number().min(160).max(7680).default(1280), profileToken: z.string().max(300).optional().nullable(), purpose: z.enum(['live', 'kiosk']).default('live'), forceTranscode: z.boolean().default(false), wait: z.boolean().default(true) });
+const sessionSchema = z.object({ quality: z.enum(['auto', 'high', 'balanced', 'low']).default('auto'), viewportWidth: z.coerce.number().min(160).max(7680).default(1280), profileToken: z.string().max(300).optional().nullable(), purpose: z.enum(['live', 'live-audio', 'kiosk']).default('live'), forceTranscode: z.boolean().default(false), wait: z.boolean().default(true) });
 const heartbeatSchema = sessionSchema.omit({ wait: true }).partial().extend({ quality: z.enum(['auto', 'high', 'balanced', 'low']).default('auto'), viewportWidth: z.coerce.number().min(160).max(7680).default(1280) });
 const sessionLimiter = rateLimit({ windowMs: 10_000, limit: 30, standardHeaders: true, legacyHeaders: false });
 
@@ -108,7 +108,7 @@ streamsRouter.get('/:id/preview', (req, res) => {
 streamsRouter.post('/:id/cloud-audio', sessionLimiter, asyncHandler(async (req, res) => {
   res.set({ 'Cache-Control': 'private, no-store, max-age=0', Pragma: 'no-cache', Expires: '0' });
   const session = await streamOrchestrator.ensure(req.params.id, {
-    quality: 'high', viewportWidth: 1280, purpose: 'live', forceTranscode: false,
+    quality: 'high', viewportWidth: 1280, purpose: 'live-audio', forceTranscode: false,
   }, { wait: false });
   const { paths, ...publicSession } = session;
   if (session.state !== 'ready' || !session.outputs?.hls) {
