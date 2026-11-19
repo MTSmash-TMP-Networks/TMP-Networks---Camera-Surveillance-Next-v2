@@ -1,4 +1,6 @@
-export const mobileMessages = {
+import { SUPPORTED_LANGUAGES } from './languages.js';
+
+const mobileBaseMessages = {
   de: {
     'mobile.monitoring': 'MOBILE ÜBERWACHUNG',
     'mobile.navigation': 'Mobile Navigation',
@@ -72,3 +74,10 @@ export const mobileMessages = {
     'mobile.more.hint': 'The desktop interface includes advanced camera, user and system management.',
   },
 };
+
+// The existing runtime requires each locale to own an identical set of keys.
+// German and English are translated directly; other locales use the established
+// English fallback until a native mobile translation is provided.
+export const mobileMessages = Object.fromEntries(
+  SUPPORTED_LANGUAGES.map(({ code }) => [code, mobileBaseMessages[code] || mobileBaseMessages.en]),
+);
