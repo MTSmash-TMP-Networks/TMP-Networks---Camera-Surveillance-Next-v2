@@ -41,6 +41,8 @@ const [
 ]);
 
 migrate();
+// Allocate one permanent installation UUID even when the remote portal is disabled.
+remoteProxyService.installationId();
 demoModeSettingsService.initializeFromLegacyEnv();
 aiEventAnalysisService.start();
 emailNotificationService.start();
