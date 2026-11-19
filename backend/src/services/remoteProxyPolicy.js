@@ -21,7 +21,8 @@ export function allowedProxyRequest(method, pathname) {
     if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/cloud\/download\/(?:0|[1-9][0-9]{0,3})\.mp4$/.test(path)) return parsed.search === '';
     if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/cloud\/(?:file|[1-9][0-9]{0,9})\/clip\/(?:0|[1-9][0-9]{0,3})\.ts$/.test(path)) return parsed.search === '';
   }
-  if (method === 'POST') return path === '/api/auth/login';
+  if (method === 'POST') return path === '/api/auth/login'
+    || (parsed.search === '' && /^\/api\/streams\/[A-Za-z0-9_-]{1,90}\/cloud-audio$/.test(path));
   if (method !== 'GET') return false;
   return path === '/api/cameras'
     || /^\/api\/streams\/[A-Za-z0-9_-]{1,90}\/preview$/.test(path)

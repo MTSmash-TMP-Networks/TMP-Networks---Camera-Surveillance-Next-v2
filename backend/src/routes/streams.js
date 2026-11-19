@@ -103,6 +103,44 @@ streamsRouter.get('/:id/preview', (req, res) => {
   });
 });
 
+// Explicit user-selected cloud audio, isolated from the fast video-only
+// permanent preview. Never activate optional audio for every kiosk/card stream.
+streamsRouter.post('/:id/cloud-audio', sessionLimiter, asyncHandler(async (req, res) => {
+  res.set({ 'Cache-Control': 'private, no-store, max-age=0', Pragma: 'no-cache', Expires: '0' });
+  const session = await streamOrchestrator.ensure(req.params.id, {
+    quality: 'high', viewportWidth: 1280, purpose: 'live', forceTranscode: false,
+  }, { wait: false });
+  const { paths, ...publicSession } = session;
+  if (session.state !== 'ready' || !session.outputs?.hls) {
+    return res.status(202).json({
+      ...publicSession,
+      audioEnabled: false,
+      tokens: { webrtc: null, hls: null },
+      hlsUrl: null,
+      browserTransport: 'local-hls',
+    });
+  }
+  // A camera without a working mic must not replace an already-playing
+  // video-only stream with a second silent stream.
+  if (!session.audioEnabled) {
+    return res.json({
+      ...publicSession,
+      audioEnabled: false,
+      tokens: { webrtc: null, hls: null },
+      hlsUrl: null,
+      browserTransport: 'local-hls',
+    });
+  }
+  return res.json({
+    ...publicSession,
+    audioEnabled: true,
+    tokens: { webrtc: null, hls: issueHlsToken(req, res, session, paths) },
+    hlsUrl: hlsUrlForSession(session, paths, publicSession),
+    browserTransport: 'local-hls',
+    expiresIn: config.mediaTokenTtlSeconds,
+  });
+}));
+
 streamsRouter.post('/:id/session', sessionLimiter, asyncHandler(async (req, res) => {
   res.set({ 'Cache-Control': 'private, no-store, max-age=0', Pragma: 'no-cache', Expires: '0' });
   const input = sessionSchema.parse(req.body || {});

@@ -1,3 +1,12 @@
+## 2.20.95 – Optionaler Live-Ton im HTTPS-Cloud-Portal
+
+- Geschuetzter POST-Endpunkt `/api/streams/:id/cloud-audio` schaltet nur auf ausdruecklichen Kundenwunsch eine dedizierte Live-HLS-Sitzung mit Audiokanal frei.
+- Normaler, permanenter Live-Vorschaustream und Kiosk bleiben video-only. Deshalb kein zusaetzlicher Mikrofon-Encoder pro Kamera beim Seitenaufruf.
+- Die bisherige HLS-Audio-Kodierung (AAC) und die geschuetzte Medien-Token-Ausgabe des Kameraservers werden wiederverwendet.
+- Private Plesk-PHP-Version 3.1.1 (nicht im oeffentlichen GitHub): Text-Button `Ton einschalten / Ton ausschalten`, Verfuegbarkeitsstatus, erneute Safari-Nutzerinteraktion und Medien-Token-Erneuerung.
+- Fuer Kameras ohne nutzbare Audiospur bleibt das funktionierende Livebild unveraendert.
+- Keine Emojis in der PHP-WebApp. Bestehende MySQL-Daten, Kamera-IDs und Aufnahmen bleiben erhalten.
+
 ## 2.20.94 – Kritischer Cloud-Archiv-HLS-Agenten-Fix
 
 - Fehler `ReferenceError: parsed is not defined` in `backend/src/services/remoteProxyPolicy.js` behoben.
