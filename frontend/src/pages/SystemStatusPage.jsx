@@ -143,15 +143,29 @@ export function SystemStatusPage() {
   const [proxyMessage, setProxyMessage] = useState('');
   useEffect(() => {
     let alive = true;
-    api.remoteProxyStatus().then((result) => { if (alive) setProxyStatus(result.proxy); })
-      .catch((reason) => { if (alive) setProxyError(reason.message || 'Proxy-Status nicht verfügbar'); });
-    return () => { alive = false; };
+    async function refreshProxyStatus() {
+      try {
+        const result = await api.remoteProxyStatus();
+        if (!alive) return;
+        if (!result?.proxy) throw new Error('Backend hat keinen Cloud-Status geliefert.');
+        setProxyStatus(result.proxy);
+        setProxyError('');
+      } catch (reason) {
+        if (!alive) return;
+        setProxyStatus(null);
+        setProxyError(reason?.status === 404
+          ? 'Cloud-API fehlt im laufenden Backend. Backend und Frontend auf dieselbe Version aktualisieren und beide Container neu erstellen.'
+          : reason?.message || 'Proxy-Status nicht verfügbar.');
+      }
+    }
+    void refreshProxyStatus();
+    const timer = setInterval(() => { void refreshProxyStatus(); }, 10_000);
+    return () => { alive = false; clearInterval(timer); };
   }, []);
   async function saveRemoteProxy(enabled) {
     setProxySaving(true); setProxyError(''); setProxyMessage('');
     try {
-      const input = { enabled };
-      const result = await api.configureRemoteProxy(input);
+      const result = await api.configureRemoteProxy({ enabled });
       setProxyStatus(result.proxy);
       setProxyMessage(enabled ? 'Ausgehender HTTPS-Proxy wurde aktiviert.' : 'HTTPS-Proxy wurde deaktiviert.');
     } catch (reason) { setProxyError(reason.message || 'Proxy-Konfiguration fehlgeschlagen'); }
@@ -294,17 +308,17 @@ export function SystemStatusPage() {
       <div className="section-heading"><div><h2><ShieldCheck /> Sicherer HTTPS-Fernzugriff</h2>
         <p>Automatischer Cloud-Zugang über <a href="https://support.tmp-networks.de/cam" target="_blank" rel="noopener noreferrer">support.tmp-networks.de/cam</a>.
           Jede Installation registriert ihre ID bei der Einrichtung selbstständig. Nutzer melden sich mit Server-ID und ihren normalen Kamera-Zugangsdaten an.</p></div>
-        <span className={proxyStatus?.enabled ? 'system-status-pill ok' : 'system-status-pill warning'}>{proxyStatus?.enabled ? 'AKTIV' : 'AUS'}</span>
+        <span className={proxyStatus?.enabled ? 'system-status-pill ok' : 'system-status-pill warning'}>{!proxyStatus ? 'NICHT VERFÜGBAR' : proxyStatus.enabled ? 'AKTIV' : 'AUS'}</span>
       </div>
-      <div className="remote-proxy-id"><strong>Installations-ID</strong> <code>{proxyStatus?.installationId || '–'}</code></div>
-      <div className="remote-proxy-id"><strong>Portalstatus</strong> <span>{proxyStatus?.paired ? 'Automatisch registriert' : 'Registrierung wird wiederholt'}</span></div>
+      <div className="remote-proxy-id"><strong>Installations-ID</strong> <code>{proxyStatus?.installationId || (proxyError ? 'Backend prüfen' : 'wird geladen …')}</code></div>
+      <div className="remote-proxy-id"><strong>Portalstatus</strong> <span>{!proxyStatus ? 'Noch nicht abrufbar' : !proxyStatus.enabled ? 'Lokal deaktiviert' : proxyStatus.paired ? 'Automatisch registriert' : 'Registrierung läuft automatisch'}</span></div>
       {proxyStatus?.lastContactAt && <div className="remote-proxy-id"><strong>Letzter Kontakt</strong> <span>{proxyStatus.lastContactAt}</span></div>}
       {proxyStatus?.lastError && <div className="form-error">Agentenfehler: {proxyStatus.lastError}</div>}
       <div className="remote-proxy-id"><strong>Anmeldung</strong> <span>Auf der Cloud-Seite Server-ID, Benutzername und Passwort eingeben. Kein Kopplungscode nötig.</span></div>
       <div className="demo-admin-actions">
-        <button type="button" className="primary-button" disabled={proxySaving || !proxyStatus} onClick={() => saveRemoteProxy(!proxyStatus?.enabled)}>
-          <ShieldCheck />{proxySaving ? 'Speichern …' : proxyStatus?.enabled ? 'Cloud-Verbindung deaktivieren' : 'Cloud-Verbindung aktivieren'}
-        </button>
+        {proxyStatus && <button type="button" className="primary-button" disabled={proxySaving} onClick={() => saveRemoteProxy(!proxyStatus.enabled)}>
+          <ShieldCheck />{proxySaving ? 'Speichern …' : proxyStatus.enabled ? 'Cloud-Verbindung deaktivieren' : 'Cloud-Verbindung aktivieren'}
+        </button>}
         {proxyMessage && <span className="demo-admin-saved"><CheckCircle2 /> {proxyMessage}</span>}
       </div>
       {proxyError && <div className="form-error" role="alert">{proxyError}</div>}

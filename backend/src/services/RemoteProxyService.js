@@ -11,6 +11,7 @@ const MAX_RESPONSE_BYTES = 2_500_000;
 const MAX_BODY_BYTES = 128_000;
 const WORKERS = 3;
 const AUTO_REGISTRATION_PROTOCOL = 2;
+const CLOUD_AUTO_ENABLE_MIGRATION = 1; // 2.20.86: enable older disabled installations once
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function readSetting(key) {
@@ -31,19 +32,31 @@ function storedState() {
 // Unlike the v1 installer, no human-entered pairing code is necessary.
 function ensureAutomaticState() {
   const state = storedState();
-  if (state.autoRegistrationV2 === true && state.agentKeyEncrypted) return state;
+  let changed = false;
   if (!state.agentKeyEncrypted) {
     state.agentKeyEncrypted = encryptSecret(crypto.randomBytes(32).toString('base64url'));
     state.paired = false;
+    changed = true;
   }
-  state.autoRegistrationV2 = true;
-  // Older manually disabled v1 installations are migrated to the new
-  // automatic mode. A later explicit local disable is still preserved.
-  state.enabled = true;
-  delete state.pairingCodeEncrypted;
-  writeSetting(SETTINGS_KEY, JSON.stringify(state));
+  if (state.autoRegistrationV2 !== true) {
+    state.autoRegistrationV2 = true;
+    changed = true;
+  }
+  // 2.20.86 performs exactly one automatic switch-on for legacy installations.
+  // A later explicit local administrator disable remains respected on restarts.
+  if (state.cloudAutoEnableMigration !== CLOUD_AUTO_ENABLE_MIGRATION) {
+    state.enabled = true;
+    state.cloudAutoEnableMigration = CLOUD_AUTO_ENABLE_MIGRATION;
+    changed = true;
+  }
+  if (Object.prototype.hasOwnProperty.call(state, 'pairingCodeEncrypted')) {
+    delete state.pairingCodeEncrypted;
+    changed = true;
+  }
+  if (changed) writeSetting(SETTINGS_KEY, JSON.stringify(state));
   return state;
 }
+
 async function postPortal(kind, identity, payload, timeoutMs = 12_000) {
   const url = new URL(PORTAL_URL);
   url.searchParams.set('agent', kind);

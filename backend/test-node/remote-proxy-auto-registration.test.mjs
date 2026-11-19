@@ -22,7 +22,7 @@ test('camera system administration no longer accepts pairingCode', () => {
 });
 
 test('auto-registration preserves an existing identity and encrypted secret', () => {
-  assert.match(agent, /if \(state\.autoRegistrationV2 === true && state\.agentKeyEncrypted\) return state/);
+  assert.match(agent, /if \(state\.autoRegistrationV2 !== true\)/);
   assert.match(agent, /if \(!state\.agentKeyEncrypted\)/);
   assert.match(agent, /readSetting\(ID_KEY\)/);
   assert.match(agent, /if \(\/[\^].+\.test\(id\)\) return id/);
@@ -45,4 +45,26 @@ test('backend bootstrap correctly assigns cloud agent and PTZ services', () => {
     assert.ok(current > last, 'missing or misordered startup import: ' + statement);
     last = current;
   }
+});
+
+const backendApp = readFileSync(new URL('../src/app.js', import.meta.url), 'utf8');
+const browserApi = readFileSync(new URL('../../frontend/src/services/api.js', import.meta.url), 'utf8');
+const browserSystem = readFileSync(new URL('../../frontend/src/pages/SystemStatusPage.jsx', import.meta.url), 'utf8');
+const updater = readFileSync(new URL('../../updater/src/server.js', import.meta.url), 'utf8');
+
+test('cloud auto-enrollment migrates older OFF settings exactly once', () => {
+  assert.match(agent, /CLOUD_AUTO_ENABLE_MIGRATION = 1/);
+  assert.match(agent, /state\.cloudAutoEnableMigration !== CLOUD_AUTO_ENABLE_MIGRATION/);
+  assert.match(agent, /state\.enabled = true/);
+  assert.match(agent, /if \(changed\) writeSetting\(SETTINGS_KEY/);
+  assert.match(agent, /if \(state\.enabled === false\) return/);
+});
+test('cloud proxy backend route and frontend contract stay compatible', () => {
+  assert.match(system, /systemRouter\.get\('\/remote-proxy'/);
+  assert.match(backendApp, /app\.use\('\/api\/system', systemRouter\)/);
+  assert.match(browserApi, /remoteProxyStatus:\s*\(\) => request\('\/system\/remote-proxy'/);
+  assert.match(backendApp, /features: \{ remoteProxy: true/);
+  assert.match(updater, /backendPayload\.features\?\.remoteProxy !== true/);
+  assert.match(browserSystem, /NICHT VERFÜGBAR/);
+  assert.match(browserSystem, /reason\?\.status === 404/);
 });
