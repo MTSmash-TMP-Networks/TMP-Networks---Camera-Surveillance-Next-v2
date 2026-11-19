@@ -421,7 +421,7 @@ class LiveStreamPool {
         if (!muted) entry.video.play?.().catch(() => {});
       },
       reconnect: () => this.reconnect(entry, 'Manuell neu verbunden', 0),
-      release: () => {
+      release: ({ immediate = false } = {}) => {
         if (released) return;
         released = true;
         entry.refs = Math.max(0, entry.refs - 1);
@@ -430,7 +430,12 @@ class LiveStreamPool {
         if (entry.refs === 0) {
           this.stagingRoot()?.appendChild(entry.video);
           entry.host = null;
-          if (entry.pins.size === 0) entry.idleTimer = setTimeout(() => this.destroy(entry.key), CACHE_MS);
+          if (entry.pins.size === 0) {
+            // Unused audio must stop immediately, not keep a decoder and AAC
+            // pipeline active for the normal 120-second warm-video cache.
+            if (immediate) void this.destroy(entry.key);
+            else entry.idleTimer = setTimeout(() => this.destroy(entry.key), CACHE_MS);
+          }
         }
       },
     };
