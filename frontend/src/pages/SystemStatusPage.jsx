@@ -345,7 +345,7 @@ export function SystemStatusPage() {
         </div>
         <small>Auf dem iPhone in Safari öffnen, dann Teilen → Zum Home-Bildschirm → Als Web-App öffnen. Die Server-ID ist bereits eingetragen; Benutzername und Passwort bleiben erforderlich.</small>
         {webAppLinkMessage && <span className="remote-proxy-webapp-message" role="status">{webAppLinkMessage}</span>}
-      </div>
+      </div>}
       <div className="remote-proxy-id"><strong>Portalstatus</strong> <span>{!proxyStatus ? 'Noch nicht abrufbar' : !proxyStatus.enabled ? 'Lokal deaktiviert' : proxyStatus.paired ? 'Automatisch registriert' : 'Registrierung läuft automatisch'}</span></div>
       {proxyStatus?.lastContactAt && <div className="remote-proxy-id"><strong>Letzter Kontakt</strong> <span>{proxyStatus.lastContactAt}</span></div>}
       {proxyStatus?.lastError && <div className="form-error">Agentenfehler: {proxyStatus.lastError}</div>}
