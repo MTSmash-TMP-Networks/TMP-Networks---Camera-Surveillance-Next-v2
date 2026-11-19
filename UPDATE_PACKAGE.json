@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.94",
+  "version": "2.20.95",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.94",
-  "summary": "Kritischer Cloud-Archiv-Fix: Aufnahme-HLS blockierte durch JavaScript ReferenceError im HTTPS-Agenten.",
-  "createdAt": "2026-11-19T23:57:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.94.md",
+  "title": "TMP Camera Surveillance Next 2.20.95",
+  "summary": "Optionaler Live-Ton in der HTTPS-Cloud-WebApp, nur wenn Kunden eine Kamera ausdrücklich mit Audio öffnen.",
+  "createdAt": "2026-11-20T00:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.95.md",
   "changes": [
-    "Fix ReferenceError: parsed is not defined in outbound HTTPS agent recording allowlist",
-    "Restore archive HLS playlist and segment relay to the camera backend",
-    "Deny unexpected query tokens and URL fragments on protected archive media URLs",
-    "Add regression coverage for cloud HLS, segments, MP4 and legacy clip allowlist routes",
-    "No change to Plesk PHP 3.1.0, NAS files, original recording data or live camera playback"
+    "Add authenticated POST /api/streams/:id/cloud-audio to start an optional live stream with audio",
+    "Keep permanent camera previews and kiosk HLS video-only to preserve startup speed and stability",
+    "Strict outbound-HTTPS proxy allowlist: only opt-in POST, no session-management or admin writes",
+    "Private Plesk PHP 3.1.1 adds text-only Ton einschalten/ausschalten controls, iPhone playback gesture support and audio token renewal",
+    "Preserve all original recordings, NAS data, camera identities, database and existing Cloud login sessions"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.94.md",
+  "changelog": "UPDATE_NOTES_2.20.95.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.94",
-  "packageId": "tmp-camera-surveillance-next-2.20.94",
+  "name": "TMP Camera Surveillance Next v2.20.95",
+  "packageId": "tmp-camera-surveillance-next-2.20.95",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Repair camera cloud HLS archive request dispatch by fixing URL parser variable scope",
+  "description": "Add opt-in, protected live camera sound to mobile HTTPS cloud portal without altering the fast default live HLS",
   "minVersion": "2.20.32",
-  "releaseNotes": "Keep private Plesk portal at PHP 3.1.0. Update camera server only to 2.20.94. Retry previously failed archive playback. Existing MySQL, IDs, NAS and camera recordings remain unchanged.",
-  "fileCount": 557
+  "releaseNotes": "Deploy private Plesk PHP 3.1.1 first, then update camera backend to 2.20.95. Cloud live audio is only available when the camera source actually provides a usable microphone track. Safari might require an additional user tap.",
+  "fileCount": 559
 }
