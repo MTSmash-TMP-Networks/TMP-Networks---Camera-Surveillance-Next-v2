@@ -1,3 +1,12 @@
+## 2.20.83 – Mobile Online-Oberfläche mit eigenem Routing
+
+- Smartphones öffnen nach der Anmeldung automatisch das neue, authentifizierte Portal `/mobile`; der Linux-Kiosk und die Desktop-Navigation bleiben unverändert.
+- Neue mobile Kameraübersicht mit Suche, Online-Status und zentral gespeicherten JPEG-Vorschaubildern. Keine zusätzlichen Live-Decoder im Raster.
+- `/mobile/cameras/:id` öffnet nur die ausgewählte Kamera im bandbreitenschonenden zentralen HLS-Livestream. Kameras werden nicht separat direkt verbunden.
+- `/mobile/recordings` erlaubt mobile Archivsuche nach Kamera und Wiedergabe vorhandener Aufnahmen mittels bestehender geschützter API.
+- Mobile Bottom-Navigation, Safe-Area-Unterstützung, Touch-Oberflächen, responsives Login, Abmeldung und expliziter Wechsel zum vollständigen Desktop-Interface.
+- Keine Änderungen an Aufzeichnungen, Berechtigungen, Kameradaten oder dem stabilen Medien-Backend aus 2.20.81/2.20.82.
+
 ## 2.20.82 – Kamerabild im Kioskmodus per Klick vergrößern
 
 - Jede belegte Kiosk-Kachel lässt sich per Klick oder Enter/Leertaste bildschirmfüllend innerhalb des Kioskmodus anzeigen.

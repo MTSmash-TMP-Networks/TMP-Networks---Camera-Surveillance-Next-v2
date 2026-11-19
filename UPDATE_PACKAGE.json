@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.82",
+  "version": "2.20.83",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.82",
-  "summary": "Großansicht von Kamerabildern per Klick im Kioskmodus ohne zusätzliche Kamera- oder Medienverbindungen.",
+  "title": "TMP Camera Surveillance Next 2.20.83",
+  "summary": "Eigene, geschützte und für Smartphones optimierte Online-Oberfläche mit Kamera-Liveansicht, Vorschaubildern und Aufnahmen.",
   "createdAt": "2026-11-18T18:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.82.md",
+  "changelogFile": "UPDATE_NOTES_2.20.83.md",
   "changes": [
-    "Open any kiosk live tile large on click or keyboard without a second player",
-    "Close with Escape, large close button or backdrop click",
-    "Keep existing pooled video, central camera connection and recording indicators intact",
-    "Display entire video image with aspect-preserving contain mode",
-    "Preserve layout synchronization and the 2.20.81 streaming fixes"
+    "Automatically route mobile browser sessions to the dedicated authenticated /mobile portal",
+    "Offer cached thumbnails, status and search without starting extra camera streams",
+    "Reuse central low-bandwidth HLS for a single selected live camera",
+    "View and play recordings with existing authenticated APIs",
+    "Enable touch-oriented navigation, safe areas and explicit desktop override"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.82.md",
+  "changelog": "UPDATE_NOTES_2.20.83.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.82",
-  "packageId": "tmp-camera-surveillance-next-2.20.82",
+  "name": "TMP Camera Surveillance Next v2.20.83",
+  "packageId": "tmp-camera-surveillance-next-2.20.83",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Enlarge a single kiosk camera in place while keeping the shared live player connected.",
+  "description": "Authenticated mobile-first frontend at /mobile with cached thumbnails and an on-demand central HLS player.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.82 adds click, keyboard and Escape access to enlarged live camera tiles in both browser and Linux kiosk. The same mounted pooled video stays alive without extra camera/FFmpeg/go2rtc starts, and the original server-synchronized kiosk grid is preserved. Recording and stream backends are unchanged.",
-  "fileCount": 525
+  "releaseNotes": "2.20.83 introduces an independent protected mobile portal for phone/tablet logins: cached camera list, one on-demand central HLS live view, recording playback, responsive touch navigation, session logout and desktop switch. Media backend and kiosk layouts are untouched.",
+  "fileCount": 532
 }

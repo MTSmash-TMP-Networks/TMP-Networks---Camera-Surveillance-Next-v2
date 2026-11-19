@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { ChevronsLeft, ChevronsRight, LogOut, ShieldCheck } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, LogOut, ShieldCheck, Smartphone } from 'lucide-react';
 import { logout } from '../features/auth/authSlice.js';
 import { isDesktopKiosk, revokeDesktopSession } from '../services/api.js';
 import { loadCameras } from '../features/cameras/camerasSlice.js';
 import { NAVIGATION_SECTIONS, activeNavigationItem, activeNavigationSection } from '../config/navigation.js';
 import { PRODUCT } from '../config/product.js';
 import { liveStreamPool } from '../services/liveStreamPool.js';
+import { setInterfacePreference } from '../services/mobileRouting.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { BrandIcon } from './BrandIcon.jsx';
 
@@ -21,6 +22,7 @@ export function AppShell() {
   const dispatch = useDispatch();
   const { t } = useI18n();
   const location = useLocation();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const runtime = useSelector((state) => state.auth.runtime);
   const cameraStatus = useSelector((state) => state.cameras.status);
@@ -105,6 +107,7 @@ export function AppShell() {
             <span className="tmp-app-context-dot" aria-hidden="true" />
             <div><small>{t(activeSection?.labelKey || 'nav.group.monitoring')}</small><strong>{t(activeItem?.labelKey || 'nav.overview')}</strong></div>
           </div>
+          <button className="tmp-mobile-switch" type="button" title={t('mobile.open')} aria-label={t('mobile.open')} onClick={() => { setInterfacePreference('mobile'); navigate('/mobile'); }}><Smartphone size={18}/><span>{t('mobile.open')}</span></button>
           <div className="tmp-app-user" title={`${user?.username || ''} - ${t(`role.${user?.role}`)}`}>
             <ShieldCheck aria-hidden="true" />
             <span><strong>{user?.username}</strong><small>{t(`role.${user?.role}`)}</small></span>
