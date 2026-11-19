@@ -10,6 +10,7 @@ const ID_KEY = 'remote_https_proxy_installation_id_v1';
 const MAX_RESPONSE_BYTES = 2_500_000;
 const MAX_BODY_BYTES = 128_000;
 const WORKERS = 3;
+const AUTO_REGISTRATION_PROTOCOL = 2;
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function readSetting(key) {
@@ -24,6 +25,24 @@ function writeSetting(key, value) {
 function storedState() {
   try { return JSON.parse(readSetting(SETTINGS_KEY) || '{}'); }
   catch { return {}; }
+}
+// Automatic enrollment is opt-in at the PRODUCT level. An installed server
+// keeps its generated identity and encrypted device key across normal updates.
+// Unlike the v1 installer, no human-entered pairing code is necessary.
+function ensureAutomaticState() {
+  const state = storedState();
+  if (state.autoRegistrationV2 === true && state.agentKeyEncrypted) return state;
+  if (!state.agentKeyEncrypted) {
+    state.agentKeyEncrypted = encryptSecret(crypto.randomBytes(32).toString('base64url'));
+    state.paired = false;
+  }
+  state.autoRegistrationV2 = true;
+  // Older manually disabled v1 installations are migrated to the new
+  // automatic mode. A later explicit local disable is still preserved.
+  state.enabled = true;
+  delete state.pairingCodeEncrypted;
+  writeSetting(SETTINGS_KEY, JSON.stringify(state));
+  return state;
 }
 async function postPortal(kind, identity, payload, timeoutMs = 12_000) {
   const url = new URL(PORTAL_URL);
@@ -44,20 +63,28 @@ async function postPortal(kind, identity, payload, timeoutMs = 12_000) {
 }
 
 export class RemoteProxyService {
-  constructor() { this.running = false; this.generation = 0; this.lastContactAt = null; this.lastError = null; this.lastAgentJobs = 0; this.shuttingDown = false; }
+  constructor() {
+    this.running = false;
+    this.generation = 0;
+    this.shuttingDown = false;
+    this.lastContactAt = null;
+    this.lastError = null;
+    this.lastAgentJobs = 0;
+  }
   installationId() {
     let id = readSetting(ID_KEY);
-    if (/^[0-9a-f-]{36}$/.test(id)) return id;
+    if (/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(id)) return id;
     id = crypto.randomUUID();
     writeSetting(ID_KEY, id);
     return id;
   }
   status() {
-    const state = storedState();
+    const state = ensureAutomaticState();
     return {
       installationId: this.installationId(),
-      enabled: state.enabled === true,
+      enabled: state.enabled !== false,
       paired: state.paired === true,
+      automaticRegistration: true,
       portalUrl: 'https://support.tmp-networks.de/cam',
       lastContactAt: this.lastContactAt,
       lastError: this.lastError,
@@ -65,16 +92,9 @@ export class RemoteProxyService {
       outboundOnly: true,
     };
   }
-  configure({ enabled, pairingCode }) {
-    const state = storedState();
+  configure({ enabled }) {
     if (typeof enabled !== 'boolean') throw new Error('enabled muss boolean sein');
-    if (pairingCode !== undefined) {
-      if (!/^[a-f0-9]{48}$/i.test(String(pairingCode))) throw new Error('Kopplungscode ungueltig');
-      state.pairingCodeEncrypted = encryptSecret(pairingCode.toLowerCase());
-      state.agentKeyEncrypted = encryptSecret(crypto.randomBytes(32).toString('base64url'));
-      state.paired = false;
-    }
-    if (enabled && !state.paired && !state.pairingCodeEncrypted) throw new Error('Zuerst einmaligen Portal-Kopplungscode eingeben');
+    const state = ensureAutomaticState();
     state.enabled = enabled;
     writeSetting(SETTINGS_KEY, JSON.stringify(state));
     this.generation++;
@@ -83,44 +103,52 @@ export class RemoteProxyService {
   }
   start() {
     if (this.running || this.shuttingDown) return;
-    const state = storedState();
-    if (!state.enabled) return;
+    const state = ensureAutomaticState();
+    if (state.enabled === false) return;
     this.running = true;
-    void this.run().finally(() => {
+    void this.run().catch((error) => {
+      this.lastError = String(error?.message || error).slice(0,100);
+      logger.warn({ code: this.lastError }, 'Automatische HTTPS-Kamera-Registrierung fehlgeschlagen');
+    }).finally(() => {
       this.running = false;
-      if (!this.shuttingDown && storedState().enabled) setTimeout(() => this.start(), 3000).unref?.();
+      if (!this.shuttingDown && ensureAutomaticState().enabled !== false) {
+        setTimeout(() => this.start(), 5000).unref?.();
+      }
     });
   }
   stop() {
-    // A restart must not erase the operator's persistent enablement.
+    // Preserve the user setting and permanent installation key on updates.
     this.shuttingDown = true;
     this.generation++;
   }
   async run() {
     const generation = this.generation;
-    let state = storedState();
-    if (!state.enabled) return;
+    let state = ensureAutomaticState();
+    if (state.enabled === false) return;
     const id = this.installationId();
     let key;
     try { key = decryptSecret(state.agentKeyEncrypted); }
-    catch { this.lastError = 'AGENT_SECRET_UNAVAILABLE'; return; }
-    if (!key) { this.lastError = 'AGENT_SECRET_MISSING'; return; }
+    catch { this.lastError = 'DEVICE_KEY_UNAVAILABLE'; return; }
+    // Never silently rotate a key when decryption fails: this could permit
+    // an identity takeover on the cloud side.
+    if (!key || key.length < 42) { this.lastError = 'DEVICE_KEY_INVALID'; return; }
     const identity = { id, key };
     if (!state.paired) {
       try {
-        const code = decryptSecret(state.pairingCodeEncrypted);
-        if (!code) throw new Error('PAIRING_CODE_MISSING');
-        await postPortal('register', identity, { id, code, key, label: 'TMP Camera Server' });
-        state = storedState();
+        // Registration uses first-claim pinning: an existing ID may only be
+        // refreshed by the same device key; blocked IDs cannot self-unblock.
+        await postPortal('register', identity, {
+          id, key, protocol: AUTO_REGISTRATION_PROTOCOL,
+        });
+        state = ensureAutomaticState();
         state.paired = true;
-        delete state.pairingCodeEncrypted;
         writeSetting(SETTINGS_KEY, JSON.stringify(state));
         this.lastError = null;
         this.lastContactAt = new Date().toISOString();
-        logger.info({ installationId: id }, 'HTTPS-Kameraproxy erfolgreich gekoppelt');
+        logger.info({ installationId: id, protocol: 2 }, 'Kamera-Installation automatisch am HTTPS-Portal angemeldet');
       } catch (error) {
         this.lastError = String(error?.message || error).slice(0,100);
-        logger.warn({ code: this.lastError }, 'HTTPS-Kameraproxy-Kopplung fehlgeschlagen');
+        logger.warn({ code: this.lastError }, 'Automatische HTTPS-Kamera-Registrierung fehlgeschlagen');
         return;
       }
     }
@@ -128,7 +156,7 @@ export class RemoteProxyService {
   }
   async pollWorker(identity, generation) {
     let failures = 0;
-    while (generation === this.generation && storedState().enabled) {
+    while (generation === this.generation && ensureAutomaticState().enabled !== false) {
       try {
         const url = new URL(PORTAL_URL);
         url.searchParams.set('agent', 'poll');
@@ -138,6 +166,12 @@ export class RemoteProxyService {
           headers: { Authorization: `Bearer ${identity.key}` },
           signal: AbortSignal.timeout(12_000),
         });
+        if (response.status === 401) {
+          const state = ensureAutomaticState();
+          state.paired = false;
+          writeSetting(SETTINGS_KEY, JSON.stringify(state));
+          throw new Error('PORTAL_AGENT_REENROLL_REQUIRED');
+        }
         if (response.status !== 200 && response.status !== 204) throw new Error(`PORTAL_POLL_HTTP_${response.status}`);
         failures = 0;
         this.lastContactAt = new Date().toISOString();
