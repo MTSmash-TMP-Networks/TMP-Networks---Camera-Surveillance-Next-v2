@@ -51,6 +51,7 @@ UPDATE_NOTES_2.20.81.md
 UPDATE_NOTES_2.20.82.md
 UPDATE_NOTES_2.20.83.md
 UPDATE_NOTES_2.20.84.md
+UPDATE_NOTES_2.20.85.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -232,6 +233,7 @@ backend/test-node/recording-compression-command.test.mjs
 backend/test-node/recording-kiosk-crashguard.test.mjs
 backend/test-node/recording-recovery-policy.test.mjs
 backend/test-node/recording-storage-integrity-regression.test.mjs
+backend/test-node/remote-proxy-auto-registration.test.mjs
 backend/test-node/remote-proxy-policy.test.mjs
 backend/test-node/reolink-onvif-port-8000.test.mjs
 backend/test-node/runtime-permissions.test.mjs
