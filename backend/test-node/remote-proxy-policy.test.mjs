@@ -68,3 +68,14 @@ test('cloud proxy URL parsing remains in scope for all archive actions', () => {
     '/api/recordings/34493/cloud-hls/0/manifest.json',
   ]) assert.equal(allowedProxyRequest('GET', route), false, route);
 });
+
+test('customer-initiated cloud audio is the only new POST stream permission', () => {
+  const route = '/api/streams/camera_A-12/cloud-audio';
+  assert.equal(allowedProxyRequest('POST', route), true);
+  assert.equal(allowedProxyRequest('GET', route), false);
+  assert.equal(allowedProxyRequest('POST', route+'?token=secret'), false);
+  assert.equal(allowedProxyRequest('POST', '/api/streams/camera_A-12/session'), false);
+  assert.equal(allowedProxyRequest('POST', '/api/streams/camera_A-12/heartbeat'), false);
+  assert.equal(allowedProxyRequest('POST', '/api/streams/camera_A-12/restart'), false);
+  assert.equal(allowedProxyRequest('POST', '/api/streams/camera_A-12/cloud-audio#fragment'), false);
+});
