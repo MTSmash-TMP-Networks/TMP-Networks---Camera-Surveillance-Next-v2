@@ -1,3 +1,14 @@
+## 2.20.84 – Optionaler ausgehender HTTPS-Kamera-Proxy mit persistenter Installations-ID
+
+- Jede Installation erhält bei der Admin-Abfrage eine dauerhafte UUID in der bestehenden SQLite-Datenbank.
+- Neues Admin-Panel unter Systemstatus zum Aktivieren/Deaktivieren und Koppeln per zeitlich begrenztem Einmalcode.
+- Optionaler Agent verbindet sich ausschließlich ausgehend über verifiziertes HTTPS mit support.tmp-networks.de/cam (standardmäßig AUS).
+- Beschränkte Whitelist: Anmeldung, Kameraliste, zentrale Vorschaubilder, ein ausgewählter zentraler HLS-Stream samt Segmenten. Keine Remote-Admin-API, keine PTZ-, Update- oder Aufnahmeänderungen.
+- Individueller Agentenschlüssel wird im vorhandenen AES-GCM-Tresor verschlüsselt; niemals in Logs oder dem Repository gespeichert.
+- Optionaler HTTP_BIND_ADDRESS-Schalter zur Bindung des lokalen HTTP-Frontends an Loopback, statt es ins Internet freizugeben.
+- Das private PHP-Portal ist ausdrücklich **nicht** Bestandteil dieses GitHub-Repositories oder Updatepakets. Es wird getrennt unter der Support-Domain bereitgestellt.
+- Der bestehende Kamera-/FFmpeg-/go2rtc-Medienpfad aus 2.20.81–2.20.83 bleibt unverändert.
+
 ## 2.20.83 – Mobile Online-Oberfläche mit eigenem Routing
 
 - Smartphones öffnen nach der Anmeldung automatisch das neue, authentifizierte Portal `/mobile`; der Linux-Kiosk und die Desktop-Navigation bleiben unverändert.

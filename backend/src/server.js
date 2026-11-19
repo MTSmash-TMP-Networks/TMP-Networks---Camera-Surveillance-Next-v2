@@ -13,7 +13,7 @@ if (insecureDefaults()) {
 const [
   { createApp }, { migrate, db }, { healthMonitor }, { discoveryJobService },
   { recordingScheduler }, { retentionManager }, { recordingService }, { recordingCompressionService }, { motionDetectionService },
-  { recordingEventDispatcher }, { ptzService }, { cameraRuntimeCoordinator },
+  { recordingEventDispatcher }, { ptzService }, { remoteProxyService }, { cameraRuntimeCoordinator },
   { ptzAutomationInterlock }, { streamOrchestrator }, { cameraThumbnailCache }, { eventWebSocketHub }, { domainEventBus }, { aiEventAnalysisService }, { emailNotificationService }, { demoModeSettingsService }, { networkRecordingStorageService },
 ] = await Promise.all([
   import('./app.js'),
@@ -26,6 +26,7 @@ const [
   import('./services/recording/RecordingCompressionService.js'),
   import('./services/recording/MotionDetectionService.js'),
   import('./services/recording/RecordingEventDispatcher.js'),
+  import('./services/RemoteProxyService.js'),
   import('./services/ptz/PtzService.js'),
   import('./services/runtime/CameraRuntimeCoordinator.js'),
   import('./services/runtime/PtzAutomationInterlock.js'),
@@ -40,6 +41,8 @@ const [
 ]);
 
 migrate();
+// Allocate one permanent installation UUID even when the remote portal is disabled.
+remoteProxyService.installationId();
 demoModeSettingsService.initializeFromLegacyEnv();
 aiEventAnalysisService.start();
 emailNotificationService.start();
@@ -49,6 +52,8 @@ const server = app.listen(config.port, config.host, () => {
   const demoRuntime = demoModeSettingsService.status();
   if (demoRuntime.demoMode) logger.warn({ allowExports: demoRuntime.allowExports }, 'Demo-Modus aktiv: zustandsveraendernde API-Aktionen sind schreibgeschuetzt');
   healthMonitor.start();
+  // Optional outbound HTTPS agent: never listens for incoming Internet traffic.
+  remoteProxyService.start();
   // Persist overview thumbnails independently of any open browser. Capture
   // only from the central already-running local HLS ring, never new RTSP sessions.
   void cameraThumbnailCache.start().catch((error) => logger.warn({ err: error }, 'Thumbnail-Cache konnte nicht gestartet werden'));
@@ -110,6 +115,7 @@ async function shutdown(signal) {
   }, 85_000);
   forceExit.unref();
 
+  remoteProxyService.stop();
   healthMonitor.stop?.();
   cameraThumbnailCache.stop();
   motionDetectionService.stop();

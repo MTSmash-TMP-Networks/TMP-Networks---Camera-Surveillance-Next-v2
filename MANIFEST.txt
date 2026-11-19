@@ -50,6 +50,7 @@ UPDATE_NOTES_2.20.80.md
 UPDATE_NOTES_2.20.81.md
 UPDATE_NOTES_2.20.82.md
 UPDATE_NOTES_2.20.83.md
+UPDATE_NOTES_2.20.84.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -98,6 +99,7 @@ backend/src/services/NetworkCameraDiscovery.js
 backend/src/services/NetworkRecordingStorageService.js
 backend/src/services/RecordingService.js
 backend/src/services/RecordingStorageService.js
+backend/src/services/RemoteProxyService.js
 backend/src/services/SystemControlService.js
 backend/src/services/SystemMetricsService.js
 backend/src/services/UpdatePackageInspector.js
@@ -177,6 +179,7 @@ backend/src/services/recording/RetentionManager.js
 backend/src/services/recording/RetentionPolicy.js
 backend/src/services/recording/ZipStoreWriter.js
 backend/src/services/recordingRepository.js
+backend/src/services/remoteProxyPolicy.js
 backend/src/services/runtime/CameraRuntimeCoordinator.js
 backend/src/services/runtime/CameraTaskQueue.js
 backend/src/services/runtime/PtzAutomationInterlock.js
@@ -229,6 +232,7 @@ backend/test-node/recording-compression-command.test.mjs
 backend/test-node/recording-kiosk-crashguard.test.mjs
 backend/test-node/recording-recovery-policy.test.mjs
 backend/test-node/recording-storage-integrity-regression.test.mjs
+backend/test-node/remote-proxy-policy.test.mjs
 backend/test-node/reolink-onvif-port-8000.test.mjs
 backend/test-node/runtime-permissions.test.mjs
 backend/test-node/smtp-client.test.mjs
