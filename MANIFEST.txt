@@ -59,6 +59,7 @@ UPDATE_NOTES_2.20.89.md
 UPDATE_NOTES_2.20.90.md
 UPDATE_NOTES_2.20.91.md
 UPDATE_NOTES_2.20.92.md
+UPDATE_NOTES_2.20.93.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -169,6 +170,7 @@ backend/src/services/ptz/PtzCommandRuntime.js
 backend/src/services/ptz/PtzService.js
 backend/src/services/ptz/ptzCapability.js
 backend/src/services/recording/BlockArchive.js
+backend/src/services/recording/CloudArchiveHlsCache.js
 backend/src/services/recording/CloudRecordingClip.js
 backend/src/services/recording/CloudRecordingDownload.js
 backend/src/services/recording/MotionDetectionAlgorithm.js
@@ -210,6 +212,7 @@ backend/test-node/camera-discovery-final-policy-regression.test.mjs
 backend/test-node/camera-discovery-precision-regression.test.mjs
 backend/test-node/camera-discovery-ui-state.test.mjs
 backend/test-node/camera-thumbnail-cache.test.mjs
+backend/test-node/cloud-archive-hls-cache.test.mjs
 backend/test-node/cloud-recording-clip.test.mjs
 backend/test-node/cloud-recording-download.test.mjs
 backend/test-node/container-status-branding.test.mjs
