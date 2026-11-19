@@ -213,7 +213,7 @@ export class RemoteProxyService {
         const body = job.body ? Buffer.from(String(job.body), 'base64') : null;
         if (body && body.byteLength > MAX_BODY_BYTES) throw new Error('BODY_TOO_LARGE');
         const response = await fetch(url, {
-          method, redirect: 'manual', signal: AbortSignal.timeout(15_000),
+          method, redirect: 'manual', signal: AbortSignal.timeout(/^\/api\/recordings\/[1-9][0-9]*\/cloud\/download\/\d+\.mp4$/.test(url.pathname) ? 24_000 : 15_000),
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             ...(body ? { 'Content-Type': 'application/json' } : {}),

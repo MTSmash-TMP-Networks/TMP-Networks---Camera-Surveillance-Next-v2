@@ -6,6 +6,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { recordingService } from '../services/RecordingService.js';
 import { renderCloudRecordingClip } from '../services/recording/CloudRecordingClip.js';
+import { renderCloudMp4Download, CLOUD_MP4_SECONDS } from '../services/recording/CloudRecordingDownload.js';
 import { recordingEvidenceExportService } from '../services/recording/RecordingEvidenceExport.js';
 import { recordingPolicyRepository } from '../services/recording/RecordingPolicyRepository.js';
 import { recordingScheduler } from '../services/recording/RecordingScheduler.js';
@@ -405,6 +406,62 @@ recordingsRouter.post('/', authorize('operator'), asyncHandler(async (req, res) 
 
 recordingsRouter.post('/:id/stop', authorize('operator'), asyncHandler(async (req, res) => {
   res.json(await recordingService.stop(z.coerce.number().int().positive().parse(req.params.id)));
+}));
+
+// Direct MP4 download without archive segment discovery at the PHP portal.
+// The server selects the archived block by time index and only returns a short,
+// lower-bandwidth MP4; originals cannot be downloaded through cloud.
+recordingsRouter.get('/:id/cloud/download/:part.mp4', asyncHandler(async (req, res) => {
+  const recordingId = z.coerce.number().int().positive().parse(req.params.id);
+  const part = z.coerce.number().int().min(0).max(4095).parse(req.params.part);
+  const recording = recordingService.get(recordingId);
+  if (!recording || !['ready', 'ready_with_gaps', 'recording'].includes(recording.status)) {
+    throw new AppError(404, 'RECORDING_NOT_AVAILABLE', 'Aufnahme nicht verfuegbar');
+  }
+  const requestedOffset = part * CLOUD_MP4_SECONDS;
+  let filePath, durationSeconds, offsetSeconds;
+  if (recording.archiveFormat === 'block_archive_v1') {
+    const blocks = recordingService.segments(recordingId)
+      .filter((segment) => segment.playable && Number(segment.durationSeconds) > 0);
+    let elapsed = 0;
+    let chosen = null;
+    for (const block of blocks) {
+      const duration = Number(block.durationSeconds);
+      if (requestedOffset < elapsed + duration) {
+        chosen = block;
+        offsetSeconds = requestedOffset - elapsed;
+        durationSeconds = duration;
+        break;
+      }
+      elapsed += duration;
+    }
+    if (!chosen) throw new AppError(404, 'CLOUD_MP4_OUT_OF_RANGE', 'Kein Aufnahmeblock an dieser Position');
+    const source = await recordingService.blockFile(recordingId, chosen.segmentIndex);
+    filePath = source.path;
+  } else {
+    if (!Number.isFinite(Number(recording.durationSeconds)) || requestedOffset >= Number(recording.durationSeconds)) {
+      throw new AppError(404, 'CLOUD_MP4_OUT_OF_RANGE', 'Aufnahmeabschnitt nicht vorhanden');
+    }
+    const source = await recordingService.file(recordingId);
+    filePath = source.path;
+    offsetSeconds = requestedOffset;
+    durationSeconds = Number(recording.durationSeconds);
+  }
+  let mp4;
+  try {
+    mp4 = await renderCloudMp4Download({ filePath, offsetSeconds, durationSeconds, ffmpegPath: config.ffmpegPath });
+  } catch (error) {
+    if (error?.status) throw new AppError(error.status, error.message, 'MP4-Ausschnitt konnte nicht erstellt werden');
+    throw error;
+  }
+  res.set({
+    'Content-Type': 'video/mp4',
+    'Cache-Control': 'private, no-store, max-age=0',
+    'Content-Disposition': `attachment; filename="TMP-Aufnahme-${recordingId}-${part}.mp4"`,
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Length': String(mp4.byteLength),
+  });
+  res.send(mp4);
 }));
 
 // Read-only, bounded cloud archive playback. Never expose raw full recording files.
