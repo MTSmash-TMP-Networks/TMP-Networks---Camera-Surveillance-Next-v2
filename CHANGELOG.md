@@ -1,3 +1,11 @@
+## 2.20.92 – Direkter MP4-Download im privaten Kamera-Portal
+
+- Neuer authentifizierter Aufnahmepfad `GET /api/recordings/:id/cloud/download/:part.mp4`: Ein kurzer 15-Sekunden-MP4-Ausschnitt, ohne vorgelagerten `recording-segments`-Aufruf im PHP-Portal.
+- Der Kamera-Server waehlt den benoetigten Original-Aufnahmeblock eigenstaendig und transcodiert nur den Ausschnitt; Aufnahmedateien bleiben unveraendert.
+- Strenge Nur-Lese-Freigaben, kein direkter Zugriff auf Rohaufnahmen oder Aufnahme-Verwaltung im Cloud-Proxy.
+- PHP-Portal 3.0.9 (privat) bietet Download und Startminute; die HLS-Wiedergabe ist optional.
+- Maximale Einzeldatei 3,5 MB, separate Encoder-Warteschlange und angepasstes Agenten-Timeout.
+
 ## 2.20.91 – Cloud-Aufnahmen abspielen und Mobilansicht reparieren
 
 - Warteschlange fuer bis zu acht wartende Cloud-Aufnahmeclips statt sofortigem HTTP-503 bei zwei laufenden Encodern.
