@@ -14,7 +14,8 @@ test('cloud audio activation is authenticated, opt-in, and only reachable throug
   const auth = code.indexOf('streamsRouter.use(authenticate)');
   const cloud = code.indexOf("streamsRouter.post('/:id/cloud-audio'");
   assert.ok(auth >= 0 && cloud > auth, 'Audio route must be after normal login authentication');
-  assert.match(code, /quality: 'high', viewportWidth: 1280, purpose: 'live'/);
+  assert.match(code, /quality: 'high', viewportWidth: 1280, purpose: 'live-audio'/);
+  assert.match(code, /if \(!session\.audioEnabled\)/);
   assert.match(code, /\{ wait: false \}/);
   assert.match(code, /if \(!session\.audioEnabled\)/);
   assert.match(code, /hlsUrl: null/);
