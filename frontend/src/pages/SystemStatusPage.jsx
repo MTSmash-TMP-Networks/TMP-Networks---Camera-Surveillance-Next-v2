@@ -137,6 +137,30 @@ export function SystemStatusPage() {
   const [demoSaving, setDemoSaving] = useState(false);
   const [demoMessage, setDemoMessage] = useState('');
   const [demoError, setDemoError] = useState('');
+  const [proxyStatus, setProxyStatus] = useState(null);
+  const [proxyPairingCode, setProxyPairingCode] = useState('');
+  const [proxySaving, setProxySaving] = useState(false);
+  const [proxyError, setProxyError] = useState('');
+  const [proxyMessage, setProxyMessage] = useState('');
+  useEffect(() => {
+    let alive = true;
+    api.remoteProxyStatus().then((result) => { if (alive) setProxyStatus(result.proxy); })
+      .catch((reason) => { if (alive) setProxyError(reason.message || 'Proxy-Status nicht verfügbar'); });
+    return () => { alive = false; };
+  }, []);
+  async function saveRemoteProxy(enabled) {
+    setProxySaving(true); setProxyError(''); setProxyMessage('');
+    try {
+      const input = { enabled };
+      if (proxyPairingCode.trim()) input.pairingCode = proxyPairingCode.trim();
+      const result = await api.configureRemoteProxy(input);
+      setProxyStatus(result.proxy);
+      setProxyPairingCode('');
+      setProxyMessage(enabled ? 'Ausgehender HTTPS-Proxy wurde aktiviert.' : 'HTTPS-Proxy wurde deaktiviert.');
+    } catch (reason) { setProxyError(reason.message || 'Proxy-Konfiguration fehlgeschlagen'); }
+    finally { setProxySaving(false); }
+  }
+
   const timerRef = useRef(null);
   const restartControllerRef = useRef(null);
   const mountedRef = useRef(true);
@@ -268,6 +292,28 @@ export function SystemStatusPage() {
     {restartMessage && <div className="system-status-alert system-restart-alert"><RefreshCw className="spin" /><div><strong>{t('system.restart.alertTitle')}</strong><span>{restartMessage}</span></div></div>}
     {restartError && <div className="system-status-alert"><AlertTriangle /><div><strong>{t('system.restart.notConfirmed')}</strong><span>{restartError}</span></div></div>}
     {error && !restarting && <div className="system-status-alert"><AlertTriangle /><div><strong>{t('system.refreshFailed')}</strong><span>{error} {t('system.lastValuesRemain')}</span></div></div>}
+
+    <section className="settings-card remote-proxy-admin">
+      <div className="section-heading"><div><h2><ShieldCheck /> Sicherer HTTPS-Fernzugriff</h2>
+        <p>Optionaler Kamera-Proxy über <a href="https://support.tmp-networks.de/cam" target="_blank" rel="noopener noreferrer">support.tmp-networks.de/cam</a>.
+          Der Kameraserver verbindet sich ausschließlich ausgehend. Keine Portfreigabe erforderlich.</p></div>
+        <span className={proxyStatus?.enabled ? 'system-status-pill ok' : 'system-status-pill warning'}>{proxyStatus?.enabled ? 'AKTIV' : 'AUS'}</span>
+      </div>
+      <div className="remote-proxy-id"><strong>Installations-ID</strong> <code>{proxyStatus?.installationId || '–'}</code></div>
+      <div className="remote-proxy-id"><strong>Kopplungsstatus</strong> <span>{proxyStatus?.paired ? 'Gekoppelt' : 'Nicht gekoppelt'}</span></div>
+      {proxyStatus?.lastContactAt && <div className="remote-proxy-id"><strong>Letzter Kontakt</strong> <span>{proxyStatus.lastContactAt}</span></div>}
+      {proxyStatus?.lastError && <div className="form-error">Agentenfehler: {proxyStatus.lastError}</div>}
+      {!proxyStatus?.paired && <label className="remote-proxy-label">Einmaliger Kopplungscode vom Portal (48 Hex-Zeichen)
+        <input type="password" autoComplete="off" value={proxyPairingCode} onChange={(event) => setProxyPairingCode(event.target.value)} placeholder="Kopplungscode" maxLength={48}/>
+      </label>}
+      <div className="demo-admin-actions">
+        <button type="button" className="primary-button" disabled={proxySaving || !proxyStatus} onClick={() => saveRemoteProxy(!proxyStatus?.enabled)}>
+          <ShieldCheck />{proxySaving ? 'Speichern …' : proxyStatus?.enabled ? 'Proxy deaktivieren' : 'HTTPS-Proxy aktivieren'}
+        </button>
+        {proxyMessage && <span className="demo-admin-saved"><CheckCircle2 /> {proxyMessage}</span>}
+      </div>
+      {proxyError && <div className="form-error" role="alert">{proxyError}</div>}
+    </section>
 
     <section className={`settings-card demo-admin-card ${demoSettings.enabled ? 'active' : ''}`}>
       <div className="section-heading demo-admin-heading">
