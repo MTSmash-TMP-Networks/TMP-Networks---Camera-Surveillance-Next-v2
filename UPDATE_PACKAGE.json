@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.89",
+  "version": "2.20.90",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.89",
-  "summary": "Stabiler HTTPS-Cloud-Medienrelay bei vielen Kameras: laengere Agenten-Polls, gestueckelte HLS-Antworten und verbesserte Fehlerdiagnose.",
-  "createdAt": "2026-11-19T17:00:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.89.md",
+  "title": "TMP Camera Surveillance Next 2.20.90",
+  "summary": "Sicherer HTTPS-Zugriff auf Aufnahme-Archiv: kurzer H.264-Cloud-Playback-Relay, Kamerafilter und Archiv-Wiedergabe in privatem PHP-Portal 3.0.7.",
+  "createdAt": "2026-11-19T18:10:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.90.md",
   "changes": [
-    "Extend camera-agent polling timeout from 12s to 25s when portal is busy",
-    "Send HLS media responses above 360KB as ordered 480KB Base64 chunks to avoid Plesk request-body limits",
-    "Permit media responses up to 4MiB and retry transient HTTP failures",
-    "Add detailed cloud-media transfer errors and regression tests",
-    "Private PHP 3.0.5 uses short polling requests and limits visible camera thumbnail concurrency to two"
+    "New read-only authenticated recording archive routes for cloud metadata and playback clips",
+    "Bound cloud recording media to four-second 540p H264/AAC MPEG-TS segments under 3.5MB",
+    "Enforce strict allowlists: no remote recording deletion, exports, schedule changes or full raw media downloads",
+    "PHP 3.0.7 private Plesk portal adds recording archive with camera/date filters and iPhone HLS player",
+    "Preserve recording originals, MySQL cloud data, user accounts and permanent camera installation ID"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.89.md",
+  "changelog": "UPDATE_NOTES_2.20.90.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.89",
-  "packageId": "tmp-camera-surveillance-next-2.20.89",
+  "name": "TMP Camera Surveillance Next v2.20.90",
+  "packageId": "tmp-camera-surveillance-next-2.20.90",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Reliable outbound-only Plesk HTTPS media relay for multi-camera installations",
+  "description": "Read-only recording archive and mobile HLS playback through secure outbound-only HTTPS camera cloud relay",
   "minVersion": "2.20.32",
-  "releaseNotes": "Requires separately deployed private Plesk PHP V3.0.5 for result-chunk and asynchronous thumbnails. Keep cloud registration ID, user accounts and recordings unchanged.",
-  "fileCount": 546
+  "releaseNotes": "Deploy private Plesk PHP 3.0.7 first, then update camera backend to 2.20.90. Clips are generated on demand at 540p/15fps, not full-resolution originals. Playback and login require the usual camera account credentials.",
+  "fileCount": 549
 }
