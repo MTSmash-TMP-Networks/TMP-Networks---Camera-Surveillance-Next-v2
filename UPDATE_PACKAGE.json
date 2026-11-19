@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.84",
+  "version": "2.20.85",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.84",
-  "summary": "Optionaler ausgehender HTTPS-Kameraproxy mit persistenter Installations-ID und privatem, separat bereitgestelltem PHP-Portal.",
+  "title": "TMP Camera Surveillance Next 2.20.85",
+  "summary": "Automatische HTTPS-Cloud-Registrierung mit persistenter Server-ID ohne Kopplungscode.",
   "createdAt": "2026-11-18T18:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.84.md",
+  "changelogFile": "UPDATE_NOTES_2.20.85.md",
   "changes": [
-    "Generate persistent per-installation UUID in the SQLite settings store",
-    "Add optional outbound HTTPS polling agent with strict camera-read allowlist",
-    "Manage one-time pairing and relay status through admin-only system endpoints",
-    "Keep the private PHP server entirely outside GitHub",
-    "Allow optional HTTP_BIND_ADDRESS=127.0.0.1 to close WAN/LAN cleartext web access"
+    "Automatically register the persistent UUID and device secret on backend startup without pairing",
+    "Remove pairing-code requirement from local admin API and frontend",
+    "Keep device secrets encrypted locally, preserve IDs and honor portal revocation",
+    "Use the existing outbound HTTPS relay, central HLS and camera-authenticated login",
+    "Deploy the matching private Plesk/MySQL portal V3 separately; PHP is not in this repository"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.84.md",
+  "changelog": "UPDATE_NOTES_2.20.85.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.84",
-  "packageId": "tmp-camera-surveillance-next-2.20.84",
+  "name": "TMP Camera Surveillance Next v2.20.85",
+  "packageId": "tmp-camera-surveillance-next-2.20.85",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Optional outbound-only secure camera relay and pairing with a separately deployed private PHP portal.",
+  "description": "Automatic outbound-only camera cloud registration with pinned device identity and ID-based portal login.",
   "minVersion": "2.20.32",
-  "releaseNotes": "2.20.84 adds persistent installation UUID, opt-in HTTPS polling relay, individual encrypted agent key, 10-minute pairing code and admin controls. Private portal PHP code is distributed separately and never stored in the camera GitHub repository. Local camera streaming and recording paths remain unchanged.",
-  "fileCount": 536
+  "releaseNotes": "No one-time pairing code: camera installation auto-registers its persistent UUID with a unique encrypted device key. Portal users enter installation ID and their normal camera credentials. Private PHP/MySQL portal is deployed separately, not in Git.",
+  "fileCount": 538
 }
