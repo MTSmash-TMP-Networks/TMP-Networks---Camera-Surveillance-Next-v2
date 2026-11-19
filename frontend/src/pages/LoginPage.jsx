@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { LockKeyhole, ShieldCheck } from 'lucide-react';
 import { login } from '../features/auth/authSlice.js';
 import { isDesktopKiosk } from '../services/api.js';
+import { authenticatedLandingPath, shouldOpenMobileInterface } from '../services/mobileRouting.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { BrandIcon } from '../components/BrandIcon.jsx';
 
@@ -16,8 +17,8 @@ export function LoginPage() {
   useEffect(() => {
     if (runtime?.demoMode) setForm({ username: 'demo', password: 'demo' });
   }, [runtime?.demoMode]);
-  if (user) return <Navigate to={isDesktopKiosk() ? "/kiosk" : "/"} replace />;
-  return <div className={`login-page${isDesktopKiosk() ? ' login-page-desktop' : ''}`}>
+  if (user) return <Navigate to={authenticatedLandingPath()} replace />;
+  return <div className={`login-page${isDesktopKiosk() ? ' login-page-desktop' : shouldOpenMobileInterface() ? ' login-page-mobile' : ''}`}>
     <div className="login-visual"><div className="login-grid"/><div className="login-copy"><BrandIcon size="hero" decorative={false}/><span className="eyebrow">TMP NETWORKS</span><h1>{t('login.heroLine1')}<br/>{t('login.heroLine2')}</h1><p>{t('login.heroDescription')}</p></div></div>
     <form className="login-card" onSubmit={(event) => { event.preventDefault(); dispatch(login({ ...form, rememberDevice })); }}>
       <div className="login-card-header"><BrandIcon size="login"/>{isDesktopKiosk() && <span className="desktop-login-badge"><ShieldCheck size={15}/> Linux-Kiosk</span>}</div><h2>{t('login.title')}</h2><p>{t('login.subtitle')}</p>
