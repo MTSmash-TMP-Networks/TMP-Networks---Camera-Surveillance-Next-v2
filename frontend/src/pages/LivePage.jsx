@@ -39,6 +39,7 @@ export function LivePage() {
   const [recordingError, setRecordingError] = useState('');
   const [actionsOpen, setActionsOpen] = useState(false);
   const [livePlaybackState, setLivePlaybackState] = useState(null);
+  const [liveAudioAvailable, setLiveAudioAvailable] = useState(null);
   const actionsRef = useRef(null);
   const profileToken = camera ? (profileSelections[camera.id] || '') : '';
   const ptzProfileToken = profileToken.startsWith('source:') ? (details?.camera?.preferredProfile || '') : profileToken;
@@ -58,7 +59,7 @@ export function LivePage() {
   }, [actionsOpen]);
   useEffect(() => {
     if (!camera) return undefined;
-    const resetTimer = setTimeout(() => { setDetails(null); setDiagnosticOpen(false); setRecording(null); setRecordingError(''); setActionsOpen(false); setLivePlaybackState(null); }, 0);
+    const resetTimer = setTimeout(() => { setDetails(null); setDiagnosticOpen(false); setRecording(null); setRecordingError(''); setActionsOpen(false); setLivePlaybackState(null); setLiveAudioAvailable(null); }, 0);
     api.camera(camera.id).then(setDetails).catch(() => setDetails(null));
     const loadRecording = () => api.recordings(camera.id).then((result) => setRecording((result.active || [])[0] || null)).catch(() => {});
     loadRecording();
@@ -69,6 +70,7 @@ export function LivePage() {
   function handlePlaybackStatus(next) {
     const state = next?.state || null;
     setLivePlaybackState(state);
+    setLiveAudioAvailable(next?.hasAudio ?? null);
     if (state === 'ready' && camera?.status !== 'online') {
       dispatch(cameraUpserted({ ...camera, status: 'online', lastError: null }));
     }
@@ -136,8 +138,8 @@ export function LivePage() {
         return <button key={item.id} className={selected ? 'selected' : ''} onClick={() => setParams({ camera: item.id })}><span className={`dot ${railState}`}/><span><strong>{item.name}</strong><small>{item.location || t('overview.locationUnknown')}</small></span></button>;
       })}</aside>
       <div className="live-main">
-        <SeamlessLivePlayer camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)} onStatusChange={handlePlaybackStatus}/>
-        <div className="stream-info"><span><Volume2/> Livebild: lokaler HLS-Ring über go2rtc-Broker · Audio wird für die stabile Browseransicht deaktiviert</span><span>{t('live.profileLabel')}: {selectedProfileName || t('live.automatic')} · {profileToken ? t('live.manualSelected') : codecPreferenceLabel(details?.camera?.codecPreference)}</span></div>
+        <SeamlessLivePlayer key={camera.id} camera={camera} quality={quality} profileToken={profileToken} transportMode="local-hls" onQualityChange={setQuality} onShowDiagnostics={() => setDiagnosticOpen(true)} onStatusChange={handlePlaybackStatus}/>
+        <div className="stream-info"><span><Volume2/> Livebild: lokaler HLS-Ring über go2rtc-Broker · {liveAudioAvailable ? 'Audiokanal bereit, über Lautsprechertaste aktivierbar' : 'Ton bei Bedarf über die Lautsprechertaste anfordern'}</span><span>{t('live.profileLabel')}: {selectedProfileName || t('live.automatic')} · {profileToken ? t('live.manualSelected') : codecPreferenceLabel(details?.camera?.codecPreference)}</span></div>
         <CameraLogPanel key={camera.id} cameraId={camera.id} canClear={allowed} open={diagnosticOpen} onOpenChange={setDiagnosticOpen}/>
       </div>
       <aside className="control-panel">
