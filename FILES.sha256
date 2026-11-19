@@ -233,7 +233,7 @@ f16a6eaa3e6bea05c9f71a13014f1eac212db0060b3d9afdea4bf82d4940ac0e  backend/test-n
 e664ff9303a1955f3c559110a8238cd748f01b514cc9bf1942d710ecc13a1895  backend/test-node/recording-kiosk-crashguard.test.mjs
 5febec3774de2ca57983c0d2968c74b58620f124a9409882da2d2950b563b2dd  backend/test-node/recording-recovery-policy.test.mjs
 9bc633e5bad54327496d3ec078a53df69fd5dfab42fe23113d23c9dc4db02662  backend/test-node/recording-storage-integrity-regression.test.mjs
-ea991241e36913547bd7272de7fad83374e76d4913524c533dd8dc84cb1bcaea  backend/test-node/remote-proxy-auto-registration.test.mjs
+a3a3a98b43e5e3c2d35751c6a2ba5a3744ddeecbea251c8200fc06210601e67a  backend/test-node/remote-proxy-auto-registration.test.mjs
 0cec634e06ed2285d7d835ad5d48d53a999abd41c56e0bcbbd627b7879bdcd72  backend/test-node/remote-proxy-policy.test.mjs
 0d8499a7640fc3a60f6f70079a53a5b0f29086f519b3f3e78e4d93f85ede8f8f  backend/test-node/reolink-onvif-port-8000.test.mjs
 89b3d5b8d1e13ce64b53c126cb50aa5e2290573b52c957c0b7b8ab9c464b9192  backend/test-node/runtime-permissions.test.mjs
