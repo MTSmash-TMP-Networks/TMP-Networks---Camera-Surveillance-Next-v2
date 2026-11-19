@@ -264,6 +264,9 @@ const visualEditorLabels = {
     'kiosk.editor.noResults': 'No cameras match your search.',
     'kiosk.editor.assignSlot': 'Assign camera to tile {number}',
     'kiosk.editor.clear': 'Remove camera from tile',
+    'kiosk.focus.expand': 'Enlarge live view: {name}',
+    'kiosk.focus.close': 'Close enlarged camera',
+    'kiosk.focus.title': 'Enlarged live view: {name}',
   },
   de: {
     'kiosk.editor.cameraList': 'Verfügbare Kameras',
@@ -273,6 +276,9 @@ const visualEditorLabels = {
     'kiosk.editor.noResults': 'Keine passenden Kameras gefunden.',
     'kiosk.editor.assignSlot': 'Kamera für Kachel {number} zuweisen',
     'kiosk.editor.clear': 'Kamera aus Kachel entfernen',
+    'kiosk.focus.expand': 'Livebild vergrößern: {name}',
+    'kiosk.focus.close': 'Großansicht schließen',
+    'kiosk.focus.title': 'Großansicht: {name}',
   },
 };
 
