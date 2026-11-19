@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Camera, Clapperboard, LogOut, MoreHorizontal, ShieldCheck, Smartphone } from 'lucide-react';
-import { logout } from '../features/auth/authSlice.js';
+import { Camera, Clapperboard, MoreHorizontal, Smartphone } from 'lucide-react';
 import { loadCameras } from '../features/cameras/camerasSlice.js';
 import { liveStreamPool } from '../services/liveStreamPool.js';
 import { setInterfacePreference } from '../services/mobileRouting.js';
@@ -14,7 +13,6 @@ export function MobileShell() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { t } = useI18n();
-  const user = useSelector((state) => state.auth.user);
   const cameras = useSelector((state) => state.cameras.items);
   const cameraStatus = useSelector((state) => state.cameras.status);
 
@@ -70,7 +68,5 @@ export function MobileShell() {
           <Icon size={22} aria-hidden="true"/><span>{label}</span>
         </NavLink>)}
     </nav>
-    <div className="mobile-session-hidden" aria-hidden="true"><ShieldCheck/>{user?.username}</div>
-    <button className="mobile-sr-only" onClick={() => dispatch(logout())} tabIndex={-1} aria-hidden="true"><LogOut/>{t('nav.logout')}</button>
   </div>;
 }
