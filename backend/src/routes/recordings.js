@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { recordingService } from '../services/RecordingService.js';
+import { renderCloudRecordingClip } from '../services/recording/CloudRecordingClip.js';
 import { recordingEvidenceExportService } from '../services/recording/RecordingEvidenceExport.js';
 import { recordingPolicyRepository } from '../services/recording/RecordingPolicyRepository.js';
 import { recordingScheduler } from '../services/recording/RecordingScheduler.js';
@@ -404,6 +405,51 @@ recordingsRouter.post('/', authorize('operator'), asyncHandler(async (req, res) 
 
 recordingsRouter.post('/:id/stop', authorize('operator'), asyncHandler(async (req, res) => {
   res.json(await recordingService.stop(z.coerce.number().int().positive().parse(req.params.id)));
+}));
+
+// Read-only, bounded cloud archive playback. Never expose raw full recording files.
+recordingsRouter.get('/:id/cloud/:block/clip/:part.ts', asyncHandler(async (req, res) => {
+  const recordingId = z.coerce.number().int().positive().parse(req.params.id);
+  const part = z.coerce.number().int().min(0).max(1800).parse(req.params.part);
+  const blockName = String(req.params.block || '');
+  const recording = recordingService.get(recordingId);
+  if (!recording) throw new AppError(404, 'RECORDING_NOT_FOUND', 'Aufnahme nicht gefunden');
+  if (!['ready', 'ready_with_gaps', 'recording'].includes(recording.status)) {
+    throw new AppError(409, 'RECORDING_NOT_READY', 'Aufnahme nicht abspielbereit');
+  }
+  let filePath;
+  let durationSeconds;
+  if (blockName === 'file' && recording.archiveFormat !== 'block_archive_v1') {
+    const source = await recordingService.file(recordingId);
+    filePath = source.path;
+    durationSeconds = recording.durationSeconds;
+  } else if (/^[1-9][0-9]{0,9}$/.test(blockName) && recording.archiveFormat === 'block_archive_v1') {
+    const segmentIndex = Number(blockName);
+    const segment = recordingService.segments(recordingId).find((candidate) =>
+      candidate.segmentIndex === segmentIndex && candidate.playable === true);
+    if (!segment) throw new AppError(404, 'RECORDING_BLOCK_MISSING', 'Aufnahmeblock nicht vorhanden');
+    const file = await recordingService.blockFile(recordingId, segmentIndex);
+    filePath = file.path;
+    durationSeconds = segment.durationSeconds;
+  } else {
+    throw new AppError(404, 'RECORDING_CLOUD_BLOCK_INVALID', 'Aufnahmeformat nicht unterstuetzt');
+  }
+  let data;
+  try {
+    data = await renderCloudRecordingClip({
+      filePath, part, durationSeconds, ffmpegPath: config.ffmpegPath,
+    });
+  } catch (error) {
+    if (error?.status) throw new AppError(error.status, error.message, 'Cloud-Aufnahmeclip konnte nicht erstellt werden');
+    throw error;
+  }
+  res.set({
+    'Content-Type': 'video/mp2t',
+    'Cache-Control': 'private, no-store, max-age=0',
+    'X-Content-Type-Options': 'nosniff',
+    'Content-Length': String(data.byteLength),
+  });
+  res.send(data);
 }));
 
 recordingsRouter.get('/:id/segments', (req, res) => {

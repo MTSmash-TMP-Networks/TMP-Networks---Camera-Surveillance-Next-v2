@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.89
+# TMP Camera Surveillance Next 2.20.90
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -143,3 +143,7 @@ Beim fehlgeschlagenen Update 2.20.87 meldete Vite in `SystemStatusPage.jsx` eine
 ## HTTPS-Cloud-Medienrelay (2.20.89 / Portal-PHP 3.0.5)
 
 Der Kamera-Agent sendet groessere HLS-Segmente ueber die geordneten `result-chunk`-POSTs. Das private Plesk-PHP-Portal 3.0.5 muss **vor dem Kamera-Update** ausgerollt werden. Es steuert Vorschaubildanforderungen nicht blockierend und mit maximal zwei aktiven Kamera-Vorschaubildern. Die bisherige ID-Registrierung und Anmeldung bleiben unveraendert. Details: `UPDATE_NOTES_2.20.89.md`.
+
+## HTTPS-Cloud-Aufnahme-Archiv (ab 2.20.90)
+
+Das private Plesk-PHP-Portal **3.0.7** ermoeglicht nach dem Kamera-Login das Lesen und Abspielen abgeschlossener Aufnahmebloecke. Die Cloud fordert ausschliesslich authentifizierte Aufnahme-Metadaten und vier Sekunden lange, fuer das iPhone optimierte H.264/AAC-Clips an; die Originalaufnahme bleibt unangetastet. Es wird keine Loesch-, Export- oder Verwaltungs-API fuer die Cloud freigeschaltet. Die Plesk-PHP-Datei bleibt ausserhalb des GitHub-Repositories. Siehe `UPDATE_NOTES_2.20.90.md`.
