@@ -1,3 +1,11 @@
+## 2.20.89 – Zuverlaessiger HTTPS-Cloud-Medienrelay bei mehreren Kameras
+
+- Erhoeht die Poll- und Portal-Timeouts des ausgehenden Kamera-Agenten, um vorzeitige `AbortError` bei stark ausgelastetem PHP-FPM zu vermeiden.
+- Zerlegt Kamera-/HLS-Medienantworten ueber 360 KB in kleine, geordnete HTTPS-Uploads. Damit werden Standard-Request-Body-Grenzen auf Plesk/Nginx nicht mehr sofort ueberschritten.
+- Erhoeht die maximale Einzelantwort auf 4 MiB und wiederholt kurzzeitige Serverfehler. Diagnosecodes unterscheiden Poll-/Result-Uebertragungen.
+- PHP-Portal 3.0.5 (privat, separat zu verteilen) stellt die Chunk-Gegenstelle sowie bis zu zwei parallele, nicht blockierende Vorschaubilder bereit.
+- Alte Installations-ID und Geraeteschluessel, Kamera-Konfiguration, Aufnahmen, Kiosk und Benutzer bleiben unangetastet.
+
 ## 2.20.88 – Hotfix für fehlgeschlagenen Frontend-Build bei iPhone-WebApp-Link
 
 - Schließt die fehlende JSX-Klammer nach dem WebApp-Link-Block in `SystemStatusPage.jsx`.
