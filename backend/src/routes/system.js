@@ -15,9 +15,29 @@ import { aiEventAnalysisSettingsService, AI_ANALYSIS_LANGUAGES } from '../servic
 import { aiEventAnalysisService } from '../services/ai/AiEventAnalysisService.js';
 import { demoModeSettingsService } from '../services/DemoModeSettingsService.js';
 import { recordingStorageService } from '../services/RecordingStorageService.js';
+import { remoteProxyService } from '../services/RemoteProxyService.js';
 
 export const systemRouter = Router();
 systemRouter.use(authenticate, authorize('admin'));
+const remoteProxySettingsSchema = z.object({
+  enabled: z.boolean(),
+  pairingCode: z.string().regex(/^[a-f0-9]{48}$/i).optional(),
+}).strict();
+
+systemRouter.get('/remote-proxy', (_req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ proxy: remoteProxyService.status() });
+});
+systemRouter.put('/remote-proxy', (req, res) => {
+  const input = remoteProxySettingsSchema.parse(req.body || {});
+  try {
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ proxy: remoteProxyService.configure(input) });
+  } catch (error) {
+    throw new AppError(400, 'REMOTE_PROXY_INVALID_CONFIG', String(error?.message || error));
+  }
+});
+
 
 
 const demoModeSettingsSchema = z.object({
