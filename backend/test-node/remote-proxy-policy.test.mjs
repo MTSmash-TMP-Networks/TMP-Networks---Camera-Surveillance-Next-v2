@@ -24,3 +24,26 @@ test('proxy rejects admin APIs, SSRF, traversal, recordings and writes by defaul
     assert.equal(allowedProxyRequest('POST', route), false, route);
   assert.equal(allowedProxyRequest('DELETE', '/api/cameras'), false);
 });
+
+test('cloud recording archive allows only read-only, bounded metadata and short clips', () => {
+  for (const route of [
+    '/api/recordings?limit=100',
+    '/api/recordings?cameraId=cam_A-1&limit=100',
+    '/api/recordings/57/segments',
+    '/api/recordings/57/cloud/file/clip/0.ts',
+    '/api/recordings/57/cloud/3/clip/1800.ts',
+  ]) assert.equal(allowedProxyRequest('GET', route), true, route);
+  for (const route of [
+    '/api/recordings',
+    '/api/recordings?limit=500',
+    '/api/recordings/57/playlist.m3u8',
+    '/api/recordings/57/file',
+    '/api/recordings/57/token',
+    '/api/recordings/57/cloud/file/clip/2.ts?token=secret',
+    '/api/recordings/57/cloud/file/clip/99999.ts',
+    '/api/recordings?cameraId=x&limit=100&admin=1',
+    '/api/recordings/57/segments?token=abc',
+  ]) assert.equal(allowedProxyRequest('GET', route), false, route);
+  assert.equal(allowedProxyRequest('POST', '/api/recordings/57/cloud/file/clip/0.ts'), false);
+  assert.equal(allowedProxyRequest('DELETE', '/api/recordings/57'), false);
+});
