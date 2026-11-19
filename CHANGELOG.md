@@ -1,3 +1,12 @@
+## 2.20.85 – Automatische Cloud-Registrierung ohne Einmalcode
+
+- Jede Installation registriert ihre bestehende, dauerhafte UUID beim Backend-Start automatisch bei support.tmp-networks.de/cam. Kein Kopplungskennwort und keine manuelle Serverfreigabe notwendig.
+- Individueller starker Geraeteschluessel wird lokal im bestehenden AES-GCM-Vault verschluesselt. Die private MySQL-Gegenstelle pinnt SHA-256 des Schluessels an die UUID; fremde Schluessel duerfen IDs nicht uebernehmen, gesperrte IDs duerfen sich nicht entsperren.
+- Die Portal-Benutzerseite fragt nur Server-ID, Benutzername und Kamera-Server-Passwort ab. Die Kamera-Anmeldung wird am jeweiligen Kameraserver geprueft.
+- Die private Plesk-MySQL-PHP-Portaldatei wird separat ausgeliefert und niemals ins GitHub-Repository aufgenommen.
+- Kamera-Systemstatus zeigt die feste UUID, den Cloud-Registrierungsstatus und einen optionalen lokalen Ein/Aus-Schalter ohne Pairingfeld.
+- Bereits registrierte Installationen behalten ID und Geraeteschluessel; lokale Streams, Aufnahmen und Kiosk funktionieren unveraendert.
+
 ## 2.20.84 – Optionaler ausgehender HTTPS-Kamera-Proxy mit persistenter Installations-ID
 
 - Jede Installation erhält bei der Admin-Abfrage eine dauerhafte UUID in der bestehenden SQLite-Datenbank.
