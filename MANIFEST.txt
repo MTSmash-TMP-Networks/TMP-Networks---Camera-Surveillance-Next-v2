@@ -55,6 +55,7 @@ UPDATE_NOTES_2.20.85.md
 UPDATE_NOTES_2.20.86.md
 UPDATE_NOTES_2.20.87.md
 UPDATE_NOTES_2.20.88.md
+UPDATE_NOTES_2.20.89.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -184,6 +185,7 @@ backend/src/services/recording/RetentionPolicy.js
 backend/src/services/recording/ZipStoreWriter.js
 backend/src/services/recordingRepository.js
 backend/src/services/remoteProxyPolicy.js
+backend/src/services/remoteProxyTransfer.js
 backend/src/services/runtime/CameraRuntimeCoordinator.js
 backend/src/services/runtime/CameraTaskQueue.js
 backend/src/services/runtime/PtzAutomationInterlock.js
@@ -238,6 +240,7 @@ backend/test-node/recording-recovery-policy.test.mjs
 backend/test-node/recording-storage-integrity-regression.test.mjs
 backend/test-node/remote-proxy-auto-registration.test.mjs
 backend/test-node/remote-proxy-policy.test.mjs
+backend/test-node/remote-proxy-transfer.test.mjs
 backend/test-node/reolink-onvif-port-8000.test.mjs
 backend/test-node/runtime-permissions.test.mjs
 backend/test-node/smtp-client.test.mjs
