@@ -1,17 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.88",
+  "version": "2.20.89",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.88",
-  "summary": "Hotfix: iPhone-WebApp-Link ohne JSX-Buildfehler, mit Regressionstest und Frontend-Buildprüfung.",
-  "createdAt": "2026-11-19T16:39:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.88.md",
+  "title": "TMP Camera Surveillance Next 2.20.89",
+  "summary": "Stabiler HTTPS-Cloud-Medienrelay bei vielen Kameras: laengere Agenten-Polls, gestueckelte HLS-Antworten und verbesserte Fehlerdiagnose.",
+  "createdAt": "2026-11-19T17:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.89.md",
   "changes": [
-    "Fix missing closing JSX expression in camera cloud WebApp link section",
-    "Preserve iPhone WebApp URL generation, copying, and opening",
-    "Add regression test for JSX sibling boundary",
-    "Run frontend regression test and production build in GitHub CI before the release is merged",
-    "Preserve server ID, camera settings, recordings and portal separation"
+    "Extend camera-agent polling timeout from 12s to 25s when portal is busy",
+    "Send HLS media responses above 360KB as ordered 480KB Base64 chunks to avoid Plesk request-body limits",
+    "Permit media responses up to 4MiB and retry transient HTTP failures",
+    "Add detailed cloud-media transfer errors and regression tests",
+    "Private PHP 3.0.5 uses short polling requests and limits visible camera thumbnail concurrency to two"
   ],
   "preserve": [
     ".env",
@@ -32,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.88.md",
+  "changelog": "UPDATE_NOTES_2.20.89.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.88",
-  "packageId": "tmp-camera-surveillance-next-2.20.88",
+  "name": "TMP Camera Surveillance Next v2.20.89",
+  "packageId": "tmp-camera-surveillance-next-2.20.89",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Verified JSX syntax repair after 2.20.87 frontend Docker build failure",
+  "description": "Reliable outbound-only Plesk HTTPS media relay for multi-camera installations",
   "minVersion": "2.20.32",
-  "releaseNotes": "Replaces failed v2.20.87 rollout after Docker/Vite reported Adjacent JSX elements must be wrapped. Source expression is closed and the frontend production build remains the CI validation gate.",
-  "fileCount": 543
+  "releaseNotes": "Requires separately deployed private Plesk PHP V3.0.5 for result-chunk and asynchronous thumbnails. Keep cloud registration ID, user accounts and recordings unchanged.",
+  "fileCount": 546
 }
