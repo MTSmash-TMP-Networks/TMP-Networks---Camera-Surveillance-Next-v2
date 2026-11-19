@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.87
+# TMP Camera Surveillance Next 2.20.88
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -135,3 +135,7 @@ Die neue Version aktiviert den ausgehenden Cloud-Zugang bei der Installation und
 ## iPhone-WebApp-Zugang pro Installation (ab 2.20.87)
 
 In **Systemstatus → Sicherer HTTPS-Fernzugriff** zeigt der Kameraserver einen kopierbaren Link zur Cloud-Anmeldung mit seiner permanenten Installations-ID. Der Link enthaelt nur die UUID, keine Passwoerter oder Zugangstokens. Auf dem iPhone den Link in Safari oeffnen und unter **Teilen → Zum Home-Bildschirm** als Web-App speichern. Die private Plesk-PHP-Portalversion **3.0.3** muss separat auf `support.tmp-networks.de/cam` installiert sein; sie liefert das zur Installation passende Webmanifest. Login mit normalem Kamera-Benutzernamen und Passwort ist weiterhin erforderlich.
+
+## Reparatur: Frontend-Buildfehler von 2.20.87
+
+Beim fehlgeschlagenen Update 2.20.87 meldete Vite in `SystemStatusPage.jsx` eine nicht geschlossene JSX-Bedingung. Update `2.20.88` behebt diesen Fehler. Vor dem Einspielen über das Updatecenter sollte das CI-Build für das Release erfolgreich sein. Der automatische Rollback nach einem fehlerhaften Build sichert die vorherige Version. Siehe `UPDATE_NOTES_2.20.88.md`.
