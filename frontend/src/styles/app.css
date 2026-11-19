@@ -930,3 +930,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[r
 @media(max-width:380px){.mobile-camera-card{grid-template-columns:93px minmax(0,1fr) 16px;gap:9px}.mobile-camera-thumb{width:93px}.mobile-header-brand .brand-icon{width:35px;height:35px}.mobile-header-brand strong{font-size:12px}.mobile-header-online{padding:7px;font-size:11px}}
 @media(min-width:768px){.mobile-shell .mobile-header{padding-inline:max(24px,calc((100vw - 760px)/2))}.mobile-bottom-nav{padding-inline:max(24px,calc((100vw - 760px)/2))}.mobile-camera-list{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-camera-card{grid-template-columns:104px minmax(0,1fr) 18px}.mobile-camera-thumb{width:104px}}
 @media(prefers-reduced-motion:reduce){.mobile-shell *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Desktop's manual portal switch does not force a viewport-based redirect. */
+.tmp-mobile-switch{display:flex;align-items:center;justify-content:center;gap:7px;margin-inline-start:auto;margin-inline-end:14px;padding:8px 11px;min-height:39px;border:1px solid #245169;border-radius:10px;color:#a6e5f1;background:#0c2737;font-size:12px;font-weight:750;cursor:pointer}
+.tmp-mobile-switch:hover{border-color:#3ca4bb;color:#e3fcff}
+.tmp-mobile-switch:focus-visible{outline:3px solid #2ccde6;outline-offset:2px}
+@media(max-width:700px){.tmp-mobile-switch{padding:9px;min-width:43px}.tmp-mobile-switch>span{display:none}}
