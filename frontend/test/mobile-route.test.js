@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { isMobileDevice, chooseMobileInterface } from '../src/services/mobileRouting.js';
+import { mobileMessages } from '../src/i18n/mobileMessages.js';
+import { SUPPORTED_LANGUAGES } from '../src/i18n/languages.js';
 
 describe('Mobile portal selection', () => {
+  it('supplies the same localized message keys to all 24 supported languages', () => {
+    const expected = Object.keys(mobileMessages.en).sort();
+    for (const { code } of SUPPORTED_LANGUAGES) {
+      expect(Object.keys(mobileMessages[code] || {}).sort()).toEqual(expected);
+    }
+  });
   it('identifies phones even when a desktop-sized viewport is reported', () => {
     expect(isMobileDevice({ userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit Mobile Safari', viewportWidth: 1280 })).toBe(true);
     expect(isMobileDevice({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', viewportWidth: 1280 })).toBe(true);
