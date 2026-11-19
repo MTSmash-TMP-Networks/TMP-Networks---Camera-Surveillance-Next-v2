@@ -19,10 +19,13 @@ function KioskStatusBadges({ status }) {
   </div>;
 }
 
-export function SeamlessLivePlayer({ camera, quality, profileToken, transportMode = 'auto', onQualityChange, onShowDiagnostics, onStatusChange, compact = false, reconnectSignal = 0, kioskStatus = null, connectDelayMs = 0, isolateFailure = false }) {
+export function SeamlessLivePlayer({ camera, quality, profileToken, transportMode = 'auto', onQualityChange, onShowDiagnostics, onStatusChange, onAudioStatusChange, compact = false, reconnectSignal = 0, kioskStatus = null, connectDelayMs = 0, isolateFailure = false }) {
   const { t } = useI18n();
   const containerRef = useRef(null);
   const mediaHostRef = useRef(null);
+  const audioHostRef = useRef(null);
+  const audioHandleRef = useRef(null);
+  const onAudioStatusChangeRef = useRef(onAudioStatusChange);
   const handleRef = useRef(null);
   const previousRequestRef = useRef(null);
   const reconnectSignalRef = useRef(reconnectSignal);
@@ -31,6 +34,9 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const [audioMuted, setMuted] = useState(true);
   const [audioRequestedRaw, setAudioRequested] = useState(false);
   const [audioCameraId, setAudioCameraId] = useState(null);
+  const [audioQuality, setAudioQuality] = useState('auto');
+  const [audioStatus, setAudioStatus] = useState({ state: 'idle', hasAudio: null });
+  const [audioNotice, setAudioNotice] = useState('');
   // Ignore audio state from the previously selected camera before effects run.
   const audioRequested = audioRequestedRaw && audioCameraId === camera.id;
   const muted = !audioRequested || audioMuted;
@@ -40,13 +46,22 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const automaticQuality = qualityForWidth(viewportWidth || 1280);
   // Kiosk is a pure reader of the backend-owned central preview. Tile size,
   // browser resize and UI quality must never create another camera session.
-  const requestedQuality = compact ? 'low' : audioRequested ? 'high' : (quality === 'auto' ? 'auto' : quality);
-  const requestedPurpose = compact ? 'kiosk' : audioRequested ? 'live-audio' : 'live';
+  // The visible player never changes streams when the user requests audio.
+  const requestedQuality = compact ? 'low' : (quality === 'auto' ? 'auto' : quality);
+  const requestedPurpose = compact ? 'kiosk' : 'live';
   const connectionViewportWidth = compact ? 640 : requestedQuality === 'low' ? 640 : requestedQuality === 'high' ? 1920 : 1280;
   const waitingForAdaptiveMeasurement = false;
 
   useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
-  useEffect(() => { setAudioRequested(false); setAudioCameraId(null); setMuted(true); }, [camera.id]);
+  useEffect(() => { onAudioStatusChangeRef.current = onAudioStatusChange; }, [onAudioStatusChange]);
+  useEffect(() => {
+    setAudioRequested(false);
+    setAudioCameraId(null);
+    setAudioQuality('auto');
+    setAudioStatus({ state: 'idle', hasAudio: null });
+    setAudioNotice('');
+    setMuted(true);
+  }, [camera.id]);
 
   useEffect(() => {
     if (compact) return undefined;
@@ -100,7 +115,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
       handle = liveStreamPool.acquire({
         ...request,
         viewportWidth: connectionViewportWidth,
-        muted: compact ? true : muted,
+        muted: true,
         allowCompatibleReuse,
         isolateFailure,
       }, host, (next) => {
@@ -123,9 +138,58 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
     };
   }, [camera.id, requestedQuality, requestedPurpose, profileToken, transportMode, connectionViewportWidth, waitingForAdaptiveMeasurement, compact, connectDelayMs, isolateFailure]);
 
+  // A failed AAC source must never interrupt the working visible live image.
   useEffect(() => {
-    handleRef.current?.setMuted(compact ? true : muted);
-  }, [muted, compact]);
+    if (compact || !audioRequested) return undefined;
+    const host = audioHostRef.current;
+    if (!host) return undefined;
+    let cancelled = false;
+    const handle = liveStreamPool.acquire({
+      cameraId: camera.id,
+      quality: audioQuality,
+      profileToken: profileToken || '',
+      purpose: 'live-audio',
+      transportMode,
+      viewportWidth: audioQuality === 'high' ? 1920 : audioQuality === 'low' ? 640 : 1280,
+      muted: true,
+      allowCompatibleReuse: false,
+      isolateFailure: true,
+    }, host, (next) => {
+      if (cancelled) return;
+      setAudioStatus(next);
+      onAudioStatusChangeRef.current?.(next);
+      if (next.state === 'failed' || (next.state === 'ready' && next.hasAudio === false)) {
+        if (quality === 'auto' && audioQuality !== 'high') {
+          // Some cameras only send microphone frames with their main profile.
+          // Attempt it once, but never replace the visible preview.
+          setAudioNotice('Keine Audiospur im Vorschaustream – Hauptstream wird geprüft …');
+          setAudioQuality('high');
+        } else {
+          setAudioNotice(next.state === 'failed'
+            ? 'Audiokanal konnte nicht aufgebaut werden. Das Livebild bleibt aktiv.'
+            : 'Die Kamera liefert in diesem Profil keine nutzbare AAC-Audiospur.');
+          setAudioRequested(false);
+          setAudioCameraId(null);
+          setMuted(true);
+        }
+      } else if (next.state === 'ready' && next.hasAudio === true) {
+        setAudioNotice('Audiokanal bereit – Lautsprechertaste erneut drücken, um Ton zu starten.');
+      } else if (next.state === 'starting' || next.state === 'connecting') {
+        setAudioNotice('Audiokanal wird separat vorbereitet – Livebild bleibt aktiv …');
+      }
+    });
+    audioHandleRef.current = handle;
+    return () => {
+      cancelled = true;
+      if (audioHandleRef.current === handle) audioHandleRef.current = null;
+      handle.release({ immediate: true });
+      onAudioStatusChangeRef.current?.(null);
+    };
+  }, [compact, audioRequested, camera.id, audioQuality, profileToken, transportMode, quality]);
+
+  useEffect(() => {
+    if (audioRequested) audioHandleRef.current?.setMuted(muted);
+  }, [audioRequested, muted]);
 
   function toggleAudio() {
     if (compact) return;
@@ -133,11 +197,14 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
       // Keep the existing preview playing silently while a dedicated audio
       // source starts. Browser autoplay must never be required to carry sound.
       setMuted(true);
+      setAudioQuality(quality === 'auto' ? 'auto' : quality);
+      setAudioStatus({ state: 'starting', hasAudio: null });
+      setAudioNotice('Audiokanal wird separat vorbereitet – Livebild bleibt aktiv …');
       setAudioCameraId(camera.id);
       setAudioRequested(true);
       return;
     }
-    if (status.state !== 'ready' || status.hasAudio === false) {
+    if (audioStatus.state !== 'ready' || audioStatus.hasAudio !== true) {
       setMuted(true);
       setAudioRequested(false);
       setAudioCameraId(null);
@@ -145,8 +212,9 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
     }
     const nextMuted = !muted;
     // This synchronous user gesture allows Safari to start unmuted playback.
-    handleRef.current?.setMuted(nextMuted);
+    audioHandleRef.current?.setMuted(nextMuted);
     setMuted(nextMuted);
+    setAudioNotice(nextMuted ? 'Ton stummgeschaltet.' : 'Ton eingeschaltet.');
   }
 
 
@@ -160,6 +228,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
     <section ref={containerRef} className={`live-player ${compact ? 'live-player-compact' : ''}`} aria-label={t('live.liveAria', { name: camera.name })} data-camera-id={camera.id}>
       <SnapshotBackdrop cameraId={camera.id} refreshMs={status.snapshotMode ? 1000 : 15000} enabled={!['ready', 'recovering'].includes(status.state) || status.snapshotMode} />
       <div ref={mediaHostRef} className="live-media-host" />
+      {!compact && <div ref={audioHostRef} className="live-audio-media-host" aria-hidden="true" />}
       <div className="live-gradient" />
       {compact
         ? <>
@@ -179,8 +248,9 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
         <span>{status.message}</span>
         {status.state === 'failed' && onShowDiagnostics && <button className="inline-diagnostics" onClick={onShowDiagnostics}><FileSearch /> {t('live.diagnostics')}</button>}
       </div>}
+      {!compact && audioNotice && <div className="live-audio-notice" role="status">{audioNotice}</div>}
       {!compact && <div className="live-controls">
-        <button type="button" onClick={toggleAudio} title={!audioRequested ? t('live.enableAudio') : status.state !== 'ready' ? 'Audiokanal wird vorbereitet (erneut klicken zum Abbrechen)' : status.hasAudio === false ? 'Kein Audiokanal nachgewiesen – stumme Vorschau wiederherstellen' : muted ? 'Ton starten' : t('live.muteAudio')} aria-label={!audioRequested ? t('live.enableAudio') : status.hasAudio === false ? 'Zur stummen Livevorschau zurückkehren' : muted ? 'Ton starten' : t('live.muteAudio')} aria-pressed={audioRequested && !muted}>{audioRequested && status.hasAudio !== false && status.state !== 'failed' ? <Volume2 /> : <VolumeX />}</button>
+        <button type="button" onClick={toggleAudio} title={!audioRequested ? t('live.enableAudio') : audioStatus.state !== 'ready' ? 'Audiokanal wird vorbereitet (erneut klicken zum Abbrechen)' : muted ? 'Ton starten' : t('live.muteAudio')} aria-label={!audioRequested ? t('live.enableAudio') : audioStatus.state !== 'ready' ? 'Audioaufbau abbrechen' : muted ? 'Ton starten' : t('live.muteAudio')} aria-pressed={audioRequested && !muted}>{audioRequested && audioStatus.hasAudio === true ? <Volume2 /> : <VolumeX />}</button>
         <button onClick={() => handleRef.current?.reconnect()} title={t('live.reconnect')} aria-label={t('live.reconnect')}><RefreshCw /></button>
         <button onClick={toggleFullscreen} title={fullscreen ? t('live.exitFullscreen') : t('live.fullscreen')} aria-label={fullscreen ? t('live.exitFullscreen') : t('live.fullscreen')}>{fullscreen ? <Minimize2 /> : <Maximize2 />}</button>
       </div>}
