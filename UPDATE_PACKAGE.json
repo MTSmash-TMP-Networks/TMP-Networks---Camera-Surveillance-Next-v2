@@ -1,16 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.87",
+  "version": "2.20.88",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.87",
-  "summary": "iPhone-WebApp-Link mit automatischer Installations-ID; kopieren und in Safari oeffnen.",
-  "createdAt": "2026-11-19T16:24:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.87.md",
+  "title": "TMP Camera Surveillance Next 2.20.88",
+  "summary": "Hotfix: iPhone-WebApp-Link ohne JSX-Buildfehler, mit Regressionstest und Frontend-Buildprüfung.",
+  "createdAt": "2026-11-19T16:39:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.88.md",
   "changes": [
-    "Generate one secure HTTPS deep link for each camera installation UUID",
-    "Copy or open the cloud WebApp link from the system status page",
-    "Private Plesk PHP portal 3.0.3 supplies per-server standalone WebApp manifest",
-    "No passwords or access tokens in shareable URL"
+    "Fix missing closing JSX expression in camera cloud WebApp link section",
+    "Preserve iPhone WebApp URL generation, copying, and opening",
+    "Add regression test for JSX sibling boundary",
+    "Run frontend regression test and production build in GitHub CI before the release is merged",
+    "Preserve server ID, camera settings, recordings and portal separation"
   ],
   "preserve": [
     ".env",
@@ -31,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.87.md",
+  "changelog": "UPDATE_NOTES_2.20.88.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.87",
-  "packageId": "tmp-camera-surveillance-next-2.20.87",
+  "name": "TMP Camera Surveillance Next v2.20.88",
+  "packageId": "tmp-camera-surveillance-next-2.20.88",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "iPhone standalone WebApp deep link with the permanent installation ID",
+  "description": "Verified JSX syntax repair after 2.20.87 frontend Docker build failure",
   "minVersion": "2.20.32",
-  "releaseNotes": "Copy the server-specific HTTPS link in system status. Install private PHP 3.0.3 separately for iOS standalone metadata and preserved ID.",
-  "fileCount": 542
+  "releaseNotes": "Replaces failed v2.20.87 rollout after Docker/Vite reported Adjacent JSX elements must be wrapped. Source expression is closed and the frontend production build remains the CI validation gate.",
+  "fileCount": 543
 }

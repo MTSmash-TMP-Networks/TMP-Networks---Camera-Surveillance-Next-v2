@@ -1,3 +1,11 @@
+## 2.20.88 – Hotfix für fehlgeschlagenen Frontend-Build bei iPhone-WebApp-Link
+
+- Schließt die fehlende JSX-Klammer nach dem WebApp-Link-Block in `SystemStatusPage.jsx`.
+- Behebt den Vite-Fehler „Adjacent JSX elements must be wrapped in an enclosing tag“ aus Update 2.20.87.
+- Ergänzt einen Regressionstest, der diesen Fehler vor einem erneuten Update erkennt.
+- Beibehaltung von Server-ID, iPhone-WebApp-Link, Kopierfunktion und bestehender Cloud-Registrierung.
+- Keine Änderungen an Kamera-Streams, Aufnahmen, Benutzerkonten oder der privaten PHP-Datei.
+
 ## 2.20.87 – iPhone-WebApp-Link für jeden Kamera-Server
 
 - Systemstatus zeigt einen direkten HTTPS-Link mit der festen Installations-ID, einschließlich Kopieren und Öffnen.

@@ -66,6 +66,8 @@ jobs:
           node --test backend/test-node/ptz-automation-interlock.test.mjs
       - name: Validate desktop client distribution and Electron installer
         run: node --test frontend/test-node/desktop-client-distribution.test.mjs
+      - name: Catch unclosed cloud WebApp JSX condition before production build
+        run: node --test frontend/test-node/cloud-webapp-link.test.mjs
       - name: Install package dependencies and run actual unit tests and frontend build
         run: |
           npm ci --prefix frontend --no-audit --no-fund
