@@ -109,11 +109,12 @@ export function buildSnapshotLocalHlsArgs({ outputDir, width = 1280, height = 72
   ];
 }
 
-export function buildLocalHlsRingArgs({ sourceUri, outputDir, includeAudio = false, segmentSeconds = 1, listSize = 30 }) {
+export function buildLocalHlsRingArgs({ sourceUri, audioSourceUri = null, outputDir, includeAudio = false, segmentSeconds = 1, listSize = 30 }) {
   const safeSegmentSeconds = Math.max(1, Math.min(6, Math.round(Number(segmentSeconds) || 1)));
   const safeListSize = Math.max(8, Math.min(120, Math.round(Number(listSize) || 30)));
   const directory = outputDir.replace(/\/$/, '');
   const isRtspInput = /^rtsps?:\/\//i.test(String(sourceUri || ''));
+  const dedicatedAudioUri = includeAudio && audioSourceUri ? audioSourceUri : null;
   return [
     '-hide_banner', '-nostdin', '-loglevel', 'warning', '-y',
     ...(isRtspInput ? ['-rtsp_transport', 'tcp'] : []),
@@ -122,8 +123,14 @@ export function buildLocalHlsRingArgs({ sourceUri, outputDir, includeAudio = fal
     // Keep original RTSP/go2rtc MPEG-TS timestamps; wallclock caused zero-duration packets.
     '-analyzeduration', '5000000', '-probesize', '5000000',
     '-i', sourceUri,
+    // Keep the verified shared H.264 producer as video input. The second
+    // go2rtc input carries AAC only and never starts a video encoder.
+    ...(dedicatedAudioUri ? [
+      '-thread_queue_size', '1024', '-analyzeduration', '2000000', '-probesize', '4000000',
+      '-i', dedicatedAudioUri,
+    ] : []),
     '-map', '0:v:0',
-    ...(includeAudio ? ['-map', '0:a:0?', '-c:a', 'copy'] : ['-an']),
+    ...(includeAudio ? ['-map', dedicatedAudioUri ? '1:a:0?' : '0:a:0?', '-c:a', 'copy'] : ['-an']),
     '-c:v', 'copy',
     '-max_muxing_queue_size', '2048', '-avoid_negative_ts', 'make_zero', '-muxdelay', '0',
     '-progress', 'pipe:1', '-stats_period', '1',
