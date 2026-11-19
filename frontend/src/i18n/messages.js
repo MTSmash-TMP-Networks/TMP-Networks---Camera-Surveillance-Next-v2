@@ -17,6 +17,7 @@ import { onvifPtzProbeMessages } from './onvifPtzProbeMessages.js';
 import { addCameraMessages } from './addCameraMessages.js';
 import { recordingStorageMessages } from './recordingStorageMessages.js';
 import { kioskMessages } from './kioskMessages.js';
+import { mobileMessages } from './mobileMessages.js';
 import { updateCenterMessages } from './updateCenterMessages.js';
 import { FALLBACK_LOCALE, normalizeLocale } from './languages.js';
 
@@ -257,6 +258,9 @@ for (const [locale, values] of Object.entries(recordingStorageMessages)) {
   messages[locale] = { ...(messages[locale] || en), ...values };
 }
 for (const [locale, values] of Object.entries(kioskMessages)) {
+  messages[locale] = { ...(messages[locale] || en), ...values };
+}
+for (const [locale, values] of Object.entries(mobileMessages)) {
   messages[locale] = { ...(messages[locale] || en), ...values };
 }
 for (const [locale, values] of Object.entries(updateCenterMessages)) {
