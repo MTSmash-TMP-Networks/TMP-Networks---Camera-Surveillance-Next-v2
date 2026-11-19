@@ -47,3 +47,24 @@ test('cloud recording archive allows only read-only, bounded metadata and short 
   assert.equal(allowedProxyRequest('POST', '/api/recordings/57/cloud/file/clip/0.ts'), false);
   assert.equal(allowedProxyRequest('DELETE', '/api/recordings/57'), false);
 });
+
+test('cloud proxy URL parsing remains in scope for all archive actions', () => {
+  const valid = [
+    '/api/recordings/34493/segments',
+    '/api/recordings/34493/cloud-hls/0/index.m3u8',
+    '/api/recordings/34493/cloud-hls/0/seg_0000.ts',
+    '/api/recordings/34493/cloud/download/0.mp4',
+    '/api/recordings/34493/cloud/1/clip/0.ts',
+  ];
+  for (const route of valid) {
+    assert.doesNotThrow(() => allowedProxyRequest('GET', route), route);
+    assert.equal(allowedProxyRequest('GET', route), true, route);
+    assert.equal(allowedProxyRequest('GET', route + '?token=unexpected'), false, route);
+    assert.equal(allowedProxyRequest('POST', route), false, route);
+  }
+  for (const route of [
+    '/api/recordings/34493/cloud-hls/0/index.m3u8#fragment',
+    '/api/recordings/34493/cloud-hls/0/../../secrets',
+    '/api/recordings/34493/cloud-hls/0/manifest.json',
+  ]) assert.equal(allowedProxyRequest('GET', route), false, route);
+});
