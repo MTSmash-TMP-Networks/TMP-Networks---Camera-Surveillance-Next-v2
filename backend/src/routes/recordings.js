@@ -416,7 +416,7 @@ recordingsRouter.get('/:id/cloud-hls/:window/:file', asyncHandler(async (req, re
   const recordingId = z.coerce.number().int().positive().parse(req.params.id);
   const window = z.coerce.number().int().min(0).max(4095).parse(req.params.window);
   const name = String(req.params.file || '');
-  if (name !== 'index.m3u8' && !/^seg_[0-9]{4,5}\\.ts$/.test(name)) {
+  if (name !== 'index.m3u8' && !/^seg_[0-9]{4,5}\.ts$/.test(name)) {
     throw new AppError(400, 'ARCHIVE_HLS_INVALID_FILE', 'Archivdateiname ungueltig');
   }
   const recording = recordingService.get(recordingId);
