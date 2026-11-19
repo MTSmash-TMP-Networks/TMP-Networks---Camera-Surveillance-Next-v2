@@ -1,10 +1,12 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { loadRuntime, restoreSession, restoreDesktopSession, sessionUpdated } from './features/auth/authSlice.js';
 import { hasDesktopGrant, isDesktopKiosk } from './services/api.js';
+import { shouldOpenMobileInterface } from './services/mobileRouting.js';
 import { AppFooter } from './components/AppFooter.jsx';
 import { AppShell } from './components/AppShell.jsx';
+import { MobileShell } from './components/MobileShell.jsx';
 import { BrandIcon } from './components/BrandIcon.jsx';
 import { useI18n } from './i18n/I18nProvider.jsx';
 
@@ -22,6 +24,10 @@ const EventsPage = lazy(() => import('./pages/EventsPage.jsx').then((module) => 
 const SystemStatusPage = lazy(() => import('./pages/SystemStatusPage.jsx').then((module) => ({ default: module.SystemStatusPage })));
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage.jsx').then((module) => ({ default: module.NotificationsPage })));
 const KioskPage = lazy(() => import('./pages/KioskPage.jsx').then((module) => ({ default: module.KioskPage })));
+const MobileOverviewPage = lazy(() => import('./pages/MobilePages.jsx').then(({ MobileOverviewPage }) => ({ default: MobileOverviewPage })));
+const MobileCameraPage = lazy(() => import('./pages/MobilePages.jsx').then(({ MobileCameraPage }) => ({ default: MobileCameraPage })));
+const MobileRecordingsPage = lazy(() => import('./pages/MobilePages.jsx').then(({ MobileRecordingsPage }) => ({ default: MobileRecordingsPage })));
+const MobileMorePage = lazy(() => import('./pages/MobilePages.jsx').then(({ MobileMorePage }) => ({ default: MobileMorePage })));
 
 function AdminOnly({ children }) {
   const user = useSelector((state) => state.auth.user);
@@ -33,12 +39,21 @@ function BrandedLoading({ messageKey }) {
   return <div className="boot-screen branded-loading"><BrandIcon size="boot" /><span>{t(messageKey)}</span></div>;
 }
 
-function Protected() {
+function Protected({ mobile = false }) {
   const { user, token, desktopRestoring, desktopOffline } = useSelector((state) => state.auth);
   if (desktopRestoring || (isDesktopKiosk() && desktopOffline && !user)) return <BrandedLoading messageKey="app.loading" />;
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return <BrandedLoading messageKey="app.loading" />;
-  return <AppShell />;
+  return mobile ? <MobileShell /> : <AppShell />;
+}
+
+function HomeLanding() {
+  return shouldOpenMobileInterface() ? <Navigate to="/mobile" replace/> : <OverviewPage/>;
+}
+
+function RouteAwareFooter() {
+  const { pathname } = useLocation();
+  return pathname.startsWith('/mobile') ? null : <AppFooter />;
 }
 
 export default function App() {
@@ -87,7 +102,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/license" element={<LicensePage />} />
             <Route element={<Protected />}>
-              <Route path="/" element={<OverviewPage />} />
+              <Route path="/" element={<HomeLanding />} />
               <Route path="/live" element={<LivePage />} />
               <Route path="/kiosk" element={<KioskPage />} />
               <Route path="/cameras/add" element={<AddCameraPage />} />
@@ -100,11 +115,17 @@ export default function App() {
               <Route path="/system/notifications" element={<AdminOnly><NotificationsPage /></AdminOnly>} />
               <Route path="/system/update" element={<AdminOnly><UpdatePage /></AdminOnly>} />
             </Route>
+            <Route element={<Protected mobile />}>
+              <Route path="/mobile" element={<MobileOverviewPage/>}/>
+              <Route path="/mobile/cameras/:id" element={<MobileCameraPage/>}/>
+              <Route path="/mobile/recordings" element={<MobileRecordingsPage/>}/>
+              <Route path="/mobile/more" element={<MobileMorePage/>}/>
+            </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </div>
-      <AppFooter />
+      <RouteAwareFooter />
     </div>
   </BrowserRouter>;
 }
