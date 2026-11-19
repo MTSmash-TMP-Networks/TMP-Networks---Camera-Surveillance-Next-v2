@@ -36,6 +36,19 @@ test('audio availability is based on verified AAC in completed HLS segments', ()
   assert.ok(args.includes('0:a:0?'));
   assert.ok(args.includes('copy'));
   assert.ok(!args.includes('-an'));
+  const dual = buildLocalHlsRingArgs({
+    sourceUri: 'http://mediamtx:1984/api/stream.ts?src=cam_video',
+    audioSourceUri: 'http://mediamtx:1984/api/stream.ts?src=cam_audio',
+    outputDir: '/data/live/cam_audio',
+    includeAudio: true,
+  });
+  assert.equal(dual.filter((arg) => arg === '-i').length, 2);
+  assert.ok(dual.includes('0:v:0'));
+  assert.ok(dual.includes('1:a:0?'));
+  assert.ok(!dual.includes('0:a:0?'));
+  assert.match(orchestrator, /startRing\(broker\.video, true, broker\.audio\)/);
+  assert.match(orchestrator, /checkedAudioSegments/);
+  assert.match(orchestrator, /audioProbeDeadline/);
   const noAudio = buildLocalHlsRingArgs({
     sourceUri: 'http://mediamtx:1984/api/stream.ts?src=cam_video',
     outputDir: '/data/live/cam_video',
@@ -45,10 +58,11 @@ test('audio availability is based on verified AAC in completed HLS segments', ()
 });
 
 test('local live speaker requests new session and original kiosk/preview stays muted', () => {
-  assert.match(localPlayer, /audioRequested \? 'live-audio' : 'live'/);
-  assert.match(localPlayer, /audioRequested \? 'high'/);
+  assert.match(localPlayer, /purpose: 'live-audio'/);
+  assert.match(localPlayer, /audioHostRef/);
+  assert.match(localPlayer, /setAudioQuality\('high'\)/);
   assert.match(localPlayer, /setAudioRequested\(true\)/);
-  assert.match(localPlayer, /handleRef\.current\?\.setMuted\(nextMuted\)/);
+  assert.match(localPlayer, /audioHandleRef\.current\?\.setMuted\(nextMuted\)/);
   assert.doesNotMatch(localPlayer, /disabled=\{status\.hasAudio === false\}/);
   assert.doesNotMatch(page, /Audio wird für die stabile Browseransicht deaktiviert/);
   assert.match(pool, /if \(!muted\) entry\.video\.play/);
