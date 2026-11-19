@@ -1,3 +1,12 @@
+## 2.20.93 – HLS-Aufnahme-Archiv nach dem Live-HLS-Prinzip
+
+- Statt bei jeder Anfrage einen neuen Videoclip zu kodieren, bereitet der Kameraserver einmalig kurze 30-Sekunden-Fenster einer Aufnahme vor.
+- Die Fenster bestehen aus kleinen, unveraenderlich zwischengespeicherten HLS-Segmenten von ca. 2 Sekunden. Erneute Abrufe erzeugen keine neue FFmpeg-Verarbeitung.
+- Bei H.264 zuerst Copy-Versuch; bei ungeeigneter Videokodierung, zu grosser Datenrate oder fehlerhafter Segmentierung begrenzter H.264/AAC-Fallback.
+- Geschuetzte Nur-Lese-Routen `/api/recordings/:id/cloud-hls/:window/index.m3u8` und `seg_XXXX.ts`, keine Aufnahmeverwaltung im Proxy.
+- Cache auf maximal 384 MiB begrenzt, 90 Minuten Gueltigkeit, zwei aktive und acht wartende Vorbereitungen.
+- Private PHP 3.1.0 (nicht in GitHub): iPhone- und Desktop-HLS-VOD-Player, kompakter Datumsfilter, ohne Emojis. Alte MP4- und defekte Aufnahme-HLS-Aufrufe sind im Portal gesperrt.
+
 ## 2.20.92 – Direkter MP4-Download im privaten Kamera-Portal
 
 - Neuer authentifizierter Aufnahmepfad `GET /api/recordings/:id/cloud/download/:part.mp4`: Ein kurzer 15-Sekunden-MP4-Ausschnitt, ohne vorgelagerten `recording-segments`-Aufruf im PHP-Portal.

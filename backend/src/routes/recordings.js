@@ -6,6 +6,7 @@ import { authenticate, authorize } from '../middleware/auth.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { recordingService } from '../services/RecordingService.js';
 import { renderCloudRecordingClip } from '../services/recording/CloudRecordingClip.js';
+import { cloudArchiveHlsCache, selectArchiveWindow } from '../services/recording/CloudArchiveHlsCache.js';
 import { renderCloudMp4Download, CLOUD_MP4_SECONDS } from '../services/recording/CloudRecordingDownload.js';
 import { recordingEvidenceExportService } from '../services/recording/RecordingEvidenceExport.js';
 import { recordingPolicyRepository } from '../services/recording/RecordingPolicyRepository.js';
@@ -406,6 +407,46 @@ recordingsRouter.post('/', authorize('operator'), asyncHandler(async (req, res) 
 
 recordingsRouter.post('/:id/stop', authorize('operator'), asyncHandler(async (req, res) => {
   res.json(await recordingService.stop(z.coerce.number().int().positive().parse(req.params.id)));
+}));
+
+// Cloud archive VOD: a playlist or small segment from a prepared 30-second
+// on-disk cache window. The initial playlist request starts preparation but
+// never holds a PHP-FPM connection open while ffmpeg is running.
+recordingsRouter.get('/:id/cloud-hls/:window/:file', asyncHandler(async (req, res) => {
+  const recordingId = z.coerce.number().int().positive().parse(req.params.id);
+  const window = z.coerce.number().int().min(0).max(4095).parse(req.params.window);
+  const name = String(req.params.file || '');
+  if (name !== 'index.m3u8' && !/^seg_[0-9]{4,5}\.ts$/.test(name)) {
+    throw new AppError(400, 'ARCHIVE_HLS_INVALID_FILE', 'Archivdateiname ungueltig');
+  }
+  const recording = recordingService.get(recordingId);
+  if (!recording || !['recording', 'ready', 'ready_with_gaps'].includes(recording.status)) {
+    throw new AppError(404, 'RECORDING_NOT_FOUND', 'Aufnahme nicht verfuegbar');
+  }
+  const spec = selectArchiveWindow(recording, recording.archiveFormat === 'block_archive_v1'
+    ? recordingService.segments(recordingId) : null, window);
+  if (!spec) throw new AppError(404, 'ARCHIVE_HLS_WINDOW_NOT_FOUND', 'Aufnahmefenster nicht gefunden');
+  res.set('Cache-Control', 'private, no-store, max-age=0');
+  res.set('X-Content-Type-Options', 'nosniff');
+  if (name === 'index.m3u8') {
+    const state = await cloudArchiveHlsCache.status(spec, async () =>
+      spec.blockIndex === 'file'
+        ? recordingService.file(recordingId)
+        : recordingService.blockFile(recordingId, spec.blockIndex));
+    if (state.state === 'failed') throw new AppError(503, state.error || 'ARCHIVE_HLS_FAILED', 'Aufnahmefenster derzeit nicht abspielbereit');
+    if (state.state !== 'ready') {
+      res.set('Retry-After', '2');
+      return res.status(202).json(state);
+    }
+    const playlist = await cloudArchiveHlsCache.playlist(spec);
+    if (!playlist) return res.status(202).json({ state: 'preparing', ...cloudArchiveHlsCache.describe(spec) });
+    res.type('application/vnd.apple.mpegurl');
+    return res.send(playlist);
+  }
+  const filename = await cloudArchiveHlsCache.segment(spec, name);
+  if (!filename) throw new AppError(404, 'ARCHIVE_HLS_SEGMENT_MISSING', 'Aufnahmesegment ist nicht vorbereitet');
+  res.type('video/mp2t');
+  return res.sendFile(filename);
 }));
 
 // Direct MP4 download without archive segment discovery at the PHP portal.
