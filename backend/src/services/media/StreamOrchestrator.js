@@ -27,7 +27,7 @@ import { cameraStartupProfileMemory } from './CameraStartupProfileMemory.js';
 import { inspectLocalHlsRing } from './LocalHlsHealth.js';
 import { shouldContinueHlsStartup } from './LocalHlsStartupGrace.js';
 import { nextSnapshotNativeRecheckAt, shouldReprobeSnapshotNative } from './SnapshotNativeRecoveryPolicy.js';
-import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, copyVideoMediaError, parseFfprobeVideoCodec } from './BrokerPipeline.js';
+import { brokerStreamPaths, nativeBrokerSource, normalizedVideoSource, optionalAudioSource, optionalMicrophoneSource, profileMedia, normalizedBrokerPolicy, brokerEncoderCandidates, isBrokerEncoderRetryable, copyVideoMediaError, parseFfprobeVideoCodec } from './BrokerPipeline.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -237,6 +237,7 @@ class StreamOrchestrator {
     session.paths.raw = paths.raw;
     session.paths.video = paths.video;
     session.paths.audio = paths.audio;
+    session.paths.microphone = paths.microphone;
     session.paths.webrtc = paths.video;
     session.paths.hls = paths.video;
     const rawSource = nativeBrokerSource(sourceUri, candidate.transport, 20);
@@ -245,6 +246,11 @@ class StreamOrchestrator {
     // ONVIF or an imported RTSP source does not declare an audioCodec field.
     const wantsAudio = !session.permanent && !['motion', 'prebuffer'].includes(session.purpose || '')
       && (Boolean(profile?.audioCodec) || session.purpose === 'live-audio');
+    const wantsMicrophoneOnly = session.purpose === 'live-audio';
+    const activeAudioName = wantsMicrophoneOnly ? paths.microphone : paths.audio;
+    const makeAudioSource = () => wantsMicrophoneOnly
+      ? optionalMicrophoneSource(paths.raw, 20)
+      : optionalAudioSource(paths.raw, 20, encoder, profile?.videoCodec);
     let inheritedRefs = 0;
     if (existing) {
       const [registeredRaw, registeredVideo] = await Promise.all([
@@ -254,14 +260,20 @@ class StreamOrchestrator {
       if (registeredRaw && registeredVideo) {
         // The shared video broker may have been prepared by a video-only
         // preview. Adding an optional audio branch must not restart that broker.
-        if (wantsAudio && !existing.audioConfigured) {
+        if (wantsAudio && !(wantsMicrophoneOnly ? existing.microphoneConfigured : existing.audioConfigured)) {
           try {
-            await go2RtcClient.upsertStream(paths.audio, optionalAudioSource(paths.raw, 20));
-            await go2RtcClient.waitUntilRegistered(paths.audio);
-            existing.audioConfigured = true;
-            existing.audio = paths.audio;
+            await go2RtcClient.upsertStream(activeAudioName, makeAudioSource());
+            await go2RtcClient.waitUntilRegistered(activeAudioName);
+            if (wantsMicrophoneOnly) {
+              existing.microphoneConfigured = true;
+              existing.microphone = activeAudioName;
+            } else {
+              existing.audioConfigured = true;
+              existing.audio = activeAudioName;
+            }
             this.log(session, 'info', 'go2rtc', 'GO2RTC_AUDIO_ATTACHED_TO_EXISTING_BROKER',
-              'Audiokanal wurde zum bereits laufenden Video-Broker hinzugefuegt', { profile: profile.name });
+              'Audiokanal wurde zum bereits laufenden Video-Broker hinzugefuegt',
+              { profile: profile.name, audioOnly: wantsMicrophoneOnly });
           } catch (error) {
             this.log(session, 'warn', 'go2rtc', 'GO2RTC_OPTIONAL_AUDIO_SKIPPED',
               'Optionaler Audiokanal am vorhandenen Broker fehlgeschlagen', { error: error?.message });
@@ -277,7 +289,8 @@ class StreamOrchestrator {
           references: existing.refs,
           alreadyOwned,
         });
-        return { ...paths, audioConfigured: Boolean(existing.audioConfigured), reused: true };
+        const audioConfigured = wantsMicrophoneOnly ? Boolean(existing.microphoneConfigured) : Boolean(existing.audioConfigured);
+        return { ...paths, audioConfigured, audioBrokerName: activeAudioName, reused: true };
       }
       inheritedRefs = Number(existing.refs || 0);
       this.brokerRefs.delete(paths.video);
@@ -311,14 +324,14 @@ class StreamOrchestrator {
       // explicit live-mainstream sessions keep their own audio capability.
       const videoOnlyPreview = session.permanent || ['motion', 'prebuffer'].includes(session.purpose || '');
       if (wantsAudio && !videoOnlyPreview) {
-        const audioSource = optionalAudioSource(paths.raw, 20);
         try {
-          await go2RtcClient.upsertStream(paths.audio, audioSource);
-          await go2RtcClient.waitUntilRegistered(paths.audio);
+          await go2RtcClient.upsertStream(activeAudioName, makeAudioSource());
+          await go2RtcClient.waitUntilRegistered(activeAudioName);
           audioConfigured = true;
           this.log(session, 'info', 'go2rtc', 'GO2RTC_OPTIONAL_AUDIO_CONFIGURED', 'Optionaler AAC-Pfad wurde getrennt vom stabilen Video-Pfad angelegt', {
             profile: profile.name,
-            audio: paths.audio,
+            audio: activeAudioName,
+            audioOnly: wantsMicrophoneOnly,
             sourceCodec: profile.audioCodec,
           });
         } catch (error) {
@@ -331,9 +344,15 @@ class StreamOrchestrator {
         });
       }
       const nextRefs = alreadyOwned ? Math.max(1, inheritedRefs) : inheritedRefs + 1;
-      this.brokerRefs.set(paths.video, { refs: nextRefs, raw: paths.raw, video: paths.video, audio: audioConfigured ? paths.audio : null, audioConfigured });
+      this.brokerRefs.set(paths.video, {
+        refs: nextRefs, raw: paths.raw, video: paths.video,
+        audio: audioConfigured && !wantsMicrophoneOnly ? paths.audio : null,
+        audioConfigured: audioConfigured && !wantsMicrophoneOnly,
+        microphone: audioConfigured && wantsMicrophoneOnly ? paths.microphone : null,
+        microphoneConfigured: audioConfigured && wantsMicrophoneOnly,
+      });
       session.brokerRefKey = paths.video;
-      return { ...paths, audioConfigured, reused: false };
+      return { ...paths, audioConfigured, audioBrokerName: activeAudioName, reused: false };
     } catch (error) {
       await Promise.allSettled([
         go2RtcClient.deletePreload(paths.video),
@@ -361,7 +380,9 @@ class StreamOrchestrator {
     await Promise.allSettled([
       go2RtcClient.deletePreload(entry.video),
       go2RtcClient.deletePreload(entry.audio),
+      go2RtcClient.deletePreload(entry.microphone),
       go2RtcClient.deleteStream(entry.audio),
+      go2RtcClient.deleteStream(entry.microphone),
       go2RtcClient.deleteStream(entry.video),
       ...(!rawInUse ? [go2RtcClient.deleteStream(entry.raw)] : []),
     ]);
@@ -1122,7 +1143,7 @@ class StreamOrchestrator {
     if (broker.audioConfigured && !session.permanent) {
       // Video remains the shared normalized H.264 producer. The optional
       // broker supplies AAC only; never convert video again for sound.
-      ring = await startRing(broker.video, true, broker.audio);
+      ring = await startRing(broker.video, true, broker.audioBrokerName);
       if (!ring.outcome.ready) {
         await this.stopMediaChild(session, ring.child);
         this.cleanLocalHls(session);
@@ -1203,7 +1224,11 @@ class StreamOrchestrator {
       });
     }
 
-    session.paths.recording = ring.brokerName;
+    // Recording and shared live-mainstream consumers still require the
+    // original combined video+AAC broker. The live-audio mic broker is audio-only.
+    session.paths.recording = ring.includeAudio && session.purpose !== 'live-audio'
+      ? broker.audio
+      : ring.brokerName;
     // Confirm an AAC track in the *actual* HLS media. Broker registration and
     // ONVIF profile metadata alone do not prove that a camera sends audio.
     let verifiedAudioCodec = null;
