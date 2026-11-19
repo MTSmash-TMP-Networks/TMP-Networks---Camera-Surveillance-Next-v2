@@ -32,6 +32,7 @@ export const mobileMessages = {
     'mobile.recordings.playback': 'Aufnahme abspielen',
     'mobile.close': 'Schließen',
     'mobile.desktop': 'Desktop-Ansicht öffnen',
+    'mobile.open': 'Mobile Ansicht',
     'mobile.more.hint': 'Die Desktop-Ansicht bietet alle erweiterten Kamera-, Benutzer- und Systemeinstellungen.',
   },
   en: {
@@ -67,6 +68,7 @@ export const mobileMessages = {
     'mobile.recordings.playback': 'Play recording',
     'mobile.close': 'Close',
     'mobile.desktop': 'Open desktop interface',
+    'mobile.open': 'Mobile view',
     'mobile.more.hint': 'The desktop interface includes advanced camera, user and system management.',
   },
 };
