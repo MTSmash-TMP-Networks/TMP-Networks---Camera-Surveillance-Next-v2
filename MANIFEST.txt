@@ -61,6 +61,7 @@ UPDATE_NOTES_2.20.91.md
 UPDATE_NOTES_2.20.92.md
 UPDATE_NOTES_2.20.93.md
 UPDATE_NOTES_2.20.94.md
+UPDATE_NOTES_2.20.95.md
 UPDATE_PACKAGE.json
 VERSION
 backend/.dockerignore
@@ -214,6 +215,7 @@ backend/test-node/camera-discovery-precision-regression.test.mjs
 backend/test-node/camera-discovery-ui-state.test.mjs
 backend/test-node/camera-thumbnail-cache.test.mjs
 backend/test-node/cloud-archive-hls-cache.test.mjs
+backend/test-node/cloud-live-audio.test.mjs
 backend/test-node/cloud-recording-clip.test.mjs
 backend/test-node/cloud-recording-download.test.mjs
 backend/test-node/container-status-branding.test.mjs
