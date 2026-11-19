@@ -26,3 +26,16 @@ test('camera recording playback route preserves authentication and rejects full 
   assert.match(policy, /recordings\?limit=100/);
   assert.doesNotMatch(policy, /return path === '\/api\/recordings\/.*file'/);
 });
+
+test('cloud media playback queues and caches parallel requests without modifying recordings', () => {
+  const source = readFileSync(new URL('../src/services/recording/CloudRecordingClip.js', import.meta.url), 'utf8');
+  assert.match(source, /MAX_CONCURRENT_CLIPS = 2/);
+  assert.match(source, /MAX_PENDING_CLIPS = 8/);
+  assert.match(source, /acquireSlot\(\)/);
+  assert.match(source, /releaseSlot\(\)/);
+  assert.match(source, /inFlight\.has\(key\)/);
+  assert.match(source, /getCached\(key\)/);
+  assert.match(source, /saveCached\(key, result\)/);
+  assert.match(source, /const segmentDuration = Math\.min\(CLOUD_CLIP_SECONDS, duration - offset\)/);
+  assert.match(source, /scale=-2:360/);
+});
