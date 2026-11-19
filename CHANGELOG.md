@@ -1,3 +1,11 @@
+## 2.20.82 – Kamerabild im Kioskmodus per Klick vergrößern
+
+- Jede belegte Kiosk-Kachel lässt sich per Klick oder Enter/Leertaste bildschirmfüllend innerhalb des Kioskmodus anzeigen.
+- Großansicht schließt über Schaltfläche, Escape oder Klick auf den Hintergrund; bestehendes Raster bleibt erhalten.
+- Es wird derselbe bereits aktive, zentrale Live-Player weiterverwendet: keine zusätzliche Kamera-/go2rtc-/FFmpeg-Verbindung und kein Neustart des Videostreams.
+- Im Fokus wird das vollständige Videobild ohne Beschnitt angezeigt. Aufnahme- und Bewegungsstatus bleiben sichtbar.
+- Bedienung funktioniert im normalen Browser, Vollbild-Kiosk und Linux-Electron-Client; keine serverseitige Rasteränderung notwendig.
+
 ## 2.20.81 – H.264-Parameter- und MPEG-TS-Zeitstempelfehler gezielt behandeln
 
 - Bei nachgewiesenen fehlenden SPS/PPS-Daten oder defekten HLS-Paketdauern darf der H.264-Copy-Pfad gezielt auf vorhandene VAAPI-/Software-Encoder ausweichen.
