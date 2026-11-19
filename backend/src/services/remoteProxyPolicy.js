@@ -16,6 +16,7 @@ export function allowedProxyRequest(method, pathname) {
         || /^\/api\/recordings\?cameraId=[A-Za-z0-9_-]{1,90}&limit=100$/.test(pathname);
     }
     if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/segments$/.test(path)) return parsed.search === '';
+    if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/cloud-hls\/(?:0|[1-9][0-9]{0,3})\/(?:index\.m3u8|seg_[0-9]{4,5}\.ts)$/.test(path)) return parsed.search === '';
     if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/cloud\/download\/(?:0|[1-9][0-9]{0,3})\.mp4$/.test(path)) return parsed.search === '';
     if (/^\/api\/recordings\/[1-9][0-9]{0,9}\/cloud\/(?:file|[1-9][0-9]{0,9})\/clip\/(?:0|[1-9][0-9]{0,3})\.ts$/.test(path)) return parsed.search === '';
   }
