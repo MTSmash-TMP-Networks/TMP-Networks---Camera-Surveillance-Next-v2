@@ -40,6 +40,7 @@ export function brokerStreamPaths(cameraId, profile = {}, candidate = {}, encode
     raw: `${base}_raw`,
     video: `${base}_video`,
     audio: `${base}_audio`,
+    microphone: `${base}_mic`,
   };
 }
 
@@ -65,12 +66,22 @@ export function normalizedVideoSource(rawStreamName, timeoutSeconds = 20, hardwa
   return `ffmpeg:${name}#video=${video}#timeout=${timeout}${hardware === 'vaapi' ? '#hardware=vaapi' : ''}`;
 }
 
-export function optionalAudioSource(rawStreamName, timeoutSeconds = 20) {
+export function optionalAudioSource(rawStreamName, timeoutSeconds = 20, hardware = 'none', sourceVideoCodec = null) {
   const name = String(rawStreamName || '').trim();
   if (!name) throw new Error('Raw broker stream name is empty');
   const timeout = Math.max(5, Math.min(120, Math.round(Number(timeoutSeconds) || 20)));
-  // Transcode only the microphone. The normal video producer is reused
-  // separately; another H.264/HEVC encoder must not block audio startup.
+  // Preserve the existing combined video+AAC broker used by recordings.
+  const copyVideo = hardware === 'copy' || ['h264', 'avc'].includes(lower(sourceVideoCodec));
+  const video = copyVideo ? 'copy' : 'h264';
+  return `ffmpeg:${name}#video=${video}#audio=aac#timeout=${timeout}${(!copyVideo && hardware === 'vaapi') ? '#hardware=vaapi' : ''}`;
+}
+
+export function optionalMicrophoneSource(rawStreamName, timeoutSeconds = 20) {
+  const name = String(rawStreamName || '').trim();
+  if (!name) throw new Error('Raw broker stream name is empty');
+  const timeout = Math.max(5, Math.min(120, Math.round(Number(timeoutSeconds) || 20)));
+  // Live listeners use an AAC-only producer. The shared normalized video
+  // producer supplies H.264; no extra video encoder is started for a speaker.
   return `ffmpeg:${name}#audio=aac#timeout=${timeout}`;
 }
 
