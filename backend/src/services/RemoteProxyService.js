@@ -3,11 +3,12 @@ import { db } from '../db/database.js';
 import { encryptSecret, decryptSecret } from './credentialVault.js';
 import { logger } from '../utils/logger.js';
 import { allowedProxyRequest } from './remoteProxyPolicy.js';
+import { encodeRemoteProxyResult, REMOTE_PROXY_MAX_RESPONSE_BYTES } from './remoteProxyTransfer.js';
 
 const PORTAL_URL = 'https://support.tmp-networks.de/cam/index.php';
 const SETTINGS_KEY = 'remote_https_proxy_v1';
 const ID_KEY = 'remote_https_proxy_installation_id_v1';
-const MAX_RESPONSE_BYTES = 2_500_000;
+const MAX_RESPONSE_BYTES = REMOTE_PROXY_MAX_RESPONSE_BYTES;
 const MAX_BODY_BYTES = 128_000;
 const WORKERS = 3;
 const AUTO_REGISTRATION_PROTOCOL = 2;
@@ -57,7 +58,7 @@ function ensureAutomaticState() {
   return state;
 }
 
-async function postPortal(kind, identity, payload, timeoutMs = 12_000) {
+async function postPortal(kind, identity, payload, timeoutMs = 25_000) {
   const url = new URL(PORTAL_URL);
   url.searchParams.set('agent', kind);
   if (kind !== 'register') url.searchParams.set('id', identity.id);
@@ -177,7 +178,7 @@ export class RemoteProxyService {
         const response = await fetch(url, {
           redirect: 'error',
           headers: { Authorization: `Bearer ${identity.key}` },
-          signal: AbortSignal.timeout(12_000),
+          signal: AbortSignal.timeout(25_000),
         });
         if (response.status === 401) {
           const state = ensureAutomaticState();
@@ -192,7 +193,7 @@ export class RemoteProxyService {
         if (response.status === 200) await this.processJob(identity, await response.json());
         else await pause(800);
       } catch (error) {
-        this.lastError = String(error?.message || error).slice(0,100);
+        this.lastError = 'POLL_' + String(error?.message || error).slice(0,92);
         failures++;
         await pause(Math.min(30_000, 1000 * (2 ** Math.min(5, failures))));
       }
@@ -232,12 +233,25 @@ export class RemoteProxyService {
       }
     }
     try {
-      await postPortal('result', identity, {
-        id: job.id, code, type, data: data.toString('base64'),
-      }, 18_000);
+      const uploads = encodeRemoteProxyResult(job.id, code, type, data);
+      for (const upload of uploads) {
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            await postPortal(upload.kind, identity, upload.payload, 28_000);
+            break;
+          } catch (error) {
+            const reason = String(error?.message || error);
+            // Authentication, revocation, or an invalid request cannot recover by retry.
+            if (attempt >= 2 || /PORTAL_HTTP_(?:400|401|403|404|409|413|426)/.test(reason)) throw error;
+            await pause(500 * (attempt + 1));
+          }
+        }
+      }
       this.lastAgentJobs++;
+      this.lastError = null;
     } catch (error) {
-      this.lastError = `RESULT_${String(error?.message || error).slice(0,80)}`;
+      this.lastError = 'RESULT_' + String(error?.message || error).slice(0,80);
+      logger.warn({ issueCode: 'CLOUD_MEDIA_RESULT_FAILED', code: this.lastError, jobId: String(job.id).slice(0,8) }, 'HTTPS-Kamera-Medienantwort konnte nicht uebertragen werden');
     }
   }
 }
