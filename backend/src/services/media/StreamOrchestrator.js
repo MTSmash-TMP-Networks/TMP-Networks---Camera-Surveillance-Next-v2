@@ -37,6 +37,7 @@ function sessionSlot(quality, viewportWidth, purpose = 'live') {
   // carry legacy 'balanced' plan values, which must not defeat the architecture.
   if (purpose === 'motion' && config.motionPreferSubstream) return 'low';
   if (purpose === 'recording' && config.recordingPreferMainstream) return 'high';
+  if (purpose === 'live-audio') return 'high';
   if (quality !== 'auto') return quality;
   if (purpose === 'kiosk' && config.kioskPreferSubstream) return 'low';
   if (purpose === 'live' && config.livePreferMainstream) return 'high';
@@ -44,7 +45,7 @@ function sessionSlot(quality, viewportWidth, purpose = 'live') {
 }
 
 function normalizeConsumerPurpose(purpose) {
-  return ['live', 'kiosk', 'recording', 'motion', 'prebuffer'].includes(purpose) ? purpose : 'live';
+  return ['live', 'live-audio', 'kiosk', 'recording', 'motion', 'prebuffer'].includes(purpose) ? purpose : 'live';
 }
 
 function sessionKey(cameraId, quality, profileToken = null, purpose = 'live') {
@@ -238,6 +239,10 @@ class StreamOrchestrator {
     session.paths.hls = paths.video;
     const rawSource = nativeBrokerSource(sourceUri, candidate.transport, 20);
     const videoSource = normalizedVideoSource(paths.raw, 20, encoder);
+    // An explicit audio viewer must try a camera's actual RTSP audio even when
+    // ONVIF or an imported RTSP source does not declare an audioCodec field.
+    const wantsAudio = !session.permanent && !['motion', 'prebuffer'].includes(session.purpose || '')
+      && (Boolean(profile?.audioCodec) || session.purpose === 'live-audio');
     let inheritedRefs = 0;
     if (existing) {
       const [registeredRaw, registeredVideo] = await Promise.all([
@@ -245,6 +250,21 @@ class StreamOrchestrator {
         go2RtcClient.stream(paths.video).catch(() => null),
       ]);
       if (registeredRaw && registeredVideo) {
+        // The shared video broker may have been prepared by a video-only
+        // preview. Adding an optional audio branch must not restart that broker.
+        if (wantsAudio && !existing.audioConfigured) {
+          try {
+            await go2RtcClient.upsertStream(paths.audio, optionalAudioSource(paths.raw, 20, encoder, profile?.videoCodec));
+            await go2RtcClient.waitUntilRegistered(paths.audio);
+            existing.audioConfigured = true;
+            existing.audio = paths.audio;
+            this.log(session, 'info', 'go2rtc', 'GO2RTC_AUDIO_ATTACHED_TO_EXISTING_BROKER',
+              'Audiokanal wurde zum bereits laufenden Video-Broker hinzugefuegt', { profile: profile.name });
+          } catch (error) {
+            this.log(session, 'warn', 'go2rtc', 'GO2RTC_OPTIONAL_AUDIO_SKIPPED',
+              'Optionaler Audiokanal am vorhandenen Broker fehlgeschlagen', { error: error?.message });
+          }
+        }
         if (!alreadyOwned) existing.refs += 1;
         else existing.refs = Math.max(1, Number(existing.refs || 0));
         session.brokerRefKey = paths.video;
@@ -288,7 +308,7 @@ class StreamOrchestrator {
       // if a camera's optional audio endpoint is slow or broken. Recording and
       // explicit live-mainstream sessions keep their own audio capability.
       const videoOnlyPreview = session.permanent || ['motion', 'prebuffer'].includes(session.purpose || '');
-      if (profile?.audioCodec && !videoOnlyPreview) {
+      if (wantsAudio && !videoOnlyPreview) {
         const audioSource = optionalAudioSource(paths.raw, 20, encoder, profile?.videoCodec);
         try {
           await go2RtcClient.upsertStream(paths.audio, audioSource);
@@ -1177,7 +1197,33 @@ class StreamOrchestrator {
     }
 
     session.paths.recording = ring.brokerName;
-    session.audioEnabled = ring.includeAudio && Boolean(probe.audio);
+    // Confirm an AAC track in the *actual* HLS media. Broker registration and
+    // ONVIF profile metadata alone do not prove that a camera sends audio.
+    let verifiedAudioCodec = null;
+    if (ring.includeAudio) {
+      const recent = fs.readdirSync(outputDir).filter((name) => /^seg_[0-9]+\.ts$/.test(name)).sort().reverse().slice(0, 4);
+      for (const name of recent) {
+        try {
+          const { stdout } = await execFileAsync(config.ffprobePath, [
+            '-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name',
+            '-of', 'default=noprint_wrappers=1:nokey=1', path.join(outputDir, name),
+          ], { timeout: 3500, maxBuffer: 16 * 1024 });
+          if (String(stdout || '').trim().toLowerCase() === 'aac') {
+            verifiedAudioCodec = 'aac';
+            break;
+          }
+        } catch { /* Camera audio may be absent or still initializing. */ }
+      }
+      if (!verifiedAudioCodec) {
+        this.log(session, 'warn', 'stream', 'LOCAL_HLS_AUDIO_NOT_PRESENT',
+          'HLS-Video ist bereit, aber die erwartete AAC-Audiospur ist im Segment nicht nachweisbar',
+          { profile: profile.name, audioSourceConfigured: broker.audioConfigured });
+      }
+    }
+    session.audioEnabled = Boolean(verifiedAudioCodec);
+    if (session.audioEnabled && probe) {
+      probe.audio = { ...(probe.audio || {}), codec: verifiedAudioCodec };
+    }
     const brokerOutcome = await go2RtcClient.waitUntilAnyReady([broker.raw, ring.brokerName], {
       timeoutMs: Math.min(2500, config.startTimeoutMs),
       intervalMs: 250,
@@ -2013,6 +2059,7 @@ class StreamOrchestrator {
       permanent: Boolean(session.permanent),
       consumerPurpose: session.consumerPurpose || null,
       forceTranscode: Boolean(session.forceTranscode),
+      audioEnabled: Boolean(session.audioEnabled),
       localHlsUrl: session.localHlsUrl || (['local-hls-ring', 'snapshot-video'].includes(session.mode) ? this.publicLocalHlsUrl(session) : null),
     };
     if (includePaths) result.paths = { ...session.paths };

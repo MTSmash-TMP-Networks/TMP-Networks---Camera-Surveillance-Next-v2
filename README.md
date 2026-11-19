@@ -1,4 +1,4 @@
-# TMP Camera Surveillance Next 2.20.95
+# TMP Camera Surveillance Next 2.20.96
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
@@ -167,3 +167,7 @@ Version 2.20.93 konnte die Archiv-HLS-Dateien nicht freigeben, weil eine JavaScr
 ## Optionaler Live-Ton in der Cloud (ab 2.20.95)
 
 Die private PHP-WebApp 3.1.1 bietet im vergoesserten Livebild pro Kamera einen Textschalter zum bewussten Aktivieren des Audiokanals. Das schnelle standardmaessige Videovorschaubild bleibt stumm. Der Kameraserver startet einen separaten, authentifizierten HLS-Audiostream nur nach ausdruecklicher Anforderung; die Kamera muss eine funktionierende Audioquelle besitzen. iOS Safari kann einen zweiten Fingertipp zum Starten benoetigen. Weitere Informationen in `UPDATE_NOTES_2.20.95.md`.
+
+## Live-Ton Hotfix 2.20.96
+
+Die lokale Liveansicht und die private PHP-Cloud-WebApp 3.1.1 koennen den Audiokanal einer Kamera nun ueber eine dedizierte, geschuetzte `live-audio`-Sitzung aktivieren. Die normale, schnelle und stumme Kameravorschau bleibt unveraendert. Das Backend meldet einen Audiokanal erst nach Nachweis einer AAC-Spur in den erzeugten HLS-Dateien. Am iPhone kann wegen Safari-Autoplay-Regeln ein zweiter Fingertipp notwendig sein. Siehe `UPDATE_NOTES_2.20.96.md`.

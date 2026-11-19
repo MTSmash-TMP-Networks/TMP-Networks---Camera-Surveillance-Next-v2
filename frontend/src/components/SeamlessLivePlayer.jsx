@@ -29,17 +29,20 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
   const onStatusChangeRef = useRef(onStatusChange);
   const [viewportWidth, setViewportWidth] = useState(null);
   const [muted, setMuted] = useState(true);
+  const [audioRequested, setAudioRequested] = useState(false);
   const [status, setStatus] = useState({ state: 'starting', protocol: null, message: t('live.streamPreparing'), hasAudio: null, snapshotMode: false });
   const [clock, setClock] = useState(() => new Date());
   const [fullscreen, setFullscreen] = useState(false);
   const automaticQuality = qualityForWidth(viewportWidth || 1280);
   // Kiosk is a pure reader of the backend-owned central preview. Tile size,
   // browser resize and UI quality must never create another camera session.
-  const requestedQuality = compact ? 'low' : (quality === 'auto' ? 'auto' : quality);
+  const requestedQuality = compact ? 'low' : audioRequested ? 'high' : (quality === 'auto' ? 'auto' : quality);
+  const requestedPurpose = compact ? 'kiosk' : audioRequested ? 'live-audio' : 'live';
   const connectionViewportWidth = compact ? 640 : requestedQuality === 'low' ? 640 : requestedQuality === 'high' ? 1920 : 1280;
   const waitingForAdaptiveMeasurement = false;
 
   useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
+  useEffect(() => { setAudioRequested(false); setMuted(true); }, [camera.id]);
 
   useEffect(() => {
     if (compact) return undefined;
@@ -83,7 +86,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
     let cancelled = false;
     let handle = null;
     const previous = previousRequestRef.current;
-    const request = { cameraId: camera.id, quality: requestedQuality, profileToken: profileToken || '', purpose: compact ? 'kiosk' : 'live', transportMode };
+    const request = { cameraId: camera.id, quality: requestedQuality, profileToken: profileToken || '', purpose: requestedPurpose, transportMode };
     const allowCompatibleReuse = !previous
       || previous.cameraId !== request.cameraId
       || (previous.quality === request.quality && previous.profileToken === request.profileToken && previous.purpose === request.purpose && previous.transportMode === request.transportMode);
@@ -114,11 +117,31 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
       if (handleRef.current === handle) handleRef.current = null;
       handle?.release();
     };
-  }, [camera.id, requestedQuality, profileToken, transportMode, connectionViewportWidth, waitingForAdaptiveMeasurement, compact, connectDelayMs, isolateFailure]);
+  }, [camera.id, requestedQuality, requestedPurpose, profileToken, transportMode, connectionViewportWidth, waitingForAdaptiveMeasurement, compact, connectDelayMs, isolateFailure]);
 
   useEffect(() => {
     handleRef.current?.setMuted(compact ? true : muted);
   }, [muted, compact]);
+
+  function toggleAudio() {
+    if (compact) return;
+    if (!audioRequested) {
+      // Keep the existing preview playing silently while a dedicated audio
+      // source starts. Browser autoplay must never be required to carry sound.
+      setMuted(true);
+      setAudioRequested(true);
+      return;
+    }
+    if (status.state !== 'ready' || status.hasAudio === false) {
+      setMuted(true);
+      setAudioRequested(false);
+      return;
+    }
+    const nextMuted = !muted;
+    // This synchronous user gesture allows Safari to start unmuted playback.
+    handleRef.current?.setMuted(nextMuted);
+    setMuted(nextMuted);
+  }
 
 
   useEffect(() => {
@@ -151,7 +174,7 @@ export function SeamlessLivePlayer({ camera, quality, profileToken, transportMod
         {status.state === 'failed' && onShowDiagnostics && <button className="inline-diagnostics" onClick={onShowDiagnostics}><FileSearch /> {t('live.diagnostics')}</button>}
       </div>}
       {!compact && <div className="live-controls">
-        <button disabled={status.hasAudio === false} onClick={() => setMuted((value) => !value)} title={status.hasAudio === false ? t('live.noAudio') : muted ? t('live.enableAudio') : t('live.muteAudio')}>{muted || status.hasAudio === false ? <VolumeX /> : <Volume2 />}</button>
+        <button type="button" onClick={toggleAudio} title={!audioRequested ? t('live.enableAudio') : status.state !== 'ready' ? 'Audiokanal wird vorbereitet (erneut klicken zum Abbrechen)' : status.hasAudio === false ? 'Kein Audiokanal nachgewiesen – stumme Vorschau wiederherstellen' : muted ? 'Ton starten' : t('live.muteAudio')} aria-label={!audioRequested ? t('live.enableAudio') : status.hasAudio === false ? 'Zur stummen Livevorschau zurückkehren' : muted ? 'Ton starten' : t('live.muteAudio')} aria-pressed={audioRequested && !muted}>{audioRequested && status.hasAudio !== false && status.state !== 'failed' ? <Volume2 /> : <VolumeX />}</button>
         <button onClick={() => handleRef.current?.reconnect()} title={t('live.reconnect')} aria-label={t('live.reconnect')}><RefreshCw /></button>
         <button onClick={toggleFullscreen} title={fullscreen ? t('live.exitFullscreen') : t('live.fullscreen')} aria-label={fullscreen ? t('live.exitFullscreen') : t('live.fullscreen')}>{fullscreen ? <Minimize2 /> : <Maximize2 />}</button>
       </div>}

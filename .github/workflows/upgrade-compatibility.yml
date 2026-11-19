@@ -35,6 +35,8 @@ jobs:
         run: node --test backend/test-node/cloud-archive-hls-cache.test.mjs
       - name: Validate opt-in cloud live audio authentication and route policy
         run: node --test backend/test-node/cloud-live-audio.test.mjs
+      - name: Verify local and cloud live audio session, AAC HLS and speaker control
+        run: node --test backend/test-node/live-audio-session.test.mjs
       - name: Install backend dependencies for full discovery probe test
         run: npm ci --prefix backend --no-audit --no-fund
       - name: Validate Reolink vendor-port evidence and non-camera false positives

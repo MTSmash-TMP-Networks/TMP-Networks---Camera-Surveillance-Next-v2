@@ -14,7 +14,7 @@ test('cloud audio activation is authenticated, opt-in, and only reachable throug
   const auth = code.indexOf('streamsRouter.use(authenticate)');
   const cloud = code.indexOf("streamsRouter.post('/:id/cloud-audio'");
   assert.ok(auth >= 0 && cloud > auth, 'Audio route must be after normal login authentication');
-  assert.match(code, /quality: 'high', viewportWidth: 1280, purpose: 'live'/);
+  assert.match(code, /quality: 'high', viewportWidth: 1280, purpose: 'live-audio'/);
   assert.match(code, /\{ wait: false \}/);
   assert.match(code, /if \(!session\.audioEnabled\)/);
   assert.match(code, /hlsUrl: null/);
@@ -24,5 +24,5 @@ test('permanent video-only preview stays isolated from user-initiated audio', ()
   const orchestrator = readFileSync(new URL('../src/services/media/StreamOrchestrator.js', import.meta.url), 'utf8');
   assert.match(orchestrator, /const videoOnlyPreview = session\.permanent/);
   assert.match(orchestrator, /if \(broker\.audioConfigured && !session\.permanent\)/);
-  assert.match(orchestrator, /session\.audioEnabled = ring\.includeAudio/);
+  assert.match(orchestrator, /session\.audioEnabled = Boolean\(verifiedAudioCodec\)/);
 });
