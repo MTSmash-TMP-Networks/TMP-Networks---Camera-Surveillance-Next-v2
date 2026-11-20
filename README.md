@@ -4,7 +4,7 @@ TMP Camera Surveillance Next is a self-hosted camera surveillance and recording 
 
 ## Quick start
 
-**Deutsch:** [Vollständige Installationsanleitung](INSTALLATION_DE.md) · **English:** [Installation and maintenance guide](INSTALLATION.md). For language coverage and QA, see [Translations / Sprachübersicht](docs/TRANSLATIONS.md).
+**Deutsch:** [Vollständige Installationsanleitung](docs/INSTALLATION_DE.md) · **English:** [Installation and maintenance guide](INSTALLATION.md). For language coverage and QA, see [Translations / Sprachübersicht](docs/TRANSLATIONS.md).
 
 **Storage planning:** Reserve sufficient room for the OS, Docker images, update backups and recording spool. A planning figure is **40 GB or more for the OS/Docker workspace** plus separate recording capacity, with **6–8 GB free** before full Docker rebuilds; the actual requirement depends on the installation. Numerous update snapshots under `data/backups/` can fill a 15-GB root filesystem, even after Docker cache cleanup.
 
@@ -92,7 +92,7 @@ They contain the installation identity, credentials, configuration, database, lo
 
 ## Documentation
 
-- [INSTALLATION_DE.md](INSTALLATION_DE.md) - vollständige deutschsprachige Installationsanleitung
+- [INSTALLATION_DE.md](docs/INSTALLATION_DE.md) - vollständige deutschsprachige Installationsanleitung
 - [INSTALLATION.md](INSTALLATION.md) - English installation and maintenance guide
 - [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) - 24 languages, RTL, fallbacks and localization tests
 - `UPDATE_NOTES_2.20.100.md` - current release notes
@@ -197,4 +197,4 @@ Version 2.20.100 ergänzt eine aktuelle deutsche Installationsanleitung, überar
 
 **Cloud-PHP wird separat verwaltet:** Die privat ausgelieferte Plesk-WebApp **3.1.2** mit Ein-Klick-Audio wird **nicht** in GitHub gespeichert. Kamera-Server 2.20.100 und Plesk-WebApp sind getrennte Installationen. Keine PHP-Quelldateien, MySQL-Zugangsdaten, Geräte-Schlüssel oder Aufnahmen ins Repository hochladen.
 
-Vor einem Update Daten/Backups extern sichern und Docker-/Backup-Speicher prüfen. Es gibt **keine garantierte automatische Aufbewahrungsbegrenzung** der alten `data/backups/update-*`-Sicherungen. Erst nach erfolgreicher Prüfung und externer Sicherung unnötige alte Rollback-Stände entfernen. Siehe [INSTALLATION_DE.md](INSTALLATION_DE.md#7-speicherplatz-und-update-backups).
+Vor einem Update Daten/Backups extern sichern und Docker-/Backup-Speicher prüfen. Es gibt **keine garantierte automatische Aufbewahrungsbegrenzung** der alten `data/backups/update-*`-Sicherungen. Erst nach erfolgreicher Prüfung und externer Sicherung unnötige alte Rollback-Stände entfernen. Siehe [INSTALLATION_DE.md](docs/INSTALLATION_DE.md#7-speicherplatz-und-update-backups).
