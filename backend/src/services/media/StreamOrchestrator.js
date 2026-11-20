@@ -14,7 +14,7 @@ import { AppError } from '../../utils/errors.js';
 import { logger } from '../../utils/logger.js';
 import { go2RtcClient, go2RtcStreamReady } from './Go2RtcClient.js';
 import { probeMedia, sanitize } from './FfmpegProbe.js';
-import { buildFfmpegArgs, buildSnapshotLocalHlsArgs, buildLocalHlsRingArgs } from './FfmpegCommand.js';
+import { buildFfmpegArgs, buildSnapshotLocalHlsArgs, buildLocalHlsRingArgs, ffprobeHasAacStream } from './FfmpegCommand.js';
 import { manualStreamAttempts, sortMediaAttempts } from './MediaSourceService.js';
 import { inferMediaSourceKind } from './MediaSource.js';
 import { snapshotService } from './SnapshotService.js';
@@ -1250,7 +1250,7 @@ class StreamOrchestrator {
               '-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=codec_name',
               '-of', 'default=noprint_wrappers=1:nokey=1', path.join(outputDir, name),
             ], { timeout: 1500, maxBuffer: 16 * 1024 });
-            if (String(stdout || '').trim().toLowerCase() === 'aac') {
+            if (ffprobeHasAacStream(stdout)) {
               verifiedAudioCodec = 'aac';
               break;
             }
@@ -1266,6 +1266,10 @@ class StreamOrchestrator {
       }
     }
     session.audioEnabled = Boolean(verifiedAudioCodec);
+    if (session.audioEnabled) {
+      this.log(session, 'info', 'stream', 'LOCAL_HLS_AUDIO_VERIFIED',
+        'AAC-Audiospur in einem abgeschlossenen HLS-Segment nachgewiesen', { profile: profile.name });
+    }
     if (session.audioEnabled && probe) {
       probe.audio = { ...(probe.audio || {}), codec: verifiedAudioCodec };
     }
