@@ -179,3 +179,7 @@ Die lokale Liveansicht behaelt ihren einzigen persistenten Player beim Kamerawec
 ## Live-Ton Hotfix 2.20.98
 
 Der optionale Audiokanal wird jetzt neben dem sichtbaren Livebild aufgebaut. Die Lautsprechertaste startet keinen High-Stream fuer den sichtbaren Player mehr. Ein eigener AAC-only-go2rtc-Mikrofonbroker wird ueber dessen ADTS-Endpunkt mit dem bereits normalisierten H.264-Videopfad in einem getrennten HLS-Ring kombiniert. Beim automatischen Profil wird zunaechst die stabile Vorschau geprueft und, wenn erforderlich, einmalig der Hauptstream fuer Audio versucht. Fehlt weiterhin AAC, bleibt das Livebild unveraendert. Aufnahmen behalten ihren urspruenglichen kombinierten A/V-Broker. Die private Plesk-PHP-WebApp 3.1.1 ist unveraendert. Siehe `UPDATE_NOTES_2.20.98.md`.
+
+## Live-Audio Codec-Pruefung 2.20.99
+
+Die FFprobe-Segmentpruefung erkennt MPEG-TS-Audiostreams auch dann korrekt, wenn FFprobe denselben AAC-Codec als zwei Zeilen meldet. So schaltet sich die Lautsprechertaste nicht mehr nur aufgrund dieses False-Negative automatisch ab. Der tatsaechliche Codec muss weiterhin als AAC im HLS-TS-Segment nachweisbar sein. Videoplayer, go2rtc/FFmpeg-Pipeline und private Plesk-PHP-WebApp 3.1.1 sind unveraendert. Details in `UPDATE_NOTES_2.20.99.md`.

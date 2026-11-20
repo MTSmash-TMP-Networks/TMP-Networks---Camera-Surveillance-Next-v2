@@ -1,3 +1,12 @@
+## 2.20.99 – FFprobe erkennt vorhandene AAC-Tonspuren korrekt
+
+- Fehlerursache aus der produktiven go2rtc-Diagnose: G.711-Ton und AAC-Mikrofonbroker liefern Pakete, aber HLS meldet "audioEnabled=false".
+- MPEG-TS FFprobe listet eine AAC-Tonspur unter Umstaenden zweimal ("aac\\naac"). Die bisherige exakte String-Pruefung verwarf dadurch gueltige Audiostreams.
+- FFprobe-Ausgabe wird nun zeilenweise auf AAC geprueft. Bei erfolgreicher Pruefung wird LOCAL_HLS_AUDIO_VERIFIED protokolliert.
+- Regressionstest fuer doppelte AAC-Zeilen und fuer Audioformate ohne AAC hinzugefuegt.
+- Keine Aenderungen an Livebild, Videoplayer, Ton-Muxer, Kameraprofilen, go2rtc oder FFmpeg-Startparametern.
+- Aufnahmen, Kiosk, Cloud-PHP-Portal 3.1.1, Benutzerdaten und die Abwaertskompatibilitaet bis 2.20.32 bleiben unangetastet.
+
 ## 2.20.98 – Live-Ton ohne Ausfall des Kamerabildes
 
 - Der Audiokanal wird in einem unsichtbaren Player aufgebaut, ohne die laufende Videovorschau auf High umzuschalten.
