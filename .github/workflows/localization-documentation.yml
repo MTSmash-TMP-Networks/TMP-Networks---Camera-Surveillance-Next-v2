@@ -41,8 +41,11 @@ jobs:
           node-version: '24'
       - name: Restore frontend dependencies
         run: npm ci --prefix frontend --no-audit --no-fund
-      - name: Validate active translation packs and placeholders
-        run: node --test frontend/src/i18n/*.test.mjs
+      - name: Validate Node-based translation packs and placeholders
+        run: |
+          find frontend/src/i18n -maxdepth 1 -type f -name '*.test.mjs' ! -name 'recordings.test.mjs' -print0 | xargs -0 node --test
+      - name: Validate Vitest recording translations
+        run: npm run test --prefix frontend -- src/i18n/recordings.test.mjs
       - name: Audit all locales and installation documentation
         run: node scripts/audit-locales.mjs
       - name: Build translated frontend
