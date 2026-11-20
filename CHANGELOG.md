@@ -2,7 +2,7 @@
 
 - Der Audiokanal wird in einem unsichtbaren Player aufgebaut, ohne die laufende Videovorschau auf High umzuschalten.
 - AAC-Audio verwendet einen eigenen go2rtc-Mikrofonbroker, H.264 kommt aus dem vorhandenen normalisierten Videobroker. Beim Aktivieren des Tons startet kein zusaetzlicher Videoencoder.
-- Der separate HLS-Ring kombiniert die Video- und Audiospur aus zwei Quellen und verifiziert auch spaeter eintreffende AAC-Segmente.
+- Der separate HLS-Ring kombiniert H.264 aus MPEG-TS und AAC ueber den ADTS-Audio-Endpunkt aus zwei Quellen und verifiziert auch spaeter eintreffende AAC-Segmente.
 - Bei der automatischen Qualitaet wird zuerst die funktionierende Vorschauquelle und bei fehlendem Audiotrack einmalig der Hauptstream versucht, ohne das sichtbare Bild zu unterbrechen.
 - Die bisherigen kombinierten Video/AAC-Broker fuer Aufnahmen und Mainstream bleiben erhalten; Audio-Quellen und Pool-Referenzen sind getrennt.
 - Fehlt eine nutzbare Tonspur, erscheint ein Hinweis statt eines Kamera-Neustarts. Audio wird beim Kamerawechsel sofort freigegeben.
