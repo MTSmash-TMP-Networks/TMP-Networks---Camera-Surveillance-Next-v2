@@ -16,7 +16,7 @@ test('only a customer-initiated live-audio request can create the optional audio
   assert.equal(allowedProxyRequest('POST', '/api/streams/camera_1/session'), false);
   assert.match(orchestrator, /'live-audio', 'kiosk'/);
   assert.match(orchestrator, /session\.purpose === 'live-audio'/);
-  assert.match(orchestrator, /if \(wantsAudio && !existing\.audioConfigured\)/);
+  assert.match(orchestrator, /wantsMicrophoneOnly \? existing\.microphoneConfigured : existing\.audioConfigured/);
   assert.match(orchestrator, /const videoOnlyPreview = session\.permanent/);
   assert.match(routes, /quality: 'high', viewportWidth: 1280, purpose: 'live-audio'/);
   assert.ok(routes.indexOf("streamsRouter.post('/:id/cloud-audio'") > routes.indexOf('streamsRouter.use(authenticate)'));
@@ -46,7 +46,8 @@ test('audio availability is based on verified AAC in completed HLS segments', ()
   assert.ok(dual.includes('0:v:0'));
   assert.ok(dual.includes('1:a:0?'));
   assert.ok(!dual.includes('0:a:0?'));
-  assert.match(orchestrator, /startRing\(broker\.video, true, broker\.audio\)/);
+  assert.match(orchestrator, /startRing\(broker\.video, true, broker\.audioBrokerName\)/);
+  assert.match(orchestrator, /session\.purpose !== 'live-audio'/);
   assert.match(orchestrator, /checkedAudioSegments/);
   assert.match(orchestrator, /audioProbeDeadline/);
   const noAudio = buildLocalHlsRingArgs({
