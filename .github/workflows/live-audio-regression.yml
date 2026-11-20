@@ -1,0 +1,33 @@
+name: Live audio and recording A/V regression
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  live-audio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install backend dependencies
+        run: npm ci --prefix backend --no-audit --no-fund
+      - name: Verify live AAC, recording A/V reuse and real MPEG-TS ffprobe
+        run: |
+          node --test backend/test-node/live-audio-session.test.mjs
+          node --test backend/test-node/broker-pipeline.test.mjs
+          node --test backend/test-node/go2rtc-control-api.test.mjs
+          node --test backend/test-node/cloud-live-audio.test.mjs
+      - name: Verify recording command stays stable
+        run: npm test --prefix backend -- test/recording-command.test.js
+      - name: Verify one visible Live player when toggling audio
+        run: |
+          npm ci --prefix frontend --no-audit --no-fund
+          cd frontend
+          ./node_modules/.bin/vitest run test/live-player-single-window.test.js
