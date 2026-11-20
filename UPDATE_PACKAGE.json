@@ -12,7 +12,8 @@
     "Accept duplicate AAC codec lines from FFprobe when checking HLS MPEG-TS segments",
     "Log LOCAL_HLS_AUDIO_VERIFIED only when a completed HLS segment really contains AAC",
     "Add live/recording sharing assertions and optionally test against a real FFmpeg-generated MPEG-TS sample",
-    "Preserve the visible live player, existing recording pipeline, camera data, and private PHP 3.1.1"
+    "Preserve the visible live player, existing recording pipeline, camera data, and private PHP 3.1.1",
+    "Add independent CI checks for live HLS AAC, recording broker reuse and frontend single-player behavior"
   ],
   "preserve": [
     ".env",
@@ -42,5 +43,5 @@
   "description": "Repair opt-in live audio by sharing the proven recording A/V producer and correctly verifying AAC",
   "minVersion": "2.20.32",
   "releaseNotes": "Upgrade camera server to 2.20.99. Live sound now follows the same H264/AAC broker as recordings while the visible video remains untouched. To test: request audio, wait for LOCAL_HLS_AUDIO_VERIFIED or 'Audiokanal bereit', then tap to unmute. If the camera still reports no audio, check FFmpeg/HLS diagnostics; production verification is required.",
-  "fileCount": 564
+  "fileCount": 565
 }
