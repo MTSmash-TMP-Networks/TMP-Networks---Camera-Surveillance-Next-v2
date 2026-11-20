@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { allowedProxyRequest } from '../src/services/remoteProxyPolicy.js';
-import { buildLocalHlsRingArgs } from '../src/services/media/FfmpegCommand.js';
+import { buildLocalHlsRingArgs, ffprobeHasAacStream } from '../src/services/media/FfmpegCommand.js';
 
 const orchestrator = readFileSync(new URL('../src/services/media/StreamOrchestrator.js', import.meta.url), 'utf8');
 const routes = readFileSync(new URL('../src/routes/streams.js', import.meta.url), 'utf8');
@@ -20,6 +20,20 @@ test('only a customer-initiated live-audio request can create the optional audio
   assert.match(orchestrator, /const videoOnlyPreview = session\.permanent/);
   assert.match(routes, /quality: 'high', viewportWidth: 1280, purpose: 'live-audio'/);
   assert.ok(routes.indexOf("streamsRouter.post('/:id/cloud-audio'") > routes.indexOf('streamsRouter.use(authenticate)'));
+});
+
+test('AAC detection accepts duplicated FFprobe MPEG-TS program/stream lines', () => {
+  // A real TS segment may produce two identical audio codec lines. The old
+  // exact-output comparison incorrectly marked these playable streams silent.
+  assert.equal(ffprobeHasAacStream('aac'), true);
+  assert.equal(ffprobeHasAacStream('aac\\naac'.replaceAll('\\n', '\n')), true);
+  assert.equal(ffprobeHasAacStream('codec_name=aac\naac\n'), true);
+  assert.equal(ffprobeHasAacStream('  AAC \r\n  aac\n'), true);
+  assert.equal(ffprobeHasAacStream(''), false);
+  assert.equal(ffprobeHasAacStream('pcm_alaw\nopus\n'), false);
+  assert.equal(ffprobeHasAacStream('not_aac\n'), false);
+  assert.match(orchestrator, /ffprobeHasAacStream\(stdout\)/);
+  assert.match(orchestrator, /LOCAL_HLS_AUDIO_VERIFIED/);
 });
 
 test('audio availability is based on verified AAC in completed HLS segments', () => {
