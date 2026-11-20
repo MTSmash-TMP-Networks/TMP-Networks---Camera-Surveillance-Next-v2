@@ -9,6 +9,7 @@ import { recordingMessages } from './recordingMessages.js';
 import { aiMessages } from './aiMessages.js';
 import { buildGlobalIntlSupplement } from './globalIntlSupplement.js';
 import { runtimeLocaleFixes } from './runtimeLocaleFixes.js';
+import { internationalLicenseLabels } from './licenseUiIntl.js';
 import { demoModeMessages } from './demoModeMessages.js';
 import { networkStreamMessages } from './networkStreamMessages.js';
 import { demoAdminMessages } from './demoAdminMessages.js';
@@ -215,6 +216,7 @@ const productLicenseLabels = {
     'license.vendorText': 'Die proprietären Produktbestandteile werden im Umfang der mit der Software bereitgestellten Lizenz genutzt. Drittanbieter-Komponenten behalten ihre eigenen Lizenzbedingungen.',
     'license.bindingLanguage': 'Maßgeblich ist die mit der Software bereitgestellte Lizenzvereinbarung oder eine gesonderte schriftliche Vereinbarung. Diese Seite ist eine Produktzusammenfassung.',
     'license.fullTextLink': 'Lizenzhinweis im Paket',
+    'license.englishSectionsNotice': 'Die ausführlichen Rechtstexte erscheinen auf Englisch. Maßgeblich bleibt die mitgelieferte Lizenzvereinbarung.',
   },
   en: {
     'license.eyebrow': 'SOFTWARE LICENSE', 'license.title': 'Software License',
@@ -223,10 +225,11 @@ const productLicenseLabels = {
     'license.vendorText': 'Proprietary product components are licensed under the agreement supplied with the software. Third-party components keep their own license terms.',
     'license.bindingLanguage': 'The license agreement supplied with the software or a separate written agreement is authoritative. This page is a product summary.',
     'license.fullTextLink': 'License notice included with the package',
+    'license.englishSectionsNotice': 'Detailed legal sections are displayed in English. The supplied license agreement remains authoritative.',
   },
 };
 for (const locale of Object.keys(messages)) {
-  messages[locale] = { ...(messages[locale] || en), ...(productLicenseLabels[locale] || productLicenseLabels.en) };
+  messages[locale] = { ...(messages[locale] || en), ...(productLicenseLabels[locale] || internationalLicenseLabels[locale] || productLicenseLabels.en) };
 }
 
 const globalIntlSupplement = buildGlobalIntlSupplement();
