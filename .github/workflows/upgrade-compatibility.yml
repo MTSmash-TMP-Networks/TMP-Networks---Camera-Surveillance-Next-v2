@@ -13,6 +13,8 @@ jobs:
           node-version: '24'
       - name: Validate legacy root paths and source manifest
         run: node scripts/check-update-compatibility.mjs
+      - name: Validate consolidated changelog and release regression tests
+        run: node --test backend/test-node/update-compatibility.test.mjs
       - name: Validate host recovery script syntax
         run: sh -n scripts/recover-updater-compose-v2.sh
       - name: Validate the Compose V2 plugin inside the updater image
