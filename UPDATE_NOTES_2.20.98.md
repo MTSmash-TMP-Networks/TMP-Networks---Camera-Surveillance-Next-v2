@@ -16,7 +16,7 @@ auftreten und die Audiowiedergabe scheitern.
 - Der Audiozweig nutzt einen go2rtc-FFmpeg-Produzenten mit `#audio=aac`
   und ohne weitere Videokonvertierung.
 - FFmpeg kombiniert die vorhandene normalisierte H.264-Spur und die
-  AAC-Mikrofonspur aus zwei go2rtc-MPEGTS-Endpunkten.
+  AAC-Mikrofonspur ueber einen MPEG-TS- und einen ADTS-Audio-Endpunkt.
 - Neue HLS-Segmente werden bis zu sechs Sekunden auf AAC geprueft, statt
   ausschliesslich den ersten Videofragmenten zu vertrauen.
 - Wenn automatische Vorschauqualitaet keinen Audio-Stream hat, wird einmalig
