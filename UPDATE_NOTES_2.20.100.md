@@ -6,7 +6,7 @@ Dieses Release aktualisiert die **Dokumentation und Oberflächenübersetzungen**
 
 ### Installationsdokumentation
 
-- Neue deutschsprachige Anleitung: `INSTALLATION_DE.md` mit Installationsvoraussetzungen, Docker-Erststart, Kameraeinrichtung, NAS/SMB/SFTP, Audio, Rollbacks, Cloud und Diagnose.
+- Neue deutschsprachige Anleitung: `docs/INSTALLATION_DE.md` mit Installationsvoraussetzungen, Docker-Erststart, Kameraeinrichtung, NAS/SMB/SFTP, Audio, Rollbacks, Cloud und Diagnose.
 - Englische `INSTALLATION.md` auf aktuellen Stand gebracht und veraltete Beispiele aus früheren Versionen entfernt.
 - System-/Docker-Speicherkapazität, `data/backups/update-*`-Sicherungen und sichere Bereinigung dokumentiert. Der Updater rotiert diese Sicherungen weiterhin **nicht automatisch**; dies ist eine Dokumentationswarnung, keine neue Funktion.
 - README verlinkt beide Sprachen und die Übersetzungsrichtlinien.
@@ -22,7 +22,7 @@ Dieses Release aktualisiert die **Dokumentation und Oberflächenübersetzungen**
 
 ## Installation / Update
 
-Das aktuelle vollständige Paket wie gewohnt über **Administration → Update-Center → Auf GitHub prüfen → Herunterladen & prüfen → Installieren** beziehen. Bei Neuinstallation `INSTALLATION_DE.md` lesen. Vor Docker-Builds ausreichend freien Platz auf Docker- und Backup-Dateisystem sicherstellen (Planungsreserve 6–8 GB).
+Das aktuelle vollständige Paket wie gewohnt über **Administration → Update-Center → Auf GitHub prüfen → Herunterladen & prüfen → Installieren** beziehen. Bei Neuinstallation `docs/INSTALLATION_DE.md` lesen. Vor Docker-Builds ausreichend freien Platz auf Docker- und Backup-Dateisystem sicherstellen (Planungsreserve 6–8 GB).
 
 Vorhandene `.env`, `data/`, Kameradaten, Aufnahmen, Schlüssel und bestehende PHP-Portaldateien nicht löschen oder überschreiben.
 
