@@ -1083,7 +1083,9 @@ class StreamOrchestrator {
       // caused by stale/duplicate Docker DNS targets or an RTSP registry that
       // is not the same runtime instance as the Control API.
       const brokerReadUrl = go2RtcClient.streamTsUrl(brokerName);
-      const audioReadUrl = includeAudio && audioBrokerName ? go2RtcClient.streamTsUrl(audioBrokerName) : null;
+      const audioReadUrl = includeAudio && audioBrokerName
+        ? go2RtcClient.streamAacUrl(audioBrokerName)
+        : null;
       const args = buildLocalHlsRingArgs({
         sourceUri: brokerReadUrl,
         audioSourceUri: audioReadUrl,
