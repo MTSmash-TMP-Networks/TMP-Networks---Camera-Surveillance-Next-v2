@@ -48,7 +48,8 @@ Am Repository-Stammverzeichnis:
 ```bash
 node --version
 npm ci --prefix frontend --no-audit --no-fund
-node --test frontend/src/i18n/*.test.mjs
+find frontend/src/i18n -maxdepth 1 -type f -name '*.test.mjs' ! -name 'recordings.test.mjs' -print0 | xargs -0 node --test
+npm run test --prefix frontend -- src/i18n/recordings.test.mjs
 npm run build --prefix frontend
 ```
 
