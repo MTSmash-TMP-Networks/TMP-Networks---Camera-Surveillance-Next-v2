@@ -1,0 +1,47 @@
+name: Localization and installation documentation
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/src/i18n/**'
+      - 'frontend/src/pages/LicensePage.jsx'
+      - 'INSTALLATION*'
+      - 'README.md'
+      - 'docs/TRANSLATIONS.md'
+      - 'scripts/audit-locales.mjs'
+      - 'VERSION'
+      - '.github/workflows/localization-documentation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/src/i18n/**'
+      - 'frontend/src/pages/LicensePage.jsx'
+      - 'INSTALLATION*'
+      - 'README.md'
+      - 'docs/TRANSLATIONS.md'
+      - 'scripts/audit-locales.mjs'
+      - 'VERSION'
+      - '.github/workflows/localization-documentation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  localization:
+    name: All 24 locales, guide links and frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Node.js 24 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Restore frontend dependencies
+        run: npm ci --prefix frontend --no-audit --no-fund
+      - name: Validate active translation packs and placeholders
+        run: node --test frontend/src/i18n/*.test.mjs
+      - name: Audit all locales and installation documentation
+        run: node scripts/audit-locales.mjs
+      - name: Build translated frontend
+        run: npm run build --prefix frontend
