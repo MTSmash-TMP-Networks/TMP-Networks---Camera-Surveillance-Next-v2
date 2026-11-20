@@ -142,3 +142,16 @@ export function buildLocalHlsRingArgs({ sourceUri, audioSourceUri = null, output
     `${directory}/index.m3u8`,
   ];
 }
+
+/**
+ * FFprobe may print the same MPEG-TS audio stream twice (once for the program
+ * and again for its stream list). Do not require its complete stdout to equal
+ * "aac": both "aac\naac" and "codec_name=aac" are valid AAC evidence when
+ * ffprobe was invoked with -select_streams a:0.
+ */
+export function ffprobeHasAacStream(output) {
+  return String(output ?? '').split(/\r?\n/).some((line) => {
+    const codec = line.trim().toLowerCase();
+    return codec === 'aac' || codec === 'codec_name=aac';
+  });
+}
