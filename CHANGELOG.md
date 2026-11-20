@@ -1,3 +1,14 @@
+## 2.20.100 – Aktuelle Installationsanleitungen und Sprach-QA
+
+- Vollstaendige deutschsprachige INSTALLATION_DE.md mit Linux/Docker, Kamera-Setup, NAS, Audio, Cloud, Rollbacks und Speicherplatz-Diagnose.
+- Englische INSTALLATION.md aktualisiert, veraltete Versionspfade entfernt und README-Einstieg verbessert.
+- Hinweise zum Disk-Full-Fehler: viele alte data/backups/update-* sind nicht dasselbe wie der Docker-Build-Cache; vor Bereinigung extern sichern.
+- Internationale Lizenzseiten-Bedienelemente fuer 22 Sprachen korrigiert: kein spaeterer englischer Override mehr.
+- Lange rechtliche Abschnitte weiterhin DE/EN; andere Sprachen erhalten einen nativen Hinweis zur englischen Detailfassung.
+- Sprachcodes zh-HK/zh-MO auf traditionelle, zh-SG auf vereinfachte chinesische Schrift korrigiert.
+- 24-Locale-Tests: Schluesselabdeckung, Platzhalter, RTL, Lizenzhinweise, Doku-Links und Frontend-Build.
+- Livevideo, go2rtc/FFmpeg, Aufnahmen, Kamera-/Benutzerdaten sowie die private Plesk-PHP-WebApp 3.1.2 bleiben unveraendert.
+
 ## 2.20.99 – Live-Ton ueber den bewaehrten Aufnahme-A/V-Pfad
 
 - Aufnahme-A/V-Pfad fuer Live-Ton wiederverwendet: Der Browser-Audioplayer liest einen einzigen synchronisierten go2rtc-MPEG-TS-Strom mit H.264 und AAC, statt Video-TS und ADTS-Ton separat zu kombinieren.
