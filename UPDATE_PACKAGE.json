@@ -1,19 +1,19 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.99",
+  "version": "2.20.100",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.99",
-  "summary": "Live-Ton nutzt den synchronisierten A/V-Broker der Aufnahmen; AAC-Erkennung in HLS-Segmenten repariert.",
-  "createdAt": "2026-11-20T00:22:52.057Z",
-  "changelogFile": "UPDATE_NOTES_2.20.99.md",
+  "title": "TMP Camera Surveillance Next 2.20.100",
+  "summary": "Aktuelle DE/EN-Installationsanleitungen, 24-Sprachen-QA und korrigierte internationale Lizenzseiten.",
+  "createdAt": "2026-11-20T11:30:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.100.md",
   "changes": [
-    "Reuse the combined H264/AAC go2rtc broker used by recordings for opt-in live audio",
-    "Use a single synchronized MPEG-TS input rather than independent TS video and ADTS audio inputs for the browser audio player",
-    "Accept duplicate AAC codec lines from FFprobe when checking HLS MPEG-TS segments",
-    "Log LOCAL_HLS_AUDIO_VERIFIED only when a completed HLS segment really contains AAC",
-    "Add live/recording sharing assertions and optionally test against a real FFmpeg-generated MPEG-TS sample",
-    "Preserve the visible live player, existing recording pipeline, camera data, and private PHP 3.1.1",
-    "Add independent CI checks for live HLS AAC, recording broker reuse and frontend single-player behavior"
+    "Add current German install guide for Linux, Docker, ONVIF, recording storage, Plesk cloud and recovery",
+    "Refresh English installation guide and README; document disk sizing and rollback snapshot management",
+    "Fix license-page UI translations for 22 international locales",
+    "Disclose English-only legal detail paragraphs in each non-DE/EN locale",
+    "Correct regional Chinese aliases for Hong Kong/Macau and Singapore",
+    "Add 24-locale, placeholder, RTL, link and production frontend build checks",
+    "Preserve working AAC live video, recording pipeline, camera data and private PHP 3.1.2"
   ],
   "preserve": [
     ".env",
@@ -34,14 +34,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.99.md",
+  "changelog": "UPDATE_NOTES_2.20.100.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.99",
-  "packageId": "tmp-camera-surveillance-next-2.20.99",
+  "name": "TMP Camera Surveillance Next v2.20.100",
+  "packageId": "tmp-camera-surveillance-next-2.20.100",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Repair opt-in live audio by sharing the proven recording A/V producer and correctly verifying AAC",
+  "description": "Documentation and locale patch: correct native license UI in 22 languages and publish current installation guides.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Upgrade camera server to 2.20.99. Live sound now follows the same H264/AAC broker as recordings while the visible video remains untouched. To test: request audio, wait for LOCAL_HLS_AUDIO_VERIFIED or 'Audiokanal bereit', then tap to unmute. If the camera still reports no audio, check FFmpeg/HLS diagnostics; production verification is required.",
-  "fileCount": 565
+  "releaseNotes": "Upgrade with the verified Update Center. New German/English installation guides, safe disk and backup management, 24-language validation and fixed license-page translations. Audio/video backend and the separately installed private Plesk PHP 3.1.2 remain unchanged.",
+  "fileCount": 572
 }
