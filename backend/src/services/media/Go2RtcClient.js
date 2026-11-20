@@ -313,6 +313,15 @@ export class Go2RtcClient {
     return `${this.baseUrl()}/api/stream.ts?${params.toString()}`;
   }
 
+  streamAacUrl(name) {
+    const cleanName = normalizeName(name);
+    if (!cleanName) throw new Error('go2rtc AAC stream name is empty');
+    const params = new URLSearchParams();
+    params.set('src', cleanName);
+    // ADTS audio-only endpoint: no video reader or H.264 packets required.
+    return `${this.baseUrl()}/api/stream.aac?${params.toString()}`;
+  }
+
   async waitUntilRegistered(name, { timeoutMs = 4000, intervalMs = 100 } = {}) {
     const cleanName = normalizeName(name);
     if (!cleanName) throw new Error('go2rtc stream name is empty');
