@@ -16,7 +16,9 @@ test('only a customer-initiated live-audio request can create the optional audio
   assert.equal(allowedProxyRequest('POST', '/api/streams/camera_1/session'), false);
   assert.match(orchestrator, /'live-audio', 'kiosk'/);
   assert.match(orchestrator, /session\.purpose === 'live-audio'/);
-  assert.match(orchestrator, /wantsMicrophoneOnly \? existing\.microphoneConfigured : existing\.audioConfigured/);
+  assert.match(orchestrator, /const activeAudioName = paths\.audio/);
+  assert.match(orchestrator, /optionalAudioSource\(paths\.raw, 20, encoder, profile\?\.videoCodec\)/);
+  assert.doesNotMatch(orchestrator, /wantsMicrophoneOnly/);
   assert.match(orchestrator, /const videoOnlyPreview = session\.permanent/);
   assert.match(routes, /quality: 'high', viewportWidth: 1280, purpose: 'live-audio'/);
   assert.ok(routes.indexOf("streamsRouter.post('/:id/cloud-audio'") > routes.indexOf('streamsRouter.use(authenticate)'));
@@ -50,6 +52,12 @@ test('audio availability is based on verified AAC in completed HLS segments', ()
   assert.ok(args.includes('0:a:0?'));
   assert.ok(args.includes('copy'));
   assert.ok(!args.includes('-an'));
+  // Recording-compatible A/V path is a synchronized single input; no ADTS
+  // rendezvous, and the mapping still includes both H264 and AAC.
+  assert.equal(args.filter((item) => item === '-i').length, 1);
+  assert.ok(args.includes('0:v:0'));
+  assert.ok(args.includes('0:a:0?'));
+  assert.ok(!args.includes('1:a:0?'));
   const dual = buildLocalHlsRingArgs({
     sourceUri: 'http://mediamtx:1984/api/stream.ts?src=cam_video',
     audioSourceUri: 'http://mediamtx:1984/api/stream.aac?src=cam_audio',
@@ -60,7 +68,12 @@ test('audio availability is based on verified AAC in completed HLS segments', ()
   assert.ok(dual.includes('0:v:0'));
   assert.ok(dual.includes('1:a:0?'));
   assert.ok(!dual.includes('0:a:0?'));
+  // Live audio uses the same video+AAC producer that recording FFmpeg reads.
+  // Only one go2rtc MPEG-TS input is needed for its HLS player.
+  assert.match(orchestrator, /session\.purpose === 'live-audio'[\s\S]*await startRing\(broker\.audioBrokerName, true\)/);
   assert.match(orchestrator, /startRing\(broker\.video, true, broker\.audioBrokerName\)/);
+  assert.match(orchestrator, /sharedWithRecording: true/);
+  assert.match(orchestrator, /existing\.audioConfigured = true/);
   assert.match(orchestrator, /session\.purpose !== 'live-audio'/);
   assert.match(orchestrator, /checkedAudioSegments/);
   assert.match(orchestrator, /audioProbeDeadline/);
