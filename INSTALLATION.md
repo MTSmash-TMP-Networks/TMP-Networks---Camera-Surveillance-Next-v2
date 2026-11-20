@@ -1,6 +1,14 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next 2.20.43 and the most common maintenance tasks.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.100** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+
+## Before you start: disk and backups
+
+Plan separate capacity for the operating system, Docker images/build layers, update snapshots, local recording spool and optional network recording cache. As an operational planning figure, **40 GB or more for the OS/Docker/update workspace** and **6–8 GB free during an update** are advisable; actual requirements depend on camera count and image size. A 15-GB root partition can fill after repeated updates, even when the Docker build cache is empty.
+
+Update snapshots accumulate in `data/backups/update-*`. The current updater does **not guarantee automatic retention of just two or three snapshots**. Inspect and archive older snapshots externally; do not delete the currently required rollback checkpoint. See [Disk space and safe update-backup management](#disk-space-and-safe-update-backup-management) below.
+
+`data/`, `.env`, the SQLite database and camera recordings are persistent, not temporary build files. Never run `docker system prune --volumes` or `rm -rf data/` to solve a build-space error.
 
 ## 1. Requirements
 
@@ -26,11 +34,7 @@ Extract the complete ZIP into a permanent local application directory. Do not ru
 
 Example on Linux:
 
-```bash
-mkdir -p /opt/tmp-camera
-unzip TMP_Networks_Camera_Surveillance_Next_v2.20.34.zip -d /opt/tmp-camera
-cd /opt/tmp-camera/TMP_Networks_Camera_Surveillance_Next_v2.20.34
-```
+Download the complete repository ZIP (GitHub **Code → Download ZIP**) or a verified release package, extract it to a permanent local folder, then **enter the directory containing `start.sh`, `docker-compose.yml` and `frontend/`**. Do not assume an older release-specific folder name.
 
 If the archive tool removed executable permissions, restore them with:
 
@@ -270,7 +274,7 @@ Important behavior:
 For a normal Linux Docker host:
 
 ```bash
-cd /path/to/TMP_Networks_Camera_Surveillance_Next_v2.20.34
+cd /path/to/extracted-camera-project
 ./start.sh
 ```
 
@@ -518,11 +522,50 @@ Repeated application updates rebuild Docker images. Version 2.20.22 automaticall
 
 Open **Desktop-Client** from the authenticated application's sidebar and download the Linux x86_64 ZIP. Extract it on the workstation and run `sh ./install-linux.sh` **without sudo**. Missing Node.js 20+ or npm are automatically installed locally (Node.js 24 LTS, verified SHA-256); Electron is downloaded on first install. If Electron needs missing Linux libraries on Debian/Ubuntu/Linux Mint, the installer invokes apt-get with a one-time sudo password prompt. Internet is required for the first installation. The client uses the configured server address and the existing login. The recording server remains headless; no desktop packages need to be installed on it.
 
+## Disk space and safe update-backup management
+
+**Run these checks on the camera-server host** before a Docker rebuild or updater transaction:
+
+```bash
+df -h /
+df -i /
+sudo docker system df
+sudo du -sh /var/lib/docker /var/lib/containerd data/backups 2>/dev/null
+sudo du -h --max-depth=1 data/backups | sort -h
+```
+
+`df -i` distinguishes an exhausted inode table from a full disk. Docker build cache, Docker images and `data/backups/update-*` are different storage classes. Cache cleanup does not remove the update snapshots.
+
+Safe Docker cache cleanup (does not remove volumes or running containers):
+
+```bash
+sudo docker builder prune --all --force
+sudo docker image prune --force
+```
+
+**Before deleting any `update-*` directory:** inspect its timestamp/version, preserve at least the rollback states required for your deployment, and copy historical snapshots to external storage if needed. A previous real installation accumulated dozens of 170+ MB snapshots and nearly 7 GB in `data/backups`. The updater's rollback and SQLite/configuration recovery depend on these snapshots. Do not delete a snapshot just because its version number is lower.
+
+Do not remove Docker internals under `/var/lib/containerd` or `/var/lib/docker` manually. If sufficient free disk capacity cannot be restored safely, expand the disk or relocate Docker/project data before retrying the update.
+
+## Optional HTTPS camera cloud (separate private Plesk installation)
+
+The Docker camera server and the browser-accessible TMP Camera Cloud are **independent deployments**. The cloud relay uses a camera-server-generated installation UUID, device secret and outbound agent; users enter the server ID and their ordinary camera account credentials. It does not require publishing RTSP camera ports.
+
+The **private PHP cloud installer** (currently version 3.1.2) must be delivered out of band, not through this public GitHub repository. The Plesk host needs HTTPS, PHP 8.2+ and a separate MySQL/MariaDB database. Install its `index.php` in the `/cam/` site location and keep private configuration **outside the document root**. Never commit the PHP source, portal secrets, device keys, passwords or its database export to GitHub.
+
+Cloud live audio is opt-in: it is only requested after the user presses the speaker control. Browser autoplay policy may still require the user to interact. The normal live image and local recordings are independent of the private cloud portal.
+
+## Interface localization
+
+The current frontend offers **24 languages** (including Arabic RTL). Choose a language using the built-in selector; the browser remembers the selection. Locale keys, substitution placeholders and language-specific controls are validated in automated tests.
+
+The detailed legal notice paragraphs currently exist only in German and English. International locale packs translate the surrounding page controls and explicitly state when the full legal detail is displayed in English. See [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) for the language list, fallback behavior and translation QA procedure.
+
 ## GitHub direct updates
 
-After upgrading to 2.20.43, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
+On compatible installed versions, open **Administration → Update-Center** and choose **Auf GitHub prüfen**, then **Herunterladen & prüfen**, then **Installieren**. GitHub's commit archive must contain exactly the files declared in `FILES.sha256`. The installer will reject any missing or additional files. DNS, TLS and access to `api.github.com`, `raw.githubusercontent.com` and `codeload.github.com` are required from inside the backend container.
 
-For the initial repair from older releases, upload the full 2.20.43 ZIP through the existing ZIP upload option.
+For upgrades from supported v2.20.32+ installations, use the verified full update archive. For older versions, follow the tested intermediate-upgrade guidance in `docs/UPGRADE_COMPATIBILITY.md` rather than skipping compatibility checks.
 
 
 ### Optional Intel VAAPI video acceleration
@@ -532,7 +575,7 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.43 direkt via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.100 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
 
 
 ### Kamera-Encoderdiagnose (ab v2.20.43)
