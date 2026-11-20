@@ -134,7 +134,7 @@ Der Updater prüft Release-Manifest und SHA-256-Prüfsummen, erstellt einen Wied
 - Direktupdates ab **2.20.32** folgen den dokumentierten Kompatibilitätsregeln; ältere Versionen benötigen gegebenenfalls einen geprüften Zwischenschritt.
 - Kein unkontrolliertes `git pull` über eine laufende Installation ausführen.
 
-Die Versionshistorie ist in der **[CHANGELOG.md](CHANGELOG.md)** gebündelt. Separate `UPDATE_NOTES_*.md`-Dateien werden nicht mehr geführt.
+Alle Änderungen und früheren Versionsstände sind zentral in der **[Versionshistorie](CHANGELOG.md)** dokumentiert.
 
 ## Optionaler HTTPS-Fernzugriff
 
