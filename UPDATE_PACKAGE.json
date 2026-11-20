@@ -3,15 +3,16 @@
   "version": "2.20.99",
   "minimumVersion": "2.20.32",
   "title": "TMP Camera Surveillance Next 2.20.99",
-  "summary": "AAC-Ton wird in HLS-TS-Segmenten auch bei doppelten FFprobe-Codeczeilen korrekt erkannt.",
+  "summary": "Live-Ton nutzt den synchronisierten A/V-Broker der Aufnahmen; AAC-Erkennung in HLS-Segmenten repariert.",
   "createdAt": "2026-11-20T00:22:52.057Z",
   "changelogFile": "UPDATE_NOTES_2.20.99.md",
   "changes": [
-    "Recognize AAC even when MPEG-TS ffprobe reports codec_name twice",
-    "Avoid falsely marking verified AAC as missing and auto-disabling the user audio session",
-    "Add one info event LOCAL_HLS_AUDIO_VERIFIED when completed HLS segments contain AAC",
-    "Regression tests for duplicate AAC lines, negative codecs, and callsite integration",
-    "Preserve stable single live player, AV muxing, go2rtc broker, recordings and PHP portal"
+    "Reuse the combined H264/AAC go2rtc broker used by recordings for opt-in live audio",
+    "Use a single synchronized MPEG-TS input rather than independent TS video and ADTS audio inputs for the browser audio player",
+    "Accept duplicate AAC codec lines from FFprobe when checking HLS MPEG-TS segments",
+    "Log LOCAL_HLS_AUDIO_VERIFIED only when a completed HLS segment really contains AAC",
+    "Add live/recording sharing assertions and optionally test against a real FFmpeg-generated MPEG-TS sample",
+    "Preserve the visible live player, existing recording pipeline, camera data, and private PHP 3.1.1"
   ],
   "preserve": [
     ".env",
@@ -38,8 +39,8 @@
   "packageId": "tmp-camera-surveillance-next-2.20.99",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Fix false-negative AAC verification in local HLS segment probing",
+  "description": "Repair opt-in live audio by sharing the proven recording A/V producer and correctly verifying AAC",
   "minVersion": "2.20.32",
-  "releaseNotes": "Upgrade camera server to 2.20.99. On a camera known to have G.711 audio, request audio and check LOCAL_HLS_AUDIO_VERIFIED, then tap again to unmute. This fixes a known ffprobe false-negative; RTSP/network issues may still occur. PHP 3.1.1 does not change.",
+  "releaseNotes": "Upgrade camera server to 2.20.99. Live sound now follows the same H264/AAC broker as recordings while the visible video remains untouched. To test: request audio, wait for LOCAL_HLS_AUDIO_VERIFIED or 'Audiokanal bereit', then tap to unmute. If the camera still reports no audio, check FFmpeg/HLS diagnostics; production verification is required.",
   "fileCount": 564
 }
