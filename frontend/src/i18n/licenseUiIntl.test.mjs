@@ -20,7 +20,7 @@ test('all 24 language packs expose native license UI copy and correct placeholde
       assert.equal(typeof entries[key], 'string', `${code}:${key} missing`);
       assert.equal(messages[code][key], entries[key], `${code}:${key} overwritten`);
       assert.ok(entries[key].trim().length >= 2, `${code}:${key} blank`);
-      assert.ok(!/\\{[a-z][a-z0-9_]*\\}/i.test(entries[key]), `${code}:${key} unexpected placeholder`);
+      assert.ok(!/\{[a-z][a-z0-9_]*\}/i.test(entries[key]), `${code}:${key} unexpected placeholder`);
     }
     for (const key of ['license.eyebrow', 'license.title', 'license.subtitle', 'license.vendorText', 'license.bindingLanguage', 'license.fullTextLink', 'license.englishSectionsNotice']) {
       assert.notEqual(translate(code, key), translate('en', key), `${code}:${key} English fallback`);
