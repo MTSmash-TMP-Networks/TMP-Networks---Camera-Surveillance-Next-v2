@@ -1,5 +1,6 @@
 .env.example
 .github/workflows/hardened-go2rtc.yml
+.github/workflows/live-audio-regression.yml
 .github/workflows/upgrade-compatibility.yml
 .gitignore
 CHANGELOG.md
