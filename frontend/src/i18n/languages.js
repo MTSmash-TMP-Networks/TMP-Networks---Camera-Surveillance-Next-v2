@@ -45,6 +45,9 @@ export function normalizeLocale(candidate) {
   if (direct) return direct.code;
   const alias = aliases[lower];
   if (alias) return alias;
+  // Preserve the script tag when browsers add a region after zh-Hant/zh-Hans.
+  if (lower.startsWith('zh-hant-')) return 'zh-TW';
+  if (lower.startsWith('zh-hans-')) return 'zh-CN';
   const base = lower.split('-')[0];
   const baseMatch = SUPPORTED_LANGUAGES.find((item) => item.code.toLowerCase() === base);
   return baseMatch?.code || aliases[base] || null;
