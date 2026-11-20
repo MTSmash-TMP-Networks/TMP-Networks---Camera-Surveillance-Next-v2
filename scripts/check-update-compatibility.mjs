@@ -68,7 +68,15 @@ export function checkRelease(root) {
     throw new Error('preserve muss .env, .git und data unveraendert schuetzen');
   }
   if (compareVersions(version, BASELINE) <= 0) throw new Error('Zielversion muss neuer als Upgrade-Basis sein');
-  if (mf.changelogFile !== `UPDATE_NOTES_${version}.md` || !allFiles.includes(mf.changelogFile)) throw new Error('Update-Notes fehlen');
+  // The v2.20.32-compatible manifest already supports an explicit changelogFile.
+  // Use the permanent top-level CHANGELOG.md instead of shipping 60 release-note copies.
+  if (mf.changelogFile !== 'CHANGELOG.md' || mf.changelog !== 'CHANGELOG.md') {
+    throw new Error('Eine gemeinsame CHANGELOG.md muss als Änderungsdatei eingetragen sein');
+  }
+  if (!allFiles.includes(mf.changelogFile)) throw new Error('Zentrale CHANGELOG.md fehlt');
+  if (allFiles.some((file) => /^UPDATE_NOTES_\d+\.\d+\.\d+\.md$/.test(file))) {
+    throw new Error('Historische UPDATE_NOTES-Dateien gehören nicht mehr in das Updatepaket');
+  }
   for (const file of ['backend/package.json', 'frontend/package.json', 'updater/package.json']) {
     const pkg = JSON.parse(readFileSync(path.join(root, file), 'utf8'));
     if (pkg.version !== version) throw new Error(`Falsche Paketversion in ${file}`);
