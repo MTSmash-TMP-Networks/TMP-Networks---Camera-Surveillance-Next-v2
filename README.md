@@ -1,200 +1,192 @@
-# TMP Camera Surveillance Next 2.20.100
+<p align="center">
+  <img src="frontend/src/assets/tmp-camera-icon-512.png" width="140" height="140" alt="Offizielles Logo – TMP Camera Surveillance Next">
+</p>
 
-TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
+<h1 align="center">TMP Camera Surveillance Next</h1>
 
-## Quick start
+<p align="center">
+  <strong>Professionelle Videoüberwachung. Lokal betrieben. Zentral verwaltet.</strong>
+</p>
 
-**Deutsch:** [Vollständige Installationsanleitung](docs/INSTALLATION_DE.md) · **English:** [Installation and maintenance guide](INSTALLATION.md). For language coverage and QA, see [Translations / Sprachübersicht](docs/TRANSLATIONS.md).
+<p align="center">
+  Kameraerkennung, Liveansicht, Aufnahmen und Systemverwaltung in einer gemeinsamen Weboberfläche.
+</p>
 
-**Storage planning:** Reserve sufficient room for the OS, Docker images, update backups and recording spool. A planning figure is **40 GB or more for the OS/Docker workspace** plus separate recording capacity, with **6–8 GB free** before full Docker rebuilds; the actual requirement depends on the installation. Numerous update snapshots under `data/backups/` can fill a 15-GB root filesystem, even after Docker cache cleanup.
+<p align="center">
+  <a href="#schnellstart">Schnellstart</a> ·
+  <a href="docs/INSTALLATION_DE.md">Installation</a> ·
+  <a href="#funktionen">Funktionen</a> ·
+  <a href="#aktualisierungen">Aktualisierungen</a> ·
+  <a href="CHANGELOG.md">Versionshistorie</a>
+</p>
 
-1. Extract the complete ZIP into a permanent local directory.
-2. Open a terminal in the extracted application directory.
-3. Start the application:
+---
+
+## Überblick
+
+**TMP Camera Surveillance Next** ist eine selbst gehostete Kamera- und Aufzeichnungsplattform für Docker-Umgebungen. Die Anwendung vereint die Verwaltung von ONVIF-Kameras und direkten Netzwerkstreams mit einer responsiven Weboberfläche, einem zentralen Medienbroker sowie Funktionen für Livebild, PTZ, Aufnahmen, Ereignisse, Benutzer und Updates.
+
+Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
+
+**Aktuelle Version:** `2.20.101` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+
+## Funktionen
+
+| Bereich | Möglichkeiten |
+|---|---|
+| **Kameras** | ONVIF-Erkennung, manuelle Einrichtung, Herstellerprofile und direkte Netzwerkstreams |
+| **Liveansicht** | Browser-Livebild über lokalen HLS-Ring, Kamerawechsel und optionaler AAC-Ton |
+| **Kiosk-Modus** | Konfigurierbare Kameraraster, individuelle Zuordnung und Vollbilddarstellung |
+| **Steuerung** | PTZ-Funktionen, Presets und gerätespezifische Funktionen |
+| **Aufnahmen** | Dauer-, Zeitplan-, manuelle und ereignisgesteuerte Aufzeichnung, Wiedergabe und Export |
+| **Speicher** | Lokale Aufnahmeblöcke sowie optionale Archivierung über SMB/CIFS oder SFTP |
+| **Ereignisse** | Bewegungserkennung, Benachrichtigungen, SMTP und optionale KI-Auswertung |
+| **Administration** | Benutzerrollen, Systemstatus, Protokolle, Diagnosen und Update-Center |
+| **Clients** | Responsive Browseroberfläche und separater Linux-Desktop-Client |
+| **Sprachen** | 24 Oberflächensprachen einschließlich Arabisch mit Rechts-nach-links-Darstellung |
+
+Die verfügbaren Funktionen hängen vom Kameramodell, der Firmware und den angebotenen ONVIF-/Medienprofilen ab.
+
+## Schnellstart
+
+### Voraussetzungen
+
+- Docker-fähiger Linux-Server, unterstütztes NAS oder Docker Desktop auf macOS/Windows mit WSL2
+- Docker Engine und Docker Compose (auf unterstützten Linux-Distributionen kann der Erststart fehlendes Docker installieren)
+- Netzwerkzugriff vom Kameraserver zu den ONVIF-/RTSP-Adressen der Kameras
+- Ausreichend Speicherplatz für System, Docker-Images, Update-Sicherungen und Aufnahmen
+
+**Speicherempfehlung:** Für Betriebssystem, Docker und Updates sind **etwa 40 GB oder mehr als Planungsgröße** sinnvoll; Aufnahmen benötigen zusätzlichen Speicher. Vor umfangreichen Updates sollten möglichst **6–8 GB frei** sein. Dies sind Planungswerte, keine garantierten Mindestanforderungen.
+
+### Installation unter Linux
+
+1. Das Repository über **Code → Download ZIP** herunterladen und vollständig in einen dauerhaften lokalen Ordner entpacken.
+2. Im Terminal in den Ordner wechseln, in dem `start.sh` und `docker-compose.yml` liegen.
+3. Die Anwendung starten:
 
 ```bash
+chmod +x start.sh stop.sh update.sh logs.sh scripts/*.sh
 ./start.sh
 ```
 
-On Linux or NAS systems where Docker requires administrative privileges, use:
+Wenn der Docker-Zugriff Administratorrechte erfordert:
 
 ```bash
 sudo ./start.sh
 ```
 
-4. Wait until the containers are built and started.
-5. Open the URL printed by the startup script. The default address is:
+Beim ersten Start erzeugt das Skript eine geschützte `.env`, legt persistente Datenordner an, baut die Docker-Images und startet die Dienste.
 
-```text
-http://SERVER-IP:8080
+**Weboberfläche:** `http://SERVER-IP:8080`
+
+**Erstanmeldung:** Benutzer `admin`. Das automatisch erzeugte Kennwort wird beim ersten Start angezeigt und in `.env` abgelegt. Diese Datei enthält vertrauliche Schlüssel und darf nicht veröffentlicht werden.
+
+Die vollständige Anleitung steht in der **[deutschen Installationsdokumentation](docs/INSTALLATION_DE.md)**. Eine [englische Installationsanleitung](INSTALLATION.md) ist ebenfalls verfügbar.
+
+## Kameraeinrichtung und Livebild
+
+1. Unter **Systemstatus** die laufenden Dienste kontrollieren.
+2. Über **Kamera hinzufügen** einen ONVIF-Scan starten oder die Kamera-IP manuell angeben.
+3. Kamera-Zugangsdaten sowie Main-/Substream prüfen und das Profil speichern.
+4. **Liveansicht** öffnen und bei unterstützten Kameras PTZ oder den Kiosk-Modus konfigurieren.
+5. Aufnahmespeicher unter **Aufnahmen → Speicher** einrichten und die Verbindung testen.
+
+Bestimmte Kameras benötigen einen manuell angegebenen ONVIF-Port, etwa `8000` bei einigen Reolink-Modellen.
+
+**Live-Ton:** Die normale Vorschau startet stumm. Bei Kameras mit geeigneter Audioquelle kann der Ton bewusst über die Lautsprechertaste aktiviert werden. Der AAC-Audiopfad ist vom sichtbaren Liveplayer getrennt. Browser können zur Tonfreigabe eine Nutzeraktion verlangen; fehlt eine Tonspur, läuft das Video weiter.
+
+## Architektur
+
+| Dienst | Aufgabe |
+|---|---|
+| `frontend` | Weboberfläche und geschützte Browser-Medienzugriffe |
+| `backend` | Kameras, Benutzer, Streaming-Sitzungen, Aufnahmen und APIs |
+| `mediamtx` | go2rtc-/FFmpeg-Medienbroker und Codec-Normalisierung |
+| `updater` | Prüfung, Sicherung, Installation und Rollback von Updates |
+
+Anwendungsdaten liegen im persistenten Verzeichnis `data/`, Konfiguration und Geheimnisse in `.env`. **Beides darf bei Updates nicht gelöscht oder öffentlich geteilt werden.**
+
+Für geeignete Intel-Systeme steht optional Intel VAAPI nach erfolgreichem Hardwaretest zur Verfügung. Ein Betrieb ohne passende GPU ist möglich.
+
+## Aufnahmen und Speicherung
+
+Standardmäßig liegen Aufnahmen unter `data/recordings/` und die lokale SQLite-Datenbank unter `data/kamera_server.db`. Optional lassen sich abgeschlossene Aufnahmeblöcke in ein SMB-/CIFS- oder SFTP-Archiv übertragen. Laufende Aufnahmen bleiben bis zur Fertigstellung lokal.
+
+Speicherzustand prüfen, **ohne Aufnahmen zu löschen**:
+
+```bash
+sudo sh ./scripts/recording-storage-audit.sh
 ```
 
-On Ubuntu, Debian, Linux Mint and Fedora with systemd, the first start can also install Docker Engine and the Docker Compose plugin from Docker's official package repository when Docker is entirely missing. Existing Docker installations are not replaced. On NAS, macOS and Windows, install Docker via the platform vendor first. Set `DOCKER_AUTO_INSTALL=0` to disable host-level auto-installation.
+Mehr Informationen: [Aufnahmen und Netzwerkspeicher](docs/INSTALLATION_DE.md#5-aufnahmen-und-netzwerkspeicher).
 
-The first start creates `.env`, generates secure application secrets, prepares persistent storage and builds the Docker services automatically.
+## Aktualisierungen
 
-For the complete setup procedure, NAS notes, reverse-proxy guidance, updates, backups and troubleshooting, read `INSTALLATION.md`.
+Das integrierte **Update-Center** führt durch den Ablauf:
 
-## Updates across supported older versions
+**Auf GitHub prüfen → Herunterladen & prüfen → Installieren**
 
-**Repair first when the installed updater still uses Docker Compose V1 (KeyError: ContainerConfig):** On Linux hosts with a working Docker Compose V2/V5, download and run `scripts/recover-updater-compose-v2.sh` from the latest main branch as root, passing the full project directory as the only argument. The recovery replaces only the updater, verifies health and preserves the camera containers. See `UPDATE_NOTES_2.20.65.md` for exact commands. Do not attempt another in-app update before this repair.
+Der Updater prüft Release-Manifest und SHA-256-Prüfsummen, erstellt einen Wiederherstellungspunkt und kann bei Fehlern zurückrollen.
 
-The complete GitHub source archive and the downloadable update ZIP use a stable root-directory layout supported since v2.20.32. A server at any tested release from v2.20.32 onward can validate the v2.20.41 package directly; it does not need to install every intermediate release. See `docs/UPGRADE_COMPATIBILITY.md` for the supported baseline, compatibility checks, data safety and recovery steps. Releases below v2.20.32 must use an individually verified intermediate bridge, not bypass the validation rules.
+- `.env`, `data/`, Kameradaten und Aufnahmen unbedingt erhalten.
+- Genügend freien Platz auf dem Docker-Dateisystem bereitstellen.
+- Alte `data/backups/update-*`-Sicherungen bewusst verwalten. Eine Docker-Cache-Bereinigung entfernt diese **nicht**.
+- Direktupdates ab **2.20.32** folgen den dokumentierten Kompatibilitätsregeln; ältere Versionen benötigen gegebenenfalls einen geprüften Zwischenschritt.
+- Kein unkontrolliertes `git pull` über eine laufende Installation ausführen.
 
-## Installation and GitHub updates
+Die Versionshistorie ist in der **[CHANGELOG.md](CHANGELOG.md)** gebündelt. Separate `UPDATE_NOTES_*.md`-Dateien werden nicht mehr geführt.
 
-If the Update-Center reports an available GitHub version, choose **Auf GitHub prüfen → Herunterladen & prüfen → Installieren**. The version is installed through the same checksum-verified ZIP route with backup and rollback as a manual upload. Direct `git pull` inside a running installation is not required.
+## Optionaler HTTPS-Fernzugriff
 
-## Main features
+Ein privat verwalteter Plesk-HTTPS-Zugang ermöglicht die mobile Nutzung über die eindeutige Installations-ID. Die Anmeldung verwendet die normalen Kamera-Server-Zugangsdaten und den ausgehenden Cloud-Agenten. Öffentliche RTSP-Portfreigaben sind dafür nicht erforderlich.
 
-- ONVIF camera discovery and authenticated capability detection
-- Visible ONVIF and PTZ verification during camera setup
-- Direct RTSP, RTSPS, HLS, MJPEG, HTTP(S), RTMP, RTMPS and SRT sources
-- Central TMP-Encoder media pipeline
-- Local HLS live and kiosk playback
-- Saved multi-camera kiosk layouts with equal and asymmetric focus grids and per-tile camera assignment
-- PTZ controls and presets
-- Continuous, scheduled, manual and event recording
-- Configurable local or direct SMB/CIFS or SFTP network recording storage
-- Background recording compression before SMB/SFTP transfer, including active multi-camera recording sessions and a default 2500 kbit/s archive video ceiling
-- Motion and event processing with per-camera selectable detection regions
-- Recording archive and evidence export
-- SMTP email notifications and event rules
-- Optional AI event analysis with OpenAI or compatible vision endpoints
-- User roles, audit events and public read-only demo mode
-- System and container status dashboard
-- Integrated update and rollback workflow
-- Local Backend-to-Updater IPC channel that avoids a hard Docker-DNS dependency
-- 24 interface languages with RTL support for Arabic
+Die **private PHP-WebApp (3.1.2)** wird unabhängig vom Docker-Kameraserver installiert und aktualisiert. Ihr Quellcode, Datenbankzugänge, Geräteschlüssel und andere Geheimnisse werden **nicht in GitHub veröffentlicht**.
 
-## Video-CPU-Optimierung (Intel N97 / go2rtc)
+## Sprachen und Übersetzungen
 
-Version 2.20.40 nutzt fuer als H.264 erkannte Kamera-Profile zunaechst go2rtc `#video=copy` und prueft das erste HLS-Segment auf echten H.264-Codec. Erst wenn das fehlschlaegt, wird die Quelle ueber Intel VAAPI (falls aktiviert) oder Software neu kodiert. `GO2RTC_H264_COPY_FIRST=false` in `.env` deaktiviert nur diese Kopieroptimierung. Hardware-Beschleunigung und Kamera-Aufzeichnungen bleiben unabhaengig davon erhalten. Fallbacks anderer Kameras werden nicht global umgeschaltet.
+Die Weboberfläche unterstützt **24 Sprachen**. Die Auswahl wird im Browser gespeichert; Arabisch aktiviert die Rechts-nach-links-Darstellung. Regionale chinesische Varianten werden korrekt zugeordnet.
 
-## Desktop client for Linux workstations
+Automatische Tests prüfen Schlüssel, Platzhalter und Sprachzuordnung. Die ausführlichen rechtlichen Detailtexte stehen derzeit nur auf Deutsch und Englisch zur Verfügung; in anderen Sprachen weist die Oberfläche ausdrücklich darauf hin.
 
-Authenticated users can open **Desktop-Client** in the left navigation and download `TMP-Camera-Desktop-Linux-x64.zip`. It provides a dedicated Electron window connected to the existing Docker server, without opening Firefox or Chrome. After extracting on a Linux x86_64 workstation, run `sh ./install-linux.sh`. The installer automatically downloads and checksum-verifies a local Node.js 24 LTS runtime including npm if needed, then downloads Electron. The Electron postinstall hook is specifically approved for its pinned version and native runtime presence is verified. Missing Electron libraries on Debian/Ubuntu/Linux Mint can be installed with a sudo password prompt. Run the installer as the regular user (not with sudo). TLS certificate validation remains enabled. No extra server or Docker instance is installed. Source and install instructions are in `frontend/desktop-client/`.
+[Sprachübersicht und Qualitätssicherung](docs/TRANSLATIONS.md)
 
-## Frontend foundation
+## Betrieb und Diagnose
 
-The administration shell uses the open-source CoreUI CSS framework 5.9.0 (MIT) as a documented layout and navigation foundation. TMP-specific surveillance views such as Live View, camera cards, PTZ, recordings, timeline and kiosk remain purpose-built components. CoreUI is imported before the TMP stylesheet so the product theme and surveillance workflows remain visually distinct. No CoreUI PRO assets are included. See `docs/UI_FOUNDATION.md` and `docs/THIRD_PARTY_NOTICES.md`.
+Befehle im Projektverzeichnis ausführen:
 
-## Persistent data
+```bash
+# Containerstatus
+sudo sh ./scripts/docker-compose.sh ps
 
-Do not delete these items during normal updates:
+# Diagnosebericht
+sudo sh ./scripts/diagnose.sh
 
-```text
-.env
-data/
+# Backend- und Medienprotokolle
+sudo sh ./scripts/docker-compose.sh logs --tail=150 backend mediamtx
+
+# Docker- und Update-Backup-Speicher
+sudo docker system df
+sudo du -sh /var/lib/docker /var/lib/containerd data/backups 2>/dev/null
 ```
 
-They contain the installation identity, credentials, configuration, database, local recordings, update state and other persistent application data. Recording blocks transferred to network storage remain on the configured SMB/CIFS or SFTP target. Network-storage passwords are encrypted in the local database and are never returned to the browser.
+Bei wenig freiem Platz zuerst die Speichernutzung prüfen. Kameraaufnahmen und für Rollbacks benötigte Sicherungen niemals pauschal löschen.
 
-## Documentation
+## Dokumentation
 
-- [INSTALLATION_DE.md](docs/INSTALLATION_DE.md) - vollständige deutschsprachige Installationsanleitung
-- [INSTALLATION.md](INSTALLATION.md) - English installation and maintenance guide
-- [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) - 24 languages, RTL, fallbacks and localization tests
-- `UPDATE_NOTES_2.20.100.md` - current release notes
-- `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
-- `docs/COMPATIBILITY.md` - platform and browser compatibility
-- `docs/NETWORK_STREAMS.md` - direct network-stream sources
-- `docs/DEMO_MODE.md` - public read-only demo mode
-- `docs/PRIVACY_AND_DATA_PROCESSING.md` - privacy and deployment notes
-- `docs/THIRD_PARTY_NOTICES.md` - third-party licenses and notices
-- `LICENSE_AGREEMENT.md` - software license notice
+| Dokument | Inhalt |
+|---|---|
+| [Deutsche Installationsanleitung](docs/INSTALLATION_DE.md) | Erststart, NAS, Kameras, Cloud, Wartung und Fehlersuche |
+| [Englische Installationsanleitung](INSTALLATION.md) | Ausführliche Anleitung in englischer Sprache |
+| [Update-Kompatibilität](docs/UPGRADE_COMPATIBILITY.md) | Direktupdates und Legacy-Sicherheitsprüfungen |
+| [Plattform-Kompatibilität](docs/COMPATIBILITY.md) | Betriebssysteme, Browser und Medienprotokolle |
+| [Netzwerkstreams](docs/NETWORK_STREAMS.md) | Zusätzliche Videoquellen und deren Einrichtung |
+| [Übersetzungen](docs/TRANSLATIONS.md) | Sprachkatalog, Fallbacks und Prüfverfahren |
+| [Datenschutz](docs/PRIVACY_AND_DATA_PROCESSING.md) | Datenschutz und Betreiberverantwortung |
+| [Drittanbieter-Hinweise](docs/THIRD_PARTY_NOTICES.md) | Komponenten und Lizenzen |
+| [Versionshistorie](CHANGELOG.md) | Zusammengefasste Änderungen aller Versionen |
 
-## License and trademarks
+## Lizenz und Hersteller
 
-This distribution is governed by the license agreement supplied with the software. Third-party components remain subject to their own licenses.
+Die Nutzung unterliegt den mit der Software bereitgestellten **[Lizenzbedingungen](LICENSE_AGREEMENT.md)**. Drittanbieter-Komponenten behalten ihre jeweiligen Lizenzbedingungen. Hersteller- und Produktnamen dienen nur der technischen Beschreibung und bedeuten keine Zertifizierung oder Partnerschaft.
 
-Third-party product and company names may appear only where needed for factual compatibility, protocol, dependency or attribution purposes. Their trademarks belong to their respective owners. No affiliation, sponsorship or certification is implied.
-
-## Support
-
-Support is provided according to the applicable software license or a separate support agreement.
-
-## Storage integrity
-
-Network recording storage uses a verified local-spool workflow. A completed block is compressed locally, uploaded to SMB/SFTP, verified on the remote target, and only then removed from the local spool. Startup reconciliation repairs interrupted upload/cleanup states after container restarts or in-app updates. Use `./scripts/recording-storage-audit.sh` to inspect local spool, cache and pipeline state.
-
-## Automatic Docker cache maintenance
-
-Repeated application updates rebuild Docker images. Version 2.20.22 automatically removes dangling images and unused Docker builder/buildx cache before and after update builds and during host-side startup. Application volumes, containers, tagged images and recording data are never pruned by this maintenance. Set `UPDATER_DOCKER_CACHE_CLEANUP=false` in `.env` to opt out. The maintenance log is `data/updates/docker-cleanup.log`.
-
-System Status storage capacity is read live from the mounted data filesystem in 2.20.23. The `SYSTEM_HOST_DISK_*` values written by `start.sh` are only a filesystem identity/fallback snapshot and are no longer used as live free/used values. This prevents stale disk percentages after Docker cleanup.
-
-## Intel N97 / Intel iGPU hardware acceleration (opt-in)
-
-Intel GPU discovery in the status page does not automatically mean FFmpeg is using Quick Sync/VAAPI. Live video is copied when possible and uses no GPU; go2rtc may otherwise normalize video using software encoding by default. For compatible Linux hosts with an Intel render node, 2.20.39 adds a safe, opt-in VAAPI route for go2rtc H.264 normalization.
-
-1. After updating, run `sudo sh ./scripts/intel-vaapi.sh --check` on the **camera server**, not the desktop client. This uses the pinned go2rtc Docker image and tests actual H.264 VAAPI encoding without privileged mode; it does not alter the installation.
-2. Only if that succeeds, run `sudo sh ./scripts/intel-vaapi.sh --enable`. It preserves `.env` permissions and configures only the render node. To apply the settings, run `sudo sh ./scripts/docker-compose.sh build updater`, then `sudo sh ./scripts/docker-compose.sh up -d --no-deps --force-recreate updater mediamtx backend`. This also activates the updated updater's Intel Compose support. It briefly interrupts active video streams; do so during a maintenance window. Existing recordings remain on disk.
-3. The go2rtc normalized video path now requests `#hardware=vaapi`. If stream startup times out with VAAPI, the orchestrator retries using software encoding once. For removal, run `sudo sh ./scripts/intel-vaapi.sh --disable`, then recreate updater, mediamtx and backend.
-
-Never enable VAAPI without the hardware test. The Intel iGPU shares system RAM, so dedicated VRAM figures are normally unavailable. GPU busy percentages are driver-dependent and 0% or unavailable do not prove whether hardware encoding is used. Archive compression remains software-based in this version.
-
-## Automatischer HTTPS-Fernzugriff ab 2.20.86
-
-Die neue Version aktiviert den ausgehenden Cloud-Zugang bei der Installation und migriert bisher deaktivierte Altinstallationen einmalig. Der lokale Administrator kann spaeter bewusst deaktivieren. Wenn der Systemstatus eine nicht gefundene Cloud-API meldet, bitte Backend und Frontend gemeinsam aktualisieren. Mehr in `UPDATE_NOTES_2.20.86.md`.
-
-## iPhone-WebApp-Zugang pro Installation (ab 2.20.87)
-
-In **Systemstatus → Sicherer HTTPS-Fernzugriff** zeigt der Kameraserver einen kopierbaren Link zur Cloud-Anmeldung mit seiner permanenten Installations-ID. Der Link enthaelt nur die UUID, keine Passwoerter oder Zugangstokens. Auf dem iPhone den Link in Safari oeffnen und unter **Teilen → Zum Home-Bildschirm** als Web-App speichern. Die private Plesk-PHP-Portalversion **3.0.3** muss separat auf `support.tmp-networks.de/cam` installiert sein; sie liefert das zur Installation passende Webmanifest. Login mit normalem Kamera-Benutzernamen und Passwort ist weiterhin erforderlich.
-
-## Reparatur: Frontend-Buildfehler von 2.20.87
-
-Beim fehlgeschlagenen Update 2.20.87 meldete Vite in `SystemStatusPage.jsx` eine nicht geschlossene JSX-Bedingung. Update `2.20.88` behebt diesen Fehler. Vor dem Einspielen über das Updatecenter sollte das CI-Build für das Release erfolgreich sein. Der automatische Rollback nach einem fehlerhaften Build sichert die vorherige Version. Siehe `UPDATE_NOTES_2.20.88.md`.
-
-## HTTPS-Cloud-Medienrelay (2.20.89 / Portal-PHP 3.0.5)
-
-Der Kamera-Agent sendet groessere HLS-Segmente ueber die geordneten `result-chunk`-POSTs. Das private Plesk-PHP-Portal 3.0.5 muss **vor dem Kamera-Update** ausgerollt werden. Es steuert Vorschaubildanforderungen nicht blockierend und mit maximal zwei aktiven Kamera-Vorschaubildern. Die bisherige ID-Registrierung und Anmeldung bleiben unveraendert. Details: `UPDATE_NOTES_2.20.89.md`.
-
-## HTTPS-Cloud-Aufnahme-Archiv (ab 2.20.90)
-
-Das private Plesk-PHP-Portal **3.0.7** ermoeglicht nach dem Kamera-Login das Lesen und Abspielen abgeschlossener Aufnahmebloecke. Die Cloud fordert ausschliesslich authentifizierte Aufnahme-Metadaten und vier Sekunden lange, fuer das iPhone optimierte H.264/AAC-Clips an; die Originalaufnahme bleibt unangetastet. Es wird keine Loesch-, Export- oder Verwaltungs-API fuer die Cloud freigeschaltet. Die Plesk-PHP-Datei bleibt ausserhalb des GitHub-Repositories. Siehe `UPDATE_NOTES_2.20.90.md`.
-
-## Cloud-Archiv-Wiedergabe Hotfix 2.20.91
-
-Bei ausgelasteten Kameraservern werden kurze Cloud-Aufnahmeclips jetzt geordnet gewartet und zeitlich begrenzt zwischengespeichert. Die privat separat zu installierende PHP-Portalversion 3.0.8 repariert das mobile Datumsfeld und liefert bessere Fehlermeldungen bei HLS-Problemen. Mehr in `UPDATE_NOTES_2.20.91.md`.
-
-## MP4-Download statt HLS in der privaten Cloud (2.20.92)
-
-Mit dem separat unter Plesk installierten PHP-Portal 3.0.9 koennen registrierte Benutzer kurze MP4-Aufnahmeausschnitte direkt herunterladen. Ein Download benoetigt keine vorherige Abfrage der Aufnahmeblockliste und versendet keine Zugangstokens in der URL. Aus Sicherheits- und Lastgruenden enthaelt jeder Download maximal 15 Sekunden Video bei reduzierter Qualitaet; vollstaendige Original-Exports werden weiterhin lokal durchgefuehrt. Siehe `UPDATE_NOTES_2.20.92.md`.
-
-## Cloud-Aufnahme-HLS auf Basis vorbereiteter Segmente (2.20.93)
-
-Der lokale Kameraserver stellt gespeicherte Aufnahmen ueber geschuetzte, 30 Sekunden lange HLS-VOD-Fenster bereit. FFmpeg erzeugt kleine Segmente einmalig; Wiederholungsabrufe werden aus einem begrenzten lokalen Cache bedient. Das private Plesk-PHP-Portal 3.1.0 wird separat ausgeliefert, benutzt nur das bestehende HTTPS-Agentenprotokoll und enthaelt keine Emojis. PHP 3.1.0 **zuerst**, dann Kamera 2.20.93 installieren. Details in `UPDATE_NOTES_2.20.93.md`.
-
-## Kritischer Fix fuer das HTTPS-HLS-Aufnahme-Archiv (2.20.94)
-
-Version 2.20.93 konnte die Archiv-HLS-Dateien nicht freigeben, weil eine JavaScript-`URL`-Variable ausserhalb ihres Geltungsbereichs verwendet wurde. Version 2.20.94 korrigiert die Proxy-Freigabe und ergaenzt Regressionstests. Die private PHP-Datei 3.1.0 bleibt unveraendert, bestehende Daten und Aufnahmen bleiben erhalten. Siehe `UPDATE_NOTES_2.20.94.md`.
-
-## Optionaler Live-Ton in der Cloud (ab 2.20.95)
-
-Die private PHP-WebApp 3.1.1 bietet im vergoesserten Livebild pro Kamera einen Textschalter zum bewussten Aktivieren des Audiokanals. Das schnelle standardmaessige Videovorschaubild bleibt stumm. Der Kameraserver startet einen separaten, authentifizierten HLS-Audiostream nur nach ausdruecklicher Anforderung; die Kamera muss eine funktionierende Audioquelle besitzen. iOS Safari kann einen zweiten Fingertipp zum Starten benoetigen. Weitere Informationen in `UPDATE_NOTES_2.20.95.md`.
-
-## Live-Ton Hotfix 2.20.96
-
-Die lokale Liveansicht und die private PHP-Cloud-WebApp 3.1.1 koennen den Audiokanal einer Kamera nun ueber eine dedizierte, geschuetzte `live-audio`-Sitzung aktivieren. Die normale, schnelle und stumme Kameravorschau bleibt unveraendert. Das Backend meldet einen Audiokanal erst nach Nachweis einer AAC-Spur in den erzeugten HLS-Dateien. Am iPhone kann wegen Safari-Autoplay-Regeln ein zweiter Fingertipp notwendig sein. Siehe `UPDATE_NOTES_2.20.96.md`.
-
-## Live-Kamerawechsel Hotfix 2.20.97
-
-Die lokale Liveansicht behaelt ihren einzigen persistenten Player beim Kamerawechsel. Der Media-Host ersetzt alte Videoknoten, anstatt weitere Streams darunter anzuhaengen. Die optionale `live-audio`-Funktion aus 2.20.96 bleibt erhalten, muss aber nach jedem Kamerawechsel erneut bewusst aktiviert werden. Die private Plesk-PHP-WebApp 3.1.1 ist unveraendert. Details: `UPDATE_NOTES_2.20.97.md`.
-
-## Live-Ton Hotfix 2.20.98
-
-Der optionale Audiokanal wird jetzt neben dem sichtbaren Livebild aufgebaut. Die Lautsprechertaste startet keinen High-Stream fuer den sichtbaren Player mehr. Ein eigener AAC-only-go2rtc-Mikrofonbroker wird ueber dessen ADTS-Endpunkt mit dem bereits normalisierten H.264-Videopfad in einem getrennten HLS-Ring kombiniert. Beim automatischen Profil wird zunaechst die stabile Vorschau geprueft und, wenn erforderlich, einmalig der Hauptstream fuer Audio versucht. Fehlt weiterhin AAC, bleibt das Livebild unveraendert. Aufnahmen behalten ihren urspruenglichen kombinierten A/V-Broker. Die private Plesk-PHP-WebApp 3.1.1 ist unveraendert. Siehe `UPDATE_NOTES_2.20.98.md`.
-
-## Live-Audio Codec-Pruefung 2.20.99
-
-Die Live-Audioanforderung nutzt jetzt genau einen synchronisierten H.264/AAC-Eingang aus demselben A/V-Broker, den auch die Aufnahme verwendet. Die bisherige fehleranfaellige Kombination aus separatem H.264-MPEG-TS und AAC-ADTS entfaellt fuer den Live-Ton. Die FFprobe-Segmentpruefung erkennt MPEG-TS-Audiostreams auch dann korrekt, wenn FFprobe denselben AAC-Codec zweimal meldet. So wird die Lautsprechertaste nicht mehr wegen dieses False-Negative abgeschaltet. Der tatsaechliche Codec muss weiterhin als AAC im HLS-TS-Segment nachweisbar sein. Videoplayer, go2rtc/FFmpeg-Pipeline und private Plesk-PHP-WebApp 3.1.1 sind unveraendert. Details in `UPDATE_NOTES_2.20.99.md`.
-
-
-## Installation, Sprachpflege und private Cloud (2.20.100)
-
-Version 2.20.100 ergänzt eine aktuelle deutsche Installationsanleitung, überarbeitet die englische Anleitung und prüft das React-Frontend in 24 Sprachen. Internationale Lizenzseiten zeigen ihre Bedienelemente in der gewählten Sprache. Die detaillierten juristischen Abschnitte bleiben Deutsch/Englisch und werden bei anderen Sprachen transparent als englische Fassung gekennzeichnet. Die Tests prüfen Schlüssel, Platzhalter, regionale Sprachcodes und den Arabisch-RTL-Modus.
-
-**Cloud-PHP wird separat verwaltet:** Die privat ausgelieferte Plesk-WebApp **3.1.2** mit Ein-Klick-Audio wird **nicht** in GitHub gespeichert. Kamera-Server 2.20.100 und Plesk-WebApp sind getrennte Installationen. Keine PHP-Quelldateien, MySQL-Zugangsdaten, Geräte-Schlüssel oder Aufnahmen ins Repository hochladen.
-
-Vor einem Update Daten/Backups extern sichern und Docker-/Backup-Speicher prüfen. Es gibt **keine garantierte automatische Aufbewahrungsbegrenzung** der alten `data/backups/update-*`-Sicherungen. Erst nach erfolgreicher Prüfung und externer Sicherung unnötige alte Rollback-Stände entfernen. Siehe [INSTALLATION_DE.md](docs/INSTALLATION_DE.md#7-speicherplatz-und-update-backups).
+**TMP Camera Surveillance Next** · TMP-SYSTEM-SERVICE GmbH
