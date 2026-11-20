@@ -6,7 +6,6 @@
 .gitignore
 CHANGELOG.md
 INSTALLATION.md
-INSTALLATION_DE.md
 LICENSE_AGREEMENT.md
 MANIFEST.txt
 README.md
@@ -326,6 +325,7 @@ docker-compose.https.yml
 docker-compose.yml
 docs/COMPATIBILITY.md
 docs/DEMO_MODE.md
+docs/INSTALLATION_DE.md
 docs/LICENSE_AGREEMENT.md
 docs/NETWORK_STREAMS.md
 docs/PRIVACY_AND_DATA_PROCESSING.md
