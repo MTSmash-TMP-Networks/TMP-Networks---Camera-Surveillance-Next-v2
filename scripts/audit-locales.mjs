@@ -37,7 +37,7 @@ assert.equal(normalizeLocale('zh-SG'), 'zh-CN');
 assert.equal(SUPPORTED_LANGUAGES.find((l) => l.code === 'ar')?.direction, 'rtl');
 
 const expectedVersion = readFileSync(path.join(root, 'VERSION'), 'utf8').trim();
-for (const p of ['README.md', 'INSTALLATION.md', 'INSTALLATION_DE.md', 'docs/TRANSLATIONS.md']) {
+for (const p of ['README.md', 'INSTALLATION.md', 'docs/INSTALLATION_DE.md', 'docs/TRANSLATIONS.md']) {
   const fullPath = path.join(root, p);
   assert.ok(existsSync(fullPath), `Missing documentation file ${p}`);
   const body = readFileSync(fullPath, 'utf8');
