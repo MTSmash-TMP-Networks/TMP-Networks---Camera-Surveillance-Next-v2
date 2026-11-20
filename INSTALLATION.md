@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next **2.20.100** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.100** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
 
 ## Before you start: disk and backups
 
