@@ -38,7 +38,7 @@ test('audio availability is based on verified AAC in completed HLS segments', ()
   assert.ok(!args.includes('-an'));
   const dual = buildLocalHlsRingArgs({
     sourceUri: 'http://mediamtx:1984/api/stream.ts?src=cam_video',
-    audioSourceUri: 'http://mediamtx:1984/api/stream.ts?src=cam_audio',
+    audioSourceUri: 'http://mediamtx:1984/api/stream.aac?src=cam_audio',
     outputDir: '/data/live/cam_audio',
     includeAudio: true,
   });
