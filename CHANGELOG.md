@@ -1,6 +1,6 @@
 ## 2.20.100 – Aktuelle Installationsanleitungen und Sprach-QA
 
-- Vollstaendige deutschsprachige INSTALLATION_DE.md mit Linux/Docker, Kamera-Setup, NAS, Audio, Cloud, Rollbacks und Speicherplatz-Diagnose.
+- Vollstaendige deutschsprachige docs/INSTALLATION_DE.md mit Linux/Docker, Kamera-Setup, NAS, Audio, Cloud, Rollbacks und Speicherplatz-Diagnose.
 - Englische INSTALLATION.md aktualisiert, veraltete Versionspfade entfernt und README-Einstieg verbessert.
 - Hinweise zum Disk-Full-Fehler: viele alte data/backups/update-* sind nicht dasselbe wie der Docker-Build-Cache; vor Bereinigung extern sichern.
 - Internationale Lizenzseiten-Bedienelemente fuer 22 Sprachen korrigiert: kein spaeterer englischer Override mehr.
