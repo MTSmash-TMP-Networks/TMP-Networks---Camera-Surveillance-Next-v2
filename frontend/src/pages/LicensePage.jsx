@@ -7,6 +7,8 @@ import { getLicenseSections } from '../i18n/licenseContent.js';
 
 export function LicensePage() {
   const { locale, t } = useI18n();
+  // Detailed legal paragraphs currently exist in DE/EN; other locales use
+  // localized UI labels and an explicit notice about the English fallback.
   const legalLocale = locale === 'de' ? 'de' : 'en';
   const sections = getLicenseSections(legalLocale);
   const version = typeof __APP_VERSION__ === 'string' && __APP_VERSION__ ? __APP_VERSION__ : '–';
@@ -45,7 +47,7 @@ export function LicensePage() {
         </div>
       </section>
 
-      {locale !== 'de' && locale !== 'en' && <p className="legal-fallback-note">{t('language.fallbackNotice')}</p>}
+      {locale !== 'de' && locale !== 'en' && <p className="legal-fallback-note">{t('license.englishSectionsNotice')}</p>}
     </main>
   </div>;
 }
