@@ -1,8 +1,12 @@
-# TMP Camera Surveillance Next 2.20.96
+# TMP Camera Surveillance Next 2.20.100
 
 TMP Camera Surveillance Next is a self-hosted camera surveillance and recording platform designed for Docker environments. It supports ONVIF discovery, direct network streams, live view, PTZ, recording, motion events, notifications, user management, diagnostics and integrated updates.
 
 ## Quick start
+
+**Deutsch:** [Vollständige Installationsanleitung](INSTALLATION_DE.md) · **English:** [Installation and maintenance guide](INSTALLATION.md). For language coverage and QA, see [Translations / Sprachübersicht](docs/TRANSLATIONS.md).
+
+**Storage planning:** Reserve sufficient room for the OS, Docker images, update backups and recording spool. A planning figure is **40 GB or more for the OS/Docker workspace** plus separate recording capacity, with **6–8 GB free** before full Docker rebuilds; the actual requirement depends on the installation. Numerous update snapshots under `data/backups/` can fill a 15-GB root filesystem, even after Docker cache cleanup.
 
 1. Extract the complete ZIP into a permanent local directory.
 2. Open a terminal in the extracted application directory.
@@ -88,8 +92,10 @@ They contain the installation identity, credentials, configuration, database, lo
 
 ## Documentation
 
-- `INSTALLATION.md` - complete installation and maintenance guide
-- `UPDATE_NOTES_2.20.43.md` - current release notes
+- [INSTALLATION_DE.md](INSTALLATION_DE.md) - vollständige deutschsprachige Installationsanleitung
+- [INSTALLATION.md](INSTALLATION.md) - English installation and maintenance guide
+- [docs/TRANSLATIONS.md](docs/TRANSLATIONS.md) - 24 languages, RTL, fallbacks and localization tests
+- `UPDATE_NOTES_2.20.100.md` - current release notes
 - `docs/UI_FOUNDATION.md` - frontend shell architecture and CoreUI attribution
 - `docs/COMPATIBILITY.md` - platform and browser compatibility
 - `docs/NETWORK_STREAMS.md` - direct network-stream sources
@@ -183,3 +189,12 @@ Der optionale Audiokanal wird jetzt neben dem sichtbaren Livebild aufgebaut. Die
 ## Live-Audio Codec-Pruefung 2.20.99
 
 Die Live-Audioanforderung nutzt jetzt genau einen synchronisierten H.264/AAC-Eingang aus demselben A/V-Broker, den auch die Aufnahme verwendet. Die bisherige fehleranfaellige Kombination aus separatem H.264-MPEG-TS und AAC-ADTS entfaellt fuer den Live-Ton. Die FFprobe-Segmentpruefung erkennt MPEG-TS-Audiostreams auch dann korrekt, wenn FFprobe denselben AAC-Codec zweimal meldet. So wird die Lautsprechertaste nicht mehr wegen dieses False-Negative abgeschaltet. Der tatsaechliche Codec muss weiterhin als AAC im HLS-TS-Segment nachweisbar sein. Videoplayer, go2rtc/FFmpeg-Pipeline und private Plesk-PHP-WebApp 3.1.1 sind unveraendert. Details in `UPDATE_NOTES_2.20.99.md`.
+
+
+## Installation, Sprachpflege und private Cloud (2.20.100)
+
+Version 2.20.100 ergänzt eine aktuelle deutsche Installationsanleitung, überarbeitet die englische Anleitung und prüft das React-Frontend in 24 Sprachen. Internationale Lizenzseiten zeigen ihre Bedienelemente in der gewählten Sprache. Die detaillierten juristischen Abschnitte bleiben Deutsch/Englisch und werden bei anderen Sprachen transparent als englische Fassung gekennzeichnet. Die Tests prüfen Schlüssel, Platzhalter, regionale Sprachcodes und den Arabisch-RTL-Modus.
+
+**Cloud-PHP wird separat verwaltet:** Die privat ausgelieferte Plesk-WebApp **3.1.2** mit Ein-Klick-Audio wird **nicht** in GitHub gespeichert. Kamera-Server 2.20.100 und Plesk-WebApp sind getrennte Installationen. Keine PHP-Quelldateien, MySQL-Zugangsdaten, Geräte-Schlüssel oder Aufnahmen ins Repository hochladen.
+
+Vor einem Update Daten/Backups extern sichern und Docker-/Backup-Speicher prüfen. Es gibt **keine garantierte automatische Aufbewahrungsbegrenzung** der alten `data/backups/update-*`-Sicherungen. Erst nach erfolgreicher Prüfung und externer Sicherung unnötige alte Rollback-Stände entfernen. Siehe [INSTALLATION_DE.md](INSTALLATION_DE.md#7-speicherplatz-und-update-backups).
