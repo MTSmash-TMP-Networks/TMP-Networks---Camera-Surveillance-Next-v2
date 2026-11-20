@@ -1,3 +1,11 @@
+## 2.20.101 – Bereinigtes Projekt-README und einheitliche Versionshistorie
+
+- README vollständig auf Deutsch überarbeitet: zentriertes originales Produktlogo, Produktübersicht, Funktionen, Schnellstart, Installationshinweise, Betrieb, Sicherheit und Dokumentation.
+- Alle 60 älteren `UPDATE_NOTES_*.md`-Einzeldateien aus dem aktuellen GitHub-Dateibestand entfernt; historische Informationen bleiben zentral in dieser `CHANGELOG.md` verfügbar.
+- Das Updatepaket verweist über `changelogFile` und `changelog` auf `CHANGELOG.md`, die von aktuellen Updateprüfern wie bisher als geschützte Änderungsdatei geprüft wird.
+- SHA-256-/Manifest-Index und Version synchronisiert; Kompatibilitätsprüfung und Regressionstests an die konsolidierte Änderungsdatei angepasst.
+- Keine Änderungen an Live-/AAC-Audio, Kameraaufnahmen, Datenbank, Benutzerkonten oder separater privater Plesk-PHP-WebApp 3.1.2.
+
 ## 2.20.100 – Aktuelle Installationsanleitungen und Sprach-QA
 
 - Vollstaendige deutschsprachige docs/INSTALLATION_DE.md mit Linux/Docker, Kamera-Setup, NAS, Audio, Cloud, Rollbacks und Speicherplatz-Diagnose.
