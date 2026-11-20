@@ -175,3 +175,7 @@ Die lokale Liveansicht und die private PHP-Cloud-WebApp 3.1.1 koennen den Audiok
 ## Live-Kamerawechsel Hotfix 2.20.97
 
 Die lokale Liveansicht behaelt ihren einzigen persistenten Player beim Kamerawechsel. Der Media-Host ersetzt alte Videoknoten, anstatt weitere Streams darunter anzuhaengen. Die optionale `live-audio`-Funktion aus 2.20.96 bleibt erhalten, muss aber nach jedem Kamerawechsel erneut bewusst aktiviert werden. Die private Plesk-PHP-WebApp 3.1.1 ist unveraendert. Details: `UPDATE_NOTES_2.20.97.md`.
+
+## Live-Ton Hotfix 2.20.98
+
+Der optionale Audiokanal wird jetzt neben dem sichtbaren Livebild aufgebaut. Die Lautsprechertaste startet keinen High-Stream fuer den sichtbaren Player mehr. Ein eigener AAC-only-go2rtc-Mikrofonbroker wird mit dem bereits normalisierten H.264-Videopfad in einem getrennten HLS-Ring kombiniert. Beim automatischen Profil wird zunaechst die stabile Vorschau geprueft und, wenn erforderlich, einmalig der Hauptstream fuer Audio versucht. Fehlt weiterhin AAC, bleibt das Livebild unveraendert. Aufnahmen behalten ihren urspruenglichen kombinierten A/V-Broker. Die private Plesk-PHP-WebApp 3.1.1 ist unveraendert. Siehe `UPDATE_NOTES_2.20.98.md`.

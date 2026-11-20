@@ -1,17 +1,18 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.97",
+  "version": "2.20.98",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.97",
-  "summary": "Live-Kamerawechsel korrigiert: nur ein sichtbarer Stream, Audiozustand kameragebunden.",
-  "createdAt": "2026-11-20T00:40:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.97.md",
+  "title": "TMP Camera Surveillance Next 2.20.98",
+  "summary": "Live-Ton repariert: AAC-Mikrofon getrennt verbinden, ohne das laufende Livebild auf High umzuschalten.",
+  "createdAt": "2026-11-20T00:00:00+01:00",
+  "changelogFile": "UPDATE_NOTES_2.20.98.md",
   "changes": [
-    "Restore a persistent single Live player when switching cameras",
-    "Replace media host video node instead of appending another stream",
-    "Scope opt-in audio and mute state to the selected camera",
-    "Strengthen regression tests for camera switching and single video host",
-    "Leave private PHP 3.1.1, cloud agent, backend media, database and recordings untouched"
+    "Use an independent hidden audio player instead of swapping the visible live camera video",
+    "Start an AAC-only go2rtc microphone broker and mux it with the existing H264 video producer",
+    "Preserve the combined video+AAC broker for recordings and full-video consumers",
+    "Probe later HLS segments for verified AAC before claiming sound is available",
+    "Use working auto preview for audio first and retry the main stream once when necessary",
+    "Preserve user and camera data, kiosk, NAS recordings, and the private PHP cloud portal"
   ],
   "preserve": [
     ".env",
@@ -32,14 +33,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.97.md",
+  "changelog": "UPDATE_NOTES_2.20.98.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.97",
-  "packageId": "tmp-camera-surveillance-next-2.20.97",
+  "name": "TMP Camera Surveillance Next v2.20.98",
+  "packageId": "tmp-camera-surveillance-next-2.20.98",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Fix duplicate live video on camera switch while preserving AAC audio opt-in",
+  "description": "Fix opt-in HLS camera audio startup without interrupting live video",
   "minVersion": "2.20.32",
-  "releaseNotes": "Upgrade camera server to 2.20.97; private PHP 3.1.1 stays unchanged. After updating, switch cameras repeatedly and verify that only one live video is shown. Activate sound again per camera when needed. Live browser verification remains required.",
-  "fileCount": 562
+  "releaseNotes": "Upgrade camera server to 2.20.98; private Plesk PHP 3.1.1 does not change. Speaker tap prepares sound without affecting the image. When AAC is verified, tap again to unmute. Cameras without actual audio remain video-only. Production test required.",
+  "fileCount": 563
 }

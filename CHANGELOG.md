@@ -1,3 +1,13 @@
+## 2.20.98 – Live-Ton ohne Ausfall des Kamerabildes
+
+- Der Audiokanal wird in einem unsichtbaren Player aufgebaut, ohne die laufende Videovorschau auf High umzuschalten.
+- AAC-Audio verwendet einen eigenen go2rtc-Mikrofonbroker, H.264 kommt aus dem vorhandenen normalisierten Videobroker. Beim Aktivieren des Tons startet kein zusaetzlicher Videoencoder.
+- Der separate HLS-Ring kombiniert die Video- und Audiospur aus zwei Quellen und verifiziert auch spaeter eintreffende AAC-Segmente.
+- Bei der automatischen Qualitaet wird zuerst die funktionierende Vorschauquelle und bei fehlendem Audiotrack einmalig der Hauptstream versucht, ohne das sichtbare Bild zu unterbrechen.
+- Die bisherigen kombinierten Video/AAC-Broker fuer Aufnahmen und Mainstream bleiben erhalten; Audio-Quellen und Pool-Referenzen sind getrennt.
+- Fehlt eine nutzbare Tonspur, erscheint ein Hinweis statt eines Kamera-Neustarts. Audio wird beim Kamerawechsel sofort freigegeben.
+- Private Plesk-PHP-WebApp 3.1.1, Archiv, Benutzer-/Kameradaten und Kiosk unveraendert.
+
 ## 2.20.97 – Kamerawechsel im Livebild repariert
 
 - Ruecknahme des versehentlich eingefuehrten React-Player-Remounts bei Kamerawechseln.
