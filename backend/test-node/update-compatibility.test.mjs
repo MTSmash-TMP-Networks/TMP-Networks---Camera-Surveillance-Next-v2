@@ -31,3 +31,15 @@ test('release contract remains pinned to v2.20.32 and preserves runtime state', 
   assert.equal(manifest.product, 'tmp-camera-surveillance-next');
   assert.equal(manifest.allowReinstall, true);
 });
+
+test('the update contract uses one supported changelog instead of historical note files', () => {
+  const root = resolve(import.meta.dirname, '../..');
+  const manifest = JSON.parse(readFileSync(resolve(root, 'UPDATE_PACKAGE.json'), 'utf8'));
+  assert.equal(manifest.changelogFile, 'CHANGELOG.md');
+  assert.equal(manifest.changelog, 'CHANGELOG.md');
+  const lines = readFileSync(resolve(root, 'MANIFEST.txt'), 'utf8').trim().split(/\r?\n/);
+  assert.ok(lines.includes('CHANGELOG.md'));
+  assert.equal(lines.some((item) => /^UPDATE_NOTES_\d+\.\d+\.\d+\.md$/.test(item)), false);
+  const content = readFileSync(resolve(root, 'CHANGELOG.md'), 'utf8');
+  assert.ok(content.includes(manifest.version), 'changelog must mention the current release');
+});
