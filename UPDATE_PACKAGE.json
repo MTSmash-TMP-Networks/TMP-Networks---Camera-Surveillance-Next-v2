@@ -1,19 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.100",
+  "version": "2.20.101",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.100",
-  "summary": "Aktuelle DE/EN-Installationsanleitungen, 24-Sprachen-QA und korrigierte internationale Lizenzseiten.",
-  "createdAt": "2026-11-20T11:30:00+01:00",
-  "changelogFile": "UPDATE_NOTES_2.20.100.md",
+  "title": "TMP Camera Surveillance Next 2.20.101",
+  "summary": "Einheitliches deutsches README mit Original-Logo; 60 alte Update-Notes entfernt und Versionshistorie in CHANGELOG.md gebündelt.",
+  "createdAt": "2026-11-20T11:06:37.666Z",
+  "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Add current German install guide for Linux, Docker, ONVIF, recording storage, Plesk cloud and recovery",
-    "Refresh English installation guide and README; document disk sizing and rollback snapshot management",
-    "Fix license-page UI translations for 22 international locales",
-    "Disclose English-only legal detail paragraphs in each non-DE/EN locale",
-    "Correct regional Chinese aliases for Hong Kong/Macau and Singapore",
-    "Add 24-locale, placeholder, RTL, link and production frontend build checks",
-    "Preserve working AAC live video, recording pipeline, camera data and private PHP 3.1.2"
+    "Redesign README in one language (German) with the existing product logo and clear installation instructions",
+    "Remove all 60 UPDATE_NOTES_* files from the current repository tree",
+    "Retain complete release history inside CHANGELOG.md and point both manifest changelog fields at that file",
+    "Update the v2.20.32-compatible release guard to validate CHANGELOG.md and disallow the legacy standalone notes",
+    "Keep local recordings, live AAC video, users and private Plesk PHP Cloud 3.1.2 unchanged"
   ],
   "preserve": [
     ".env",
@@ -34,14 +32,14 @@
     ]
   },
   "allowReinstall": true,
-  "changelog": "UPDATE_NOTES_2.20.100.md",
+  "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.100",
-  "packageId": "tmp-camera-surveillance-next-2.20.100",
+  "name": "TMP Camera Surveillance Next v2.20.101",
+  "packageId": "tmp-camera-surveillance-next-2.20.101",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Documentation and locale patch: correct native license UI in 22 languages and publish current installation guides.",
+  "description": "Professional German GitHub README, existing product logo and consolidated changelog release metadata.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Upgrade with the verified Update Center. New German/English installation guides, safe disk and backup management, 24-language validation and fixed license-page translations. Audio/video backend and the separately installed private Plesk PHP 3.1.2 remain unchanged.",
-  "fileCount": 572
+  "releaseNotes": "Version 2.20.101: Das README wurde durchgehend auf Deutsch neu gestaltet und das originale Produktlogo eingebunden. 60 alte Einzel-Update-Notes wurden entfernt; die Versionshistorie befindet sich ausschließlich in CHANGELOG.md. Die Update-Kompatibilität wird weiterhin über SHA-256 und das unveränderte Release-Schema geprüft. Audio, Video, Aufnahmen und private PHP-WebApp bleiben unverändert.",
+  "fileCount": 512
 }
