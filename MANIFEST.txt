@@ -1,13 +1,16 @@
 .env.example
 .github/workflows/hardened-go2rtc.yml
 .github/workflows/live-audio-regression.yml
+.github/workflows/localization-documentation.yml
 .github/workflows/upgrade-compatibility.yml
 .gitignore
 CHANGELOG.md
 INSTALLATION.md
+INSTALLATION_DE.md
 LICENSE_AGREEMENT.md
 MANIFEST.txt
 README.md
+UPDATE_NOTES_2.20.100.md
 UPDATE_NOTES_2.20.41.md
 UPDATE_NOTES_2.20.42.md
 UPDATE_NOTES_2.20.43.md
@@ -327,6 +330,7 @@ docs/LICENSE_AGREEMENT.md
 docs/NETWORK_STREAMS.md
 docs/PRIVACY_AND_DATA_PROCESSING.md
 docs/THIRD_PARTY_NOTICES.md
+docs/TRANSLATIONS.md
 docs/UI_FOUNDATION.md
 docs/UPGRADE_COMPATIBILITY.md
 docs/third-party/CoreUI-MIT.txt
@@ -413,6 +417,8 @@ frontend/src/i18n/legacyEnglishFallbacks.js
 frontend/src/i18n/legacyPhrases.js
 frontend/src/i18n/legacyStatusTranslations.js
 frontend/src/i18n/licenseContent.js
+frontend/src/i18n/licenseUiIntl.js
+frontend/src/i18n/licenseUiIntl.test.mjs
 frontend/src/i18n/messages.js
 frontend/src/i18n/mobileMessages.js
 frontend/src/i18n/networkStreamMessages.js
@@ -512,6 +518,7 @@ mediamtx/Dockerfile
 mediamtx/go2rtc.yaml
 mediamtx/patches/go2rtc-http-streams-races.patch
 mediamtx/tests/tmp_streams_race_test.go
+scripts/audit-locales.mjs
 scripts/auto-network-env.sh
 scripts/backup.sh
 scripts/camera-encoder-diagnostics.sh
