@@ -31,7 +31,7 @@ export const SUPPORTED_LANGUAGES = Object.freeze([
 
 const aliases = Object.freeze({
   no: 'nb', 'pt': 'pt-BR', 'pt-br': 'pt-BR', 'zh': 'zh-CN', 'zh-hans': 'zh-CN',
-  'zh-hant': 'zh-TW', 'zh-cn': 'zh-CN', 'zh-tw': 'zh-TW', 'en-us': 'en', 'en-gb': 'en',
+  'zh-hant': 'zh-TW', 'zh-cn': 'zh-CN', 'zh-tw': 'zh-TW', 'zh-hk': 'zh-TW', 'zh-mo': 'zh-TW', 'zh-sg': 'zh-CN', 'en-us': 'en', 'en-gb': 'en',
   'de-de': 'de', 'de-at': 'de', 'de-ch': 'de',
 });
 
