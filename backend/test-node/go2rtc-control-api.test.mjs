@@ -17,6 +17,10 @@ test('go2rtc MPEG-TS URL uses the same cached base_path as the Control API', asy
       client.streamTsUrl('cam video'),
       'http://go2rtc:1984/media/go2rtc/api/stream.ts?src=cam+video',
     );
+    assert.equal(
+      client.streamAacUrl('cam audio'),
+      'http://go2rtc:1984/media/go2rtc/api/stream.aac?src=cam+audio',
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }
