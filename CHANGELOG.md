@@ -1,3 +1,13 @@
+## 2.20.104 – Export-M3U8: Wiedergabe über alle Aufnahmeblöcke
+
+- Behebung des Behördenexport-Fehlers, bei dem M3U8-Player nach dem ersten Aufnahmeblock stehen bleiben konnten.
+- Die FFmpeg-Aufnahme arbeitet mit -reset_timestamps 1, weshalb jeder MPEG-TS-Block eine eigene Zeitstempelfolge besitzt. In export.m3u8 wird vor jedem weiteren Block nun der laut HLS-Spezifikation erforderliche Marker #EXT-X-DISCONTINUITY gesetzt.
+- Beide Exportwege korrigiert: historischer ZIP-Erzeuger und neuer speicherschonender ZIP64-Streaming-Export.
+- Unveränderte Standardlogik für andere VOD-Playlist-Nutzer ohne unabhängige Zeitstempel.
+- Der im Behörden-ZIP enthaltene README-Hinweis verlangt nun vollständiges Entpacken mit unveränderter segments/-Ordnerstruktur vor dem Abspielen.
+- Neuer Regressionstest prüft vier Blöcke, Sitzungssprünge, Lücken und – sofern FFmpeg/FFprobe installiert sind – das Decodieren sämtlicher Segmente einer real erzeugten MPEG-TS-VOD-Playlist.
+- Die Originalaufnahmeblöcke und ihre SHA-256-/CRC32-Prüfsummen, Livebild, Ton, Kamera- und Benutzerdaten sowie die private PHP-Cloud bleiben unverändert.
+
 ## 2.20.103 – Operator-Navigation beginnt oben
 
 - Seitenleiste fuer Operator- und Administratoranmeldungen oben ausgerichtet: Ueberwachung und sichtbare Links stehen direkt unter dem Produktlogo, auch wenn der Administrator-Abschnitt fuer Operatoren nicht angezeigt wird.
