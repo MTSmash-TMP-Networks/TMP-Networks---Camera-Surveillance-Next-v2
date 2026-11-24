@@ -231,7 +231,8 @@ const evidenceExportSchema = z.object({
   cameraId: z.string().min(1).max(160),
   date: date,
   startTime: time,
-  endTime: time,
+  // 24:00 represents the exclusive end of a complete local calendar day.
+  endTime: z.union([time, z.literal('24:00')]),
   timezone: timezone.default('Europe/Berlin'),
   caseReference: z.string().trim().max(180).optional().default(''),
   notes: z.string().trim().max(2000).optional().default(''),
