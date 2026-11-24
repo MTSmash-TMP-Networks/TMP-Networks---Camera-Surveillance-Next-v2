@@ -32,6 +32,8 @@ jobs:
           node --check backend/src/routes/recordings.js
       - name: Verify native streaming evidence ZIP and large-day download contract
         run: node --test backend/test-node/evidence-streaming-zip.test.mjs
+      - name: Verify multi-segment evidence.m3u8 playback with reset MPEG-TS timestamps
+        run: node --test backend/test-node/evidence-hls-segment-continuity.test.mjs
       - name: Verify recording command stays stable
         run: npm test --prefix backend -- test/recording-command.test.js
       - name: Verify one visible Live player when toggling audio
