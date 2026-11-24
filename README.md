@@ -28,7 +28,7 @@
 
 Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
 
-**Aktuelle Version:** `2.20.103` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+**Aktuelle Version:** `2.20.104` · **Installationsart:** Docker · **Oberflächensprachen:** 24
 
 ## Funktionen
 
@@ -192,6 +192,6 @@ Die Nutzung unterliegt den mit der Software bereitgestellten **[Lizenzbedingunge
 **TMP Camera Surveillance Next** · TMP-SYSTEM-SERVICE GmbH
 
 
-### Behördenexport für ganze Tage (2.20.103)
+### Behördenexport für ganze Tage (2.20.104)
 
 Der Behördenexport kann jetzt einen kompletten Kalendertag über **Ganzer Tag (00:00–24:00)** auswählen. Große ZIP-/ZIP64-Archive werden direkt an den Browser übertragen, statt zunächst als mehrgigabytegroße Kopie auf dem Kameraserver gespeichert und danach als JavaScript-Blob geladen zu werden. Die ZIP-Datei enthält weiterhin `manifest.json`, `README.txt`, `export.m3u8` und die Original-Aufnahmeblöcke mit SHA-256- und CRC32-Prüfsummen. Für den Download dient eine kurzlebige, einmalige und rollenbeschränkte Freigabe. Die eigentlichen Aufnahmen werden nicht verändert.
