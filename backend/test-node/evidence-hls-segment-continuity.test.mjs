@@ -69,6 +69,9 @@ test('FFmpeg can decode all original reset-timestamp blocks from the exported VO
   const ffmpeg = spawnSync('ffmpeg', ['-version'], { encoding: 'utf8' });
   const ffprobe = spawnSync('ffprobe', ['-version'], { encoding: 'utf8' });
   if (ffmpeg.status !== 0 || ffprobe.status !== 0) {
+    if (process.env.REQUIRE_FFMPEG === '1') {
+      assert.fail('FFmpeg and FFprobe are mandatory for this CI regression test');
+    }
     t.skip('FFmpeg and FFprobe are not both installed in this test environment');
     return;
   }
