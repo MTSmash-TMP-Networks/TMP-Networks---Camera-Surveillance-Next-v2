@@ -1,3 +1,11 @@
+## 2.20.103 – Operator-Navigation beginnt oben
+
+- Seitenleiste fuer Operator- und Administratoranmeldungen oben ausgerichtet: Ueberwachung und sichtbare Links stehen direkt unter dem Produktlogo, auch wenn der Administrator-Abschnitt fuer Operatoren nicht angezeigt wird.
+- Vollhoehen-Grid der Desktop-Hauptnavigation korrigiert: keine grossen vertikalen Abstaende zwischen den wenigen Operator-Menuepunkten.
+- Benutzerrolle und Abmelden bleiben am unteren Rand, sofern Platz vorhanden ist; bei vielen Menuepunkten bleibt die Navigation separat scrollbar.
+- Mobile horizontale Navigation, eingeklappter Sidebar-Modus, Benutzerberechtigungen und alle Kamerafunktionen bleiben unveraendert.
+- Regressionstest und CI-Schutz fuer die Navigation erweitert.
+
 ## 2.20.102 – Ganztägiger Behördenexport ohne temporäres Riesen-ZIP
 
 - Behördenexport wurde für große Tagesarchive auf direktes ZIP-/ZIP64-Streaming umgestellt. Der Backend-Server legt nicht mehr das komplette Archiv als Zwischenkopie in data/recordings/_exports ab.
