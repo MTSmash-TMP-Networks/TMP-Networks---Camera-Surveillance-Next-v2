@@ -109,12 +109,17 @@ class RecordingEvidenceExportService {
 
   normalizeWindow(input) {
     const timezone = input.timezone || 'Europe/Berlin';
+    // 24:00 is the exclusive next-day midnight, including both DST transition
+    // days (23h in spring, 25h in autumn). 23:59 would silently omit a minute.
     const startDate = localDateTimeToDate(input.date, input.startTime, timezone);
-    const endDate = localDateTimeToDate(input.date, input.endTime, timezone);
+    const endDate = input.endTime === '24:00'
+      ? dayWindow(input.date, timezone).endDate
+      : localDateTimeToDate(input.date, input.endTime, timezone);
     if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) throw new AppError(400, 'EXPORT_INVALID_START', 'Startzeit ist ungültig');
     if (!(endDate instanceof Date) || Number.isNaN(endDate.getTime())) throw new AppError(400, 'EXPORT_INVALID_END', 'Endzeit ist ungültig');
     if (endDate <= startDate) throw new AppError(400, 'EXPORT_INVALID_RANGE', 'Die Endzeit muss nach der Startzeit liegen. Tagesübergreifende Exporte bitte als getrennte Exporte erstellen.');
-    const maxHours = Number(input.maxHours || 24);
+    // A civil day may contain 25 hours when clocks move backwards.
+    const maxHours = Number(input.maxHours || (input.endTime === '24:00' ? 26 : 24));
     if (endDate.getTime() - startDate.getTime() > maxHours * 3600 * 1000) throw new AppError(400, 'EXPORT_RANGE_TOO_LARGE', `Der Export darf maximal ${maxHours} Stunden umfassen.`);
     return { timezone, startDate, endDate, startIso: startDate.toISOString(), endIso: endDate.toISOString() };
   }
