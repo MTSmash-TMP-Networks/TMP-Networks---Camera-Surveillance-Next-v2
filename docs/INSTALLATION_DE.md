@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next – Installation und Betrieb (Deutsch)
 
-**Stand:** 2.20.102 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
+**Stand:** 2.20.103 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
 
 Diese Anleitung richtet sich an neue Installationen und Administratoren bestehender Installationen. Die [englische Detailanleitung](../INSTALLATION.md), [Update-Kompatibilität](UPGRADE_COMPATIBILITY.md), [Plattformhinweise](COMPATIBILITY.md) und [Datenschutzhinweise](PRIVACY_AND_DATA_PROCESSING.md) ergänzen sie. Die private Plesk-PHP-Cloud-WebApp wird **nicht** aus diesem GitHub-Repository installiert.
 
@@ -234,4 +234,4 @@ Die Ausgabe kann sensible Infrastrukturinformationen enthalten. Zugangstokens, R
 - Betriebssystem, Docker, Browser und Software aktuell halten.
 - Datenschutz- und Einwilligungsanforderungen der jeweiligen Einsatzorte beachten.
 
-**Hinweis:** Technische Angaben spiegeln die Version 2.20.102 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
+**Hinweis:** Technische Angaben spiegeln die Version 2.20.103 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
