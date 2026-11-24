@@ -98,13 +98,15 @@ recordingsRouter.get('/export/download/:ticket', asyncHandler(async (req, res) =
   req.once('aborted', abort);
   res.once('close', () => { if (!res.writableEnded) abort(); });
   res.setTimeout(10 * 60_000, abort);
+  const filename = 'TMP_Behoerdenexport_' + ticket.input.date + '_' +
+    ticket.input.startTime.replace(':', '') + '-' + ticket.input.endTime.replace(':', '') + '.zip';
   res.set({
     'Cache-Control': 'private, no-store, no-transform',
     'Referrer-Policy': 'no-referrer',
     'X-Content-Type-Options': 'nosniff',
     'X-Accel-Buffering': 'no',
     'Content-Type': 'application/zip',
-    'Content-Disposition': 'attachment; filename="tmp-camera-behoerdenexport.zip"',
+    'Content-Disposition': 'attachment; filename="' + filename + '"',
   });
   try {
     // Sending headers first avoids a reverse-proxy idle timeout while the
