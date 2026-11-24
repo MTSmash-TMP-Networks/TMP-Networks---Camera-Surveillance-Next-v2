@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next **2.20.105** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.106** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
 
 ## Before you start: disk and backups
 
@@ -575,7 +575,7 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.105 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.106 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
 
 
 ### Kamera-Encoderdiagnose (ab v2.20.43)
@@ -590,3 +590,7 @@ Neue Reolink-Modelle koennen ONVIF auf TCP 8000 bereitstellen. Die automatische 
 ### Evidence export (2.20.105)
 
 The ZIP contains `export.mp4`, `manifest.json` and `README.txt`. Extract it and open the MP4 directly. The server prepares the complete seekable video before downloading. Ensure sufficient recording-volume space for the temporary MP4. If the camera recording format changes within the selected period, export shorter compatible ranges. Original recordings are preserved.
+
+### Archive playback (2.20.106)
+
+The day view opens one chronological HLS player for the selected camera and day. The additional wall-clock slider permits forward and backward seeking across finalized recordings; gaps are shown and skipped. Reopen playback to include newly finalized blocks. A directly opened recording shows its complete finalized range. No MP4 preparation is required for playback.

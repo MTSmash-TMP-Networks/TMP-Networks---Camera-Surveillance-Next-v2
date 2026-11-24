@@ -1,3 +1,11 @@
+## 2.20.106 – Durchgehende Aufnahmezeitachse im Player
+
+- Tagesübersicht: ein gemeinsamer HLS-VOD-Player für die abgeschlossenen Aufnahmeblöcke des ausgewählten Kalendertags und der gewählten Kamera, auch über mehrere Aufnahmesitzungen hinweg.
+- Zusätzlicher Uhrzeitregler, markierte Aufnahmebereiche und Lücken, Sprünge vorwärts/rückwärts innerhalb eines Blocks sowie zu früheren und späteren Sitzungen. Sprungtasten für 10 und 60 Sekunden; Tastaturbedienung sekundengenau.
+- Einzelaufnahmen nutzen ihren vollständigen abgeschlossenen Zeitraum, auch in der lokalen mobilen Oberfläche. Alte monolithische Dateien behalten die native Wiedergabe.
+- Zeitstempel-Discontinuities an den unabhängigen TS-Blockgrenzen, unveränderliche rollen-/benutzergebundene HLS-Snapshots, begrenzte Manifestverwaltung und Freigabe beim Schließen. Keine neue Videokodierung oder temporäre MP4 für die Wiedergabe.
+- Regressionstests für Tagesgrenzen, 25-Stunden-Tage, überlappende Blöcke, Aufnahmelücken, Zugriffsschutz und echtes FFmpeg-HLS-Decoding. Der MP4-Behördenexport bleibt unverändert.
+
 ## 2.20.105 – Behördenexport als fertige MP4
 
 - ZIP enthält nur export.mp4, manifest.json und README.txt; keine TS-Dateien und keine M3U8-Playlist mehr.

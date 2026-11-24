@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.105",
+  "version": "2.20.106",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.105",
-  "summary": "Behördenexport: eine fertige MP4 statt TS-Blöcken und M3U8 im ZIP.",
-  "createdAt": "2026-11-24T17:45:00+01:00",
+  "title": "TMP Camera Surveillance Next 2.20.106",
+  "summary": "Durchgehender Aufnahmeplayer mit Zeitachse des ganzen Tages und sekundengenauen Sprüngen.",
+  "createdAt": "2026-11-24T18:00:00+01:00",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "One seekable MP4 in the ZIP with checksums and source timeline",
-    "Background preparation with scoped one-time download ticket and ZIP64 streaming",
-    "Preserve original recording files and camera data",
-    "Real FFmpeg seek and ZIP integrity regression tests"
+    "Whole-day authenticated HLS VOD snapshots with timestamp discontinuities",
+    "Wall-clock slider, visible gaps and precise intra-block and cross-session seeks",
+    "Single recording and local mobile playback integration",
+    "Regression tests for time mapping, session ownership and real HLS decoding"
   ],
   "preserve": [
     ".env",
@@ -33,12 +33,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.105",
-  "packageId": "tmp-camera-surveillance-next-2.20.105",
+  "name": "TMP Camera Surveillance Next v2.20.106",
+  "packageId": "tmp-camera-surveillance-next-2.20.106",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Create a seekable MP4 from compatible recording blocks and stream a ZIP with the MP4 and its verification manifest.",
+  "description": "Unified authenticated HLS recording playback with a wall-clock timeline, cross-session seeking and visible gaps.",
   "minVersion": "2.20.32",
-  "releaseNotes": "ZIP mit export.mp4, manifest.json und README.txt. Server erstellt die MP4 vor dem Download, Originalaufnahmen bleiben unverändert. Bei unterschiedlichen Aufnahmeformaten bitte kürzere Zeiträume wählen. Ausreichend Speicher für temporäre MP4 erforderlich.",
-  "fileCount": 517
+  "releaseNotes": "Ein gemeinsamer Player für den ausgewählten Tag oder die gesamte Einzelaufnahme. Über die Uhrzeit-Zeitachse vorwärts und rückwärts springen, Aufnahmelücken sichtbar, keine Neucodierung. Neu abgeschlossene Blöcke durch erneutes Öffnen aktualisieren. MP4-Behördenexport unverändert.",
+  "fileCount": 520
 }
