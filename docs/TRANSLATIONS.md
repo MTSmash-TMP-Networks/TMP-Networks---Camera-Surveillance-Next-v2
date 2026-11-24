@@ -1,6 +1,6 @@
 # Übersetzungen, Sprachumschaltung und Qualitätssicherung
 
-Die Browseroberfläche von **TMP Camera Surveillance Next 2.20.102** unterstützt 24 Sprachen. Das internationale Übersetzungssystem liegt unter `frontend/src/i18n/`.
+Die Browseroberfläche von **TMP Camera Surveillance Next 2.20.103** unterstützt 24 Sprachen. Das internationale Übersetzungssystem liegt unter `frontend/src/i18n/`.
 
 ## Unterstützte Sprachen
 
@@ -32,7 +32,7 @@ Die Sprache wird zuerst aus der im Browser gespeicherten Auswahl, danach aus Bro
 
 **Wichtig:** Vollständige *Key-Parität* bedeutet nicht, dass jeder Text semantisch vollständig übersetzt ist: Einige historische bzw. spezialisierte Meldungen greifen noch auf Englisch zurück. Technische Produkt-/API-Namen bleiben absichtlich unverändert. Neue UI-Texte sollten immer über `t('bereich.schluessel')` laufen, nicht direkt als deutsche oder englische Literale in Komponenten stehen.
 
-## Korrekturen ab 2.20.102
+## Korrekturen ab 2.20.103
 
 1. Die Lizenzseite hat bisher für alle 22 internationalen Sprachen durch einen letzten `productLicenseLabels.en`-Override wieder englische UI-Texte erhalten. Die deutsche und englische Version waren korrekt. Der Override verwendet nun die neu angelegten nativen Sprachzeilen.
 2. Die **Detailabschnitte der rechtlichen Zusammenfassung** sind weiterhin nur auf Deutsch und Englisch vorhanden (`licenseContent.js`). Für alle anderen Sprachen zeigt die Oberfläche eine übersetzte, explizite Information, dass die Detailabschnitte auf Englisch erscheinen. Die mitgelieferte Lizenzvereinbarung bleibt maßgeblich.
