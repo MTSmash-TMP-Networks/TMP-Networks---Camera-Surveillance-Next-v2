@@ -184,6 +184,7 @@ export function RecordingsPage() {
   const [cleanupResult, setCleanupResult] = useState(null);
   const [exportForm, setExportForm] = useState({ cameraId: '', date: defaultDate(), startTime: '08:00', endTime: '12:00', timezone: localTimezone(), caseReference: '', notes: '' });
   const [exportPreview, setExportPreview] = useState(null);
+  const [exportFullDay, setExportFullDay] = useState(false);
   const [exportTimeline, setExportTimeline] = useState(null);
   const [archiveDate, setArchiveDate] = useState(defaultDate());
   const [archiveTimeline, setArchiveTimeline] = useState(null);
@@ -466,12 +467,17 @@ export function RecordingsPage() {
   }
   function updateExportForm(patch) {
     setExportPreview(null);
+    if ('startTime' in patch || 'endTime' in patch) setExportFullDay(false);
     setExportForm((current) => ({ ...current, ...patch }));
+  }
+  function exportPayload() {
+    return { ...exportForm, cameraId: exportCameraId,
+      ...(exportFullDay ? { startTime: '00:00', endTime: '24:00' } : {}) };
   }
   async function previewExport() {
     setExportBusy(true); setError(''); setNotice('');
     try {
-      const preview = await api.recordingEvidencePreview({ ...exportForm, cameraId: exportCameraId });
+      const preview = await api.recordingEvidencePreview(exportPayload());
       setExportPreview(preview);
       setNotice(preview.empty ? t('recordings.notice.noExportBlocks') : t('recordings.notice.exportPreview', { blocks: preview.blockCount, recordings: preview.recordingCount }));
     } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
@@ -480,9 +486,20 @@ export function RecordingsPage() {
   async function downloadExport() {
     setExportBusy(true); setError(''); setNotice('');
     try {
-      const result = await api.recordingEvidenceExport({ ...exportForm, cameraId: exportCameraId });
-      saveDownload(result.blob, result.filename || 'tmp-camera-evidence-export.zip');
-      setNotice(t('recordings.notice.exportDone'));
+      const prepared = await api.recordingEvidencePrepare(exportPayload());
+      // This is a native browser download. No response.blob() means that
+      // 24-hour evidence packages do not occupy gigabytes of browser memory.
+      if (!prepared.downloadUrl?.startsWith('/api/recordings/export/download/')) {
+        throw new Error('Der Server hat keinen gueltigen Exportlink bereitgestellt');
+      }
+      const anchor = document.createElement('a');
+      anchor.href = prepared.downloadUrl;
+      anchor.download = 'tmp-camera-behoerdenexport.zip';
+      anchor.rel = 'noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setNotice(t('recordings.export.building'));
       setExportPreview(null);
     } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
     finally { setExportBusy(false); }
@@ -577,6 +594,10 @@ export function RecordingsPage() {
           <label>{t('recordings.export.date')}<input type="date" value={exportForm.date} onChange={(event) => updateExportForm({ date: event.target.value })}/></label>
           <label>{t('recordings.export.from')}<input type="time" value={exportForm.startTime} onChange={(event) => updateExportForm({ startTime: event.target.value })}/></label>
           <label>{t('recordings.export.to')}<input type="time" value={exportForm.endTime} onChange={(event) => updateExportForm({ endTime: event.target.value })}/></label>
+          <label className="wide-field"><input type="checkbox" checked={exportFullDay} onChange={(event) => {
+            setExportFullDay(event.target.checked);
+            setExportPreview(null);
+          }}/>{t('recordings.plan.allDay')} (00:00–24:00)</label>
           <label>{t('recordings.export.timezone')}<input value={exportForm.timezone} onChange={(event) => updateExportForm({ timezone: event.target.value })}/></label>
           <label>{t('recordings.export.caseReference')}<input value={exportForm.caseReference} onChange={(event) => updateExportForm({ caseReference: event.target.value })} placeholder={t('recordings.export.optional')}/></label>
           <label className="wide-field">{t('recordings.export.notes')}<input value={exportForm.notes} onChange={(event) => updateExportForm({ notes: event.target.value })} placeholder={t('recordings.export.notesPlaceholder')}/></label>
