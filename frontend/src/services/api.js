@@ -292,6 +292,7 @@ export const api = {
   recordingEvidenceTimeline: (input = {}) => request(`/recordings/export/timeline${queryString(input)}`),
   recordingEvidencePreview: (input) => request('/recordings/export/preview', { method: 'POST', body: input }),
   recordingEvidenceExport: (input) => requestDownload('/recordings/export', { method: 'POST', body: input }),
+  recordingEvidencePrepare: (input) => request('/recordings/export/prepare', { method: 'POST', body: input, timeoutMs: 90_000 }),
   recordingStorage: () => request('/system/recording-storage', { cache: 'no-store' }),
   testRecordingStorage: (input) => request('/system/recording-storage/test', { method: 'POST', body: input }),
   saveRecordingStorage: (input) => request('/system/recording-storage', { method: 'PUT', body: input }),
