@@ -10,7 +10,7 @@ import { AppError } from '../../utils/errors.js';
 import { safePathPart } from '../../utils/url.js';
 import { logger } from '../../utils/logger.js';
 import { buildVodPlaylist } from './BlockArchive.js';
-import { createStoredZip, describeZipEntry } from './ZipStoreWriter.js';
+import { createStoredZip, describeZipEntry, writeStoredZipStream } from './ZipStoreWriter.js';
 import { isRecordingStoragePath } from './RecordingStoragePaths.js';
 
 const READY_STATUSES = new Set(['ready', 'ready_with_gaps', 'recording']);
@@ -473,6 +473,153 @@ class RecordingEvidenceExportService {
       entryCount: zipResult.entryCount,
       preview: this.preview(input),
     };
+  }
+
+  async stream(input, output, { requestedBy = 'user', signal } = {}) {
+    const selection = this.select(input);
+    if (!selection.blockCount) throw new AppError(404, 'EXPORT_NO_RECORDINGS', 'Für Kamera und Zeitraum wurden keine abspielbaren Aufnahmeblöcke gefunden.');
+    // ZIP is streamed directly: no temporary full-day archive is staged on disk.
+
+    const exportId = crypto.randomUUID();
+    const generatedAt = new Date().toISOString();
+    const mediaEntries = [];
+    for (const item of selection.selected) {
+      for (const block of item.blocks) {
+        // Remote files are materialized on demand instead of all at once.
+        mediaEntries.push({ name: block.exportName, filePath: block.sourcePath,
+          recordingId: block.recordingId, segmentIndex: block.segmentIndex,
+          modifiedAt: new Date(block.endedAt) });
+      }
+    }
+    const statByName = new Map();
+
+    const playlist = buildVodPlaylist(selection.selected.flatMap((item) => item.blocks.map((block, index) => ({
+      duration_seconds: block.durationSeconds || 1,
+      gap_seconds: block.gapSeconds || (index === 0 ? 0 : 0),
+      status: block.status,
+      is_discontinuity: block.discontinuity || index === 0,
+      exportName: block.exportName,
+      size_bytes: block.sizeBytes,
+    }))), (segment) => segment.exportName);
+
+    const buildManifest = () => ({
+      schema: 1,
+      product: 'tmp-camera-surveillance-next',
+      exportType: 'recording_evidence_package',
+      exportId,
+      generatedAt,
+      generatedBy: requestedBy,
+      camera: {
+        id: selection.camera.id,
+        name: selection.camera.name,
+        ip: selection.camera.onvif?.ip || null,
+        location: selection.camera.location || '',
+      },
+      requestedWindow: {
+        date: selection.date,
+        startTime: selection.startTime,
+        endTime: selection.endTime,
+        timezone: selection.timezone,
+        startIso: selection.startIso,
+        endIso: selection.endIso,
+        startLocal: selection.startLocal,
+        endLocal: selection.endLocal,
+      },
+      caseReference: input.caseReference || null,
+      notes: input.notes || null,
+      exportMode: 'block_exact_overlap',
+      exportNote: 'Der Export enthaelt alle abgeschlossenen Aufnahmebloecke, die den angeforderten Zeitraum ueberlappen. Der erste und letzte Block koennen technisch einige Sekunden vor oder nach dem gewaehlten Fenster enthalten.',
+      totals: {
+        recordings: selection.recordingCount,
+        blocks: selection.blockCount,
+        mediaDurationSeconds: selection.mediaDurationSeconds,
+        mediaBytes: selection.fileSizeBytes,
+      },
+      recordings: selection.selected.map((item) => ({
+        id: item.recording.id,
+        filename: item.recording.filename,
+        status: item.recording.status,
+        startedAt: item.recording.startedAt,
+        endedAt: item.recording.endedAt,
+        triggerType: item.recording.triggerType,
+        interruptions: item.recording.interruptions || 0,
+        gapSeconds: item.recording.gapSeconds || 0,
+        blocks: item.blocks.map((block) => {
+          const stat = statByName.get(block.exportName);
+          return {
+            segmentIndex: block.segmentIndex,
+            exportedAs: block.exportName,
+            startedAt: block.startedAt,
+            endedAt: block.endedAt,
+            durationSeconds: block.durationSeconds,
+            sizeBytes: block.sizeBytes,
+            sha256: stat?.sha256 || null,
+            crc32: stat?.crc32?.toString(16).padStart(8, '0') || null,
+            gapSeconds: block.gapSeconds,
+            discontinuity: block.discontinuity,
+            status: block.status,
+          };
+        }),
+      })),
+    });
+
+    const reportLines = [
+      'TMP Camera Evidence Export',
+      '==========================',
+      '',
+      `Export-ID: ${exportId}`,
+      `Erstellt am: ${displayDate(new Date(generatedAt), selection.timezone)} (${generatedAt})`,
+      `Kamera: ${selection.camera.name} (${selection.camera.id})`,
+      `IP: ${selection.camera.onvif?.ip || 'unbekannt'}`,
+      `Zeitraum: ${selection.startLocal} bis ${selection.endLocal} (${selection.timezone})`,
+      input.caseReference ? `Aktenzeichen/Referenz: ${input.caseReference}` : null,
+      input.notes ? `Hinweis: ${input.notes}` : null,
+      '',
+      `Aufnahmen: ${selection.recordingCount}`,
+      `Bloecke: ${selection.blockCount}`,
+      `Mediendauer: ${selection.mediaDurationSeconds.toFixed(1)} Sekunden`,
+      `Mediendaten: ${selection.fileSizeBytes} Bytes`,
+      '',
+      'Wiedergabe:',
+      '  Die Datei export.m3u8 kann z. B. mit VLC geoeffnet werden. Die Medienbloecke liegen im Ordner segments/.',
+      '',
+      'Integritaet:',
+      '  SHA-256 und CRC32 je Medienblock stehen in manifest.json.',
+      '',
+      'Hinweis:',
+      '  Der Export ist blockbasiert. Der erste und letzte Block koennen technisch wenige Sekunden ausserhalb des ausgewaehlten Zeitraums enthalten.',
+      '',
+    ].filter(Boolean).join('\n');
+
+    const baseName = `${sanitizeFilename(selection.camera.name)}_${selection.date}_${selection.startTime.replace(':', '')}-${selection.endTime.replace(':', '')}_evidence`;
+    const filename = `${baseName}_${exportId.slice(0, 8)}.zip`;
+    async function* media() {
+      // The manifest follows the media blocks, so SHA-256/CRC32 are verified
+      // during transmission without staging the complete ZIP archive.
+      yield { name: 'README.txt', buffer: reportLines };
+      yield { name: 'export.m3u8', buffer: playlist || '#EXTM3U\n#EXT-X-ENDLIST\n' };
+      for (const entry of mediaEntries) {
+        if (signal?.aborted) throw new Error('ZIP_DOWNLOAD_CONNECTION_CLOSED');
+        let filePath = entry.filePath;
+        if (!filePath || !fs.existsSync(filePath)) {
+          const segment = recordingRepository.segmentInternal(entry.recordingId, entry.segmentIndex);
+          if (!segment) throw new AppError(404, 'RECORDING_BLOCK_MISSING', 'Ein Aufnahmeblock für den Export wurde nicht gefunden.');
+          const materialized = await networkRecordingStorageService.materializeSegment(segment);
+          filePath = materialized.path;
+        }
+        yield { name: entry.name, filePath, modifiedAt: entry.modifiedAt,
+          onWritten: (stat) => statByName.set(stat.name, stat) };
+      }
+      yield { name: 'manifest.json', buffer: `${JSON.stringify(buildManifest(), null, 2)}\n` };
+    }
+    const zipResult = await writeStoredZipStream(media(), output, { signal });
+    cameraEventLog.append(selection.camera.id, {
+      level: 'info', component: 'recording', code: 'RECORDING_EVIDENCE_EXPORT_STREAMED',
+      message: 'Behoerdenexport wurde direkt als ZIP uebertragen',
+      details: { exportId, blocks: selection.blockCount, recordings: selection.recordingCount, bytes: zipResult.sizeBytes,
+        window: { startIso: selection.startIso, endIso: selection.endIso } },
+    });
+    return { exportId, filename, sizeBytes: zipResult.sizeBytes, entryCount: zipResult.entryCount };
   }
 }
 
