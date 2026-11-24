@@ -524,6 +524,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,[r
 .tmp-primary-navigation::-webkit-scrollbar-track{background:transparent}
 .tmp-primary-navigation::-webkit-scrollbar-thumb{background:#21485f;border-radius:999px}
 .tmp-primary-navigation::-webkit-scrollbar-thumb:hover{background:#2d607c}
+/* Keep operator and admin navigation in a compact top-aligned column.
+   The full-height primary navigation is a scrolling flex child; the generic
+   .sidebar nav grid otherwise stretches its single list across that height. */
+@media (min-width:851px){
+  .tmp-sidebar .tmp-primary-navigation{
+    display:block;
+  }
+  .tmp-sidebar .sidebar-nav,
+  .tmp-sidebar .tmp-nav-section,
+  .tmp-sidebar .tmp-nav-list{
+    align-content:start;
+    grid-auto-rows:max-content;
+  }
+}
 .tmp-sidebar .sidebar-nav{
   position:static;
   display:grid;
