@@ -9,6 +9,8 @@ import { renderCloudRecordingClip } from '../services/recording/CloudRecordingCl
 import { cloudArchiveHlsCache, selectArchiveWindow } from '../services/recording/CloudArchiveHlsCache.js';
 import { renderCloudMp4Download, CLOUD_MP4_SECONDS } from '../services/recording/CloudRecordingDownload.js';
 import { recordingEvidenceExportService } from '../services/recording/RecordingEvidenceExport.js';
+import { evidenceDownloadTickets } from '../services/recording/EvidenceDownloadTickets.js';
+import { logger } from '../utils/logger.js';
 import { recordingPolicyRepository } from '../services/recording/RecordingPolicyRepository.js';
 import { recordingScheduler } from '../services/recording/RecordingScheduler.js';
 import { recordingEventDispatcher } from '../services/recording/RecordingEventDispatcher.js';
@@ -83,6 +85,42 @@ recordingsRouter.get('/:id/file', fileAuthorization, asyncHandler(async (req, re
   res.setHeader('Content-Length', String(archive.files.reduce((sum, file) => sum + fs.statSync(file).size, 0)));
   await streamArchiveFiles(res, archive.files);
   return undefined;
+}));
+
+// This endpoint is intentionally before bearer middleware: a native browser
+// download cannot attach the SPA's Authorization header. Its single-use JWT
+// permits only the exact prepared ZIP, and the ticket checks user revocation.
+recordingsRouter.get('/export/download/:ticket', asyncHandler(async (req, res) => {
+  const ticket = evidenceDownloadTickets.take(req.params.ticket,
+    typeof req.query.token === 'string' ? req.query.token : '');
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  req.once('aborted', abort);
+  res.once('close', () => { if (!res.writableEnded) abort(); });
+  res.setTimeout(10 * 60_000, abort);
+  res.set({
+    'Cache-Control': 'private, no-store, no-transform',
+    'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Accel-Buffering': 'no',
+    'Content-Type': 'application/zip',
+    'Content-Disposition': 'attachment; filename="tmp-camera-behoerdenexport.zip"',
+  });
+  try {
+    // Sending headers first avoids a reverse-proxy idle timeout while the
+    // first media file is checked. ZIP metadata follows the transmitted data.
+    res.flushHeaders();
+    await recordingEvidenceExportService.stream(ticket.input, res, {
+      requestedBy: ticket.requestedBy, signal: controller.signal,
+    });
+  } catch (error) {
+    logger.error({ err: error, exportTicket: req.params.ticket },
+      'Behoerdenexport-Download abgebrochen');
+    if (!res.destroyed) res.destroy(error);
+  } finally {
+    ticket.release();
+    req.off('aborted', abort);
+  }
 }));
 
 recordingsRouter.use(authenticate);
@@ -308,6 +346,17 @@ recordingsRouter.get('/export/timeline', authorize('operator'), asyncHandler(asy
 recordingsRouter.post('/export/preview', authorize('operator'), asyncHandler(async (req, res) => {
   const input = evidenceExportSchema.parse(req.body || {});
   res.json(recordingEvidenceExportService.preview(input));
+}));
+
+// The UI requests a signed, scoped browser download instead of holding
+// an open POST and loading an entire day's archive into a JavaScript Blob.
+recordingsRouter.post('/export/prepare', authorize('operator'), asyncHandler(async (req, res) => {
+  const input = evidenceExportSchema.parse(req.body || {});
+  const preview = recordingEvidenceExportService.preview(input);
+  if (preview.empty) throw new AppError(404, 'EXPORT_NO_RECORDINGS', 'Keine Aufnahmebloecke im gewaehlten Zeitraum gefunden');
+  const ticket = evidenceDownloadTickets.create(input, req.user);
+  res.set({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+  res.json({ ...ticket, preview });
 }));
 
 recordingsRouter.post('/export', authorize('operator'), asyncHandler(async (req, res) => {
