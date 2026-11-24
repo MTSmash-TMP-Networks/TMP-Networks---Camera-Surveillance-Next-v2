@@ -494,7 +494,7 @@ export function RecordingsPage() {
       }
       const anchor = document.createElement('a');
       anchor.href = prepared.downloadUrl;
-      anchor.download = 'tmp-camera-behoerdenexport.zip';
+      anchor.download = prepared.filename || 'tmp-camera-behoerdenexport.zip';
       anchor.rel = 'noreferrer';
       document.body.appendChild(anchor);
       anchor.click();
@@ -594,7 +594,7 @@ export function RecordingsPage() {
           <label>{t('recordings.export.date')}<input type="date" value={exportForm.date} onChange={(event) => updateExportForm({ date: event.target.value })}/></label>
           <label>{t('recordings.export.from')}<input type="time" value={exportForm.startTime} onChange={(event) => updateExportForm({ startTime: event.target.value })}/></label>
           <label>{t('recordings.export.to')}<input type="time" value={exportForm.endTime} onChange={(event) => updateExportForm({ endTime: event.target.value })}/></label>
-          <label className="wide-field"><input type="checkbox" checked={exportFullDay} onChange={(event) => {
+          <label className="wide-field evidence-full-day"><input type="checkbox" checked={exportFullDay} onChange={(event) => {
             setExportFullDay(event.target.checked);
             setExportPreview(null);
           }}/>{t('recordings.plan.allDay')} (00:00–24:00)</label>
