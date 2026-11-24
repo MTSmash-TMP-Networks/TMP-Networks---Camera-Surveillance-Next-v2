@@ -486,7 +486,16 @@ export function RecordingsPage() {
   async function downloadExport() {
     setExportBusy(true); setError(''); setNotice('');
     try {
-      const prepared = await api.recordingEvidencePrepare(exportPayload());
+      let prepared = await api.recordingEvidencePrepare(exportPayload());
+      if (prepared.jobId) {
+        setNotice(t('recordings.export.building'));
+        const deadline = Date.now() + 2 * 3600_000 + 60_000;
+        while (prepared.status !== 'ready') {
+          if (Date.now() > deadline) throw Object.assign(new Error('MP4 export timeout'), { code: 'EXPORT_MP4_FAILED' });
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          prepared = await api.recordingEvidenceStatus(prepared.jobId);
+        }
+      }
       // This is a native browser download. No response.blob() means that
       // 24-hour evidence packages do not occupy gigabytes of browser memory.
       if (!prepared.downloadUrl?.startsWith('/api/recordings/export/download/')) {
@@ -499,7 +508,7 @@ export function RecordingsPage() {
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
-      setNotice(t('recordings.export.building'));
+      setNotice('');
       setExportPreview(null);
     } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
     finally { setExportBusy(false); }
@@ -602,7 +611,7 @@ export function RecordingsPage() {
           <label>{t('recordings.export.caseReference')}<input value={exportForm.caseReference} onChange={(event) => updateExportForm({ caseReference: event.target.value })} placeholder={t('recordings.export.optional')}/></label>
           <label className="wide-field">{t('recordings.export.notes')}<input value={exportForm.notes} onChange={(event) => updateExportForm({ notes: event.target.value })} placeholder={t('recordings.export.notesPlaceholder')}/></label>
         </div>
-        <div className="planner-savebar evidence-export-actions"><button className="secondary-button" onClick={previewExport} disabled={!allowed || exportBusy || !exportCameraId}><RefreshCw/> {t('recordings.export.check')}</button><button className="primary-button" onClick={downloadExport} disabled={!allowed || exportBusy || !exportCameraId}><Download/> {exportBusy ? t('recordings.export.building') : t('recordings.export.download')}</button></div>
+        <div className="planner-savebar evidence-export-actions"><button className="secondary-button" onClick={previewExport} disabled={!allowed || exportBusy || !exportCameraId}><RefreshCw/> {t('recordings.export.check')}</button><button className="primary-button" onClick={downloadExport} disabled={!allowed || exportBusy || !exportCameraId}><Download/> {exportBusy ? t('recordings.export.building') : t('recordings.export.download') + ' (MP4)'}</button></div>
       </div>
       <div className="evidence-timeline-panel"><strong>{t('recordings.export.availableTitle', { date: exportForm.date })}</strong><p>{t('recordings.export.availableDescription')}</p>{exportTimeline?.totalIntervals ? <div className="evidence-timeline-list">{exportTimeline.cameras.filter((entry) => !entry.empty).map((entry) => <article key={entry.camera.id} className={entry.camera.id === exportCameraId ? 'selected' : ''}><header><span>{entry.camera.name}</span><small>{entry.camera.ip || t('recordings.camera.unknownIp')}</small></header>{entry.intervals.map((interval) => <button key={`${entry.camera.id}-${interval.startIso}`} type="button" onClick={() => updateExportForm({ cameraId: entry.camera.id, startTime: interval.startTime, endTime: interval.endTime })}><strong>{timeOnly(interval.startIso, locale, t)} – {timeOnly(interval.endIso, locale, t)}</strong><small>{t('recordings.export.intervalSummary', { recordings: interval.recordingCount, blocks: interval.blockCount, duration: duration(interval.mediaDurationSeconds) })}{interval.hasGaps ? `, ${t('recordings.export.gapSummary', { seconds: Number(interval.gapSeconds || 0).toFixed(1) })}` : ''}</small></button>)}</article>)}</div> : <p>{t('recordings.export.noPeriods')}</p>}</div>
       {exportPreview && <div className={`evidence-export-preview ${exportPreview.empty ? 'empty' : ''}`}><strong>{exportPreview.empty ? t('recordings.export.previewEmpty') : t('recordings.export.previewTitle')}</strong><span>{t('recordings.archive.rangeValue', { start: exportPreview.startLocal, end: exportPreview.endLocal })}</span><div><small>{t('recordings.export.cameraLabel', { camera: exportPreview.camera?.name || t('recordings.camera.default') })}</small><small>{t('recordings.export.recordingsLabel', { count: exportPreview.recordingCount })}</small><small>{t('recordings.export.blocksLabel', { count: exportPreview.blockCount })}</small><small>{t('recordings.export.mediaDuration', { duration: duration(exportPreview.mediaDurationSeconds) })}</small><small>{t('recordings.export.dataSize', { size: size(exportPreview.fileSizeBytes) })}</small></div>{!exportPreview.empty && <p>{t('recordings.export.blockNote')}</p>}</div>}
