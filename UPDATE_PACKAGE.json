@@ -1,18 +1,17 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.102",
+  "version": "2.20.103",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.102",
-  "summary": "Zuverlässiger Behördenexport ganzer Tage als direktes ZIP/ZIP64-Streaming, ohne riesige Server-Zwischendateien oder Browser-Blobs.",
-  "createdAt": "2026-11-24T16:41:00+01:00",
+  "title": "TMP Camera Surveillance Next 2.20.103",
+  "summary": "Operator-Menue in der Desktop-Seitenleiste beginnt wieder oben statt ueber die gesamte Hoehe verteilt zu werden.",
+  "createdAt": "2026-11-24T17:00:00+01:00",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Export 24-hour recordings through native streaming ZIP/ZIP64 without staging the full archive in server recordings storage",
-    "Avoid loading multi-gigabyte evidence files as browser JavaScript Blobs",
-    "Use short-lived single-use download tickets with operator authorization and account revocation checks",
-    "Preserve media original blocks, SHA-256 and CRC32 per entry, manifest and VOD playlist",
-    "Support 00:00 to next midnight, including 23/25-hour daylight saving transitions",
-    "Add backend ZIP streaming regression tests, keep live video/AAC/recordings/private PHP 3.1.3 untouched"
+    "Keep operator navigation links directly below the monitoring section header on desktop",
+    "Prevent CoreUI/grid implicit row stretching when admin-only sections are hidden",
+    "Preserve bottom-anchored account and logout controls",
+    "Retain scrollable administrator menu, collapsed sidebar and mobile navigation",
+    "Add targeted navigation regression checks, without changing permissions or camera services"
   ],
   "preserve": [
     ".env",
@@ -35,12 +34,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.102",
-  "packageId": "tmp-camera-surveillance-next-2.20.102",
+  "name": "TMP Camera Surveillance Next v2.20.103",
+  "packageId": "tmp-camera-surveillance-next-2.20.103",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Stream day-long evidence ZIP natively with scoped single-use download ticket and intact cryptographic segment manifest.",
+  "description": "Fix top alignment for short operator menu groups while preserving admin permissions, collapsible sidebar, scrolling and mobile navigation.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Behördenexport ganzer Tage (00:00 bis 24:00) direkt als ZIP/ZIP64. Keine große Zwischenkopie auf dem Server oder im Browser. Enthält weiterhin Originalblöcke, SHA-256/CRC32, manifest.json und Playlist. Die private PHP-Cloud 3.1.3 bleibt unverändert.",
+  "releaseNotes": "2.20.103 behebt die vertikale Verteilung der Operator-Menuepunkte. Uebersicht, Live-Ansicht, Kiosk-Modus, Aufnahmen und Desktop-Client stehen wieder direkt unter Ueberwachung. Benutzerstatus und Abmelden bleiben am unteren Rand. Keine Aenderung an Kamerastreams, Aufnahmen, Berechtigungen oder PHP-Cloud.",
   "fileCount": 514
 }
