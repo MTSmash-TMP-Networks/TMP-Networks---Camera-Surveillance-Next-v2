@@ -1,6 +1,12 @@
 import { buildRecordingSupplement } from './recordingIntlSupplement.js';
 
 const en = {
+  'recordings.error.EXPORT_MP4_FAILED': "The MP4 could not be completed. Check the export log and available storage.",
+  'recordings.error.EXPORT_MP4_FORMAT_CHANGED': "The recording format changed during the selected period. Choose a shorter time range.",
+  'recordings.error.EXPORT_DISK_SPACE': "Not enough free storage to create the MP4.",
+  'recordings.error.EXPORT_MP4_INCOMPLETE': "The MP4 duration or audio track could not be verified.",
+  'recordings.error.EXPORT_STREAM_BUSY': "Two exports are already running. Try again later.",
+  'recordings.error.EXPORT_TICKET_EXPIRED': "The export has expired. Start a new export.",
   'recordings.eyebrow': 'RECORDING CENTER',
   'recordings.title': 'Recordings',
   'recordings.description': 'Archive, scheduling, retention and evidence export in one clear overview.',
@@ -52,7 +58,7 @@ const en = {
   'recordings.archive.emptyTitle': 'No recording yet',
   'recordings.archive.emptyDescription': 'Recordings can be started manually, continuously, on a schedule or by an event.',
   'recordings.export.title': 'Export time range',
-  'recordings.export.description': 'Choose a camera, date and time range. The system packages matching recording blocks with a manifest and checksums into a ZIP file.',
+  'recordings.export.description': 'Choose a camera, date and time range. The ZIP contains one seekable MP4 video, the export report and its checksums.',
   'recordings.export.camera': 'Camera',
   'recordings.export.date': 'Date',
   'recordings.export.from': 'From',
@@ -249,6 +255,12 @@ const en = {
 };
 
 const de = {
+  'recordings.error.EXPORT_MP4_FAILED': "Die MP4 konnte nicht vollständig erstellt werden. Exportprotokoll und freien Speicher prüfen.",
+  'recordings.error.EXPORT_MP4_FORMAT_CHANGED': "Das Aufnahmeformat hat sich im gewählten Zeitraum geändert. Bitte einen kürzeren Zeitraum wählen.",
+  'recordings.error.EXPORT_DISK_SPACE': "Nicht genug freier Speicher für die MP4-Erstellung.",
+  'recordings.error.EXPORT_MP4_INCOMPLETE': "Die MP4-Laufzeit oder Tonspur konnte nicht bestätigt werden.",
+  'recordings.error.EXPORT_STREAM_BUSY': "Es laufen bereits zwei Exporte. Bitte später erneut versuchen.",
+  'recordings.error.EXPORT_TICKET_EXPIRED': "Die Exportfreigabe ist abgelaufen. Bitte erneut starten.",
   ...en,
   'recordings.eyebrow': 'AUFNAHMEZENTRALE',
   'recordings.title': 'Aufnahmen',
@@ -301,7 +313,7 @@ const de = {
   'recordings.archive.emptyTitle': 'Noch keine Aufnahme vorhanden',
   'recordings.archive.emptyDescription': 'Aufnahmen können manuell, kontinuierlich, zeit- oder ereignisgesteuert gestartet werden.',
   'recordings.export.title': 'Zeitraum exportieren',
-  'recordings.export.description': 'Kamera, Datum und Zeitfenster wählen. Das System packt alle passenden Aufnahmeblöcke mit Manifest und Prüfsummen in ein ZIP.',
+  'recordings.export.description': 'Kamera, Datum und Zeitfenster wählen. Das ZIP enthält eine durchgehend spulbare MP4, das Exportprotokoll und die Prüfsummen.',
   'recordings.export.camera': 'Kamera',
   'recordings.export.date': 'Datum',
   'recordings.export.from': 'Von',

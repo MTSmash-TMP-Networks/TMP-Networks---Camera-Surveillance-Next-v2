@@ -123,6 +123,7 @@ backend/src/services/recording/CloudArchiveHlsCache.js
 backend/src/services/recording/CloudRecordingClip.js
 backend/src/services/recording/CloudRecordingDownload.js
 backend/src/services/recording/EvidenceDownloadTickets.js
+backend/src/services/recording/EvidenceMp4.js
 backend/src/services/recording/MotionDetectionAlgorithm.js
 backend/src/services/recording/MotionDetectionService.js
 backend/src/services/recording/MotionLocalSegmentSource.js
@@ -175,6 +176,7 @@ backend/test-node/discovery-completion-timeout.test.mjs
 backend/test-node/domain-event-bus.test.mjs
 backend/test-node/email-notification-source-regression.test.mjs
 backend/test-node/evidence-hls-segment-continuity.test.mjs
+backend/test-node/evidence-mp4-export.test.mjs
 backend/test-node/evidence-streaming-zip.test.mjs
 backend/test-node/ffmpeg-diagnostics.test.mjs
 backend/test-node/github-archive-integrity-regression.test.mjs

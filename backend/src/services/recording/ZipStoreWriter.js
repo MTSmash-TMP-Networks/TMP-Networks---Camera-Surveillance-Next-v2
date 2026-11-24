@@ -22,7 +22,7 @@ function updateCrc(crc, chunk) {
 }
 
 function finishCrc(crc) { return (crc ^ MAX_U32) >>> 0; }
-function needsZip64(value) { return Number(value) > MAX_U32; }
+function needsZip64(value) { return Number(value) >= MAX_U32; }
 function writeU64(buffer, value, offset) { buffer.writeBigUInt64LE(BigInt(value), offset); }
 
 function zip64Extra(values) {
@@ -53,13 +53,12 @@ async function statBuffer(buffer) {
   return { size: data.length, crc32: finishCrc(updateCrc(0xffffffff, data)), sha256: hash, buffer: data };
 }
 
-async function statFile(filePath) {
+async function statFile(filePath, signal) {
   const stat = await fs.promises.stat(filePath);
   const hash = crypto.createHash('sha256');
   let crc = 0xffffffff;
-  const input = fs.createReadStream(filePath);
-  input.on('data', (chunk) => { hash.update(chunk); crc = updateCrc(crc, chunk); });
-  await once(input, 'end');
+  const input = fs.createReadStream(filePath, { signal });
+  for await (const chunk of input) { hash.update(chunk); crc = updateCrc(crc, chunk); }
   return { size: stat.size, crc32: finishCrc(crc), sha256: hash.digest('hex') };
 }
 
@@ -164,8 +163,8 @@ async function writeBuffer(output, buffer) {
     if (output.destroyed) onClose();
   });
 }
-async function writeFile(output, filePath) {
-  const input = fs.createReadStream(filePath);
+async function writeFile(output, filePath, signal) {
+  const input = fs.createReadStream(filePath, { signal });
   try {
     for await (const chunk of input) await writeBuffer(output, chunk);
   } finally {
@@ -176,7 +175,7 @@ async function writeFile(output, filePath) {
 export async function describeZipEntry(entry) {
   const nameBuffer = encodeName(entry.name);
   const kind = entry.buffer !== undefined ? 'buffer' : 'file';
-  const stats = kind === 'buffer' ? await statBuffer(entry.buffer) : await statFile(entry.filePath);
+  const stats = kind === 'buffer' ? await statBuffer(entry.buffer) : await statFile(entry.filePath, entry.signal);
   return { ...entry, ...stats, kind, nameBuffer };
 }
 
@@ -236,7 +235,7 @@ export async function writeStoredZipStream(entries, output, { signal } = {}) {
       await writeBuffer(output, entry.buffer);
       bytes += entry.buffer.length;
     } else {
-      await writeFile(output, entry.filePath);
+      await writeFile(output, entry.filePath, signal);
       bytes += entry.size;
     }
     central.push(centralHeader(entry.nameBuffer, entry, offset));

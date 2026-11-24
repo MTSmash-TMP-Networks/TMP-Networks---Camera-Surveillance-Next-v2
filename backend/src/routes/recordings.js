@@ -97,7 +97,7 @@ recordingsRouter.get('/export/download/:ticket', asyncHandler(async (req, res) =
   const abort = () => controller.abort();
   req.once('aborted', abort);
   res.once('close', () => { if (!res.writableEnded) abort(); });
-  res.setTimeout(10 * 60_000, abort);
+  res.setTimeout(ticket.input.jobId ? 10 * 60_000 : 2 * 3600_000, abort);
   const filename = 'TMP_Behoerdenexport_' + ticket.input.date + '_' +
     ticket.input.startTime.replace(':', '') + '-' + ticket.input.endTime.replace(':', '') + '.zip';
   res.set({
@@ -109,15 +109,14 @@ recordingsRouter.get('/export/download/:ticket', asyncHandler(async (req, res) =
     'Content-Disposition': 'attachment; filename="' + filename + '"',
   });
   try {
-    // Sending headers first avoids a reverse-proxy idle timeout while the
-    // first media file is checked. ZIP metadata follows the transmitted data.
-    res.flushHeaders();
+    // The normal UI prepares the complete MP4 before the download begins.
     await recordingEvidenceExportService.stream(ticket.input, res, {
       requestedBy: ticket.requestedBy, signal: controller.signal,
     });
   } catch (error) {
     logger.error({ err: error, exportTicket: req.params.ticket },
       'Behoerdenexport-Download abgebrochen');
+    if (!res.headersSent && !res.destroyed) { res.removeHeader('Content-Disposition'); throw error; }
     if (!res.destroyed) res.destroy(error);
   } finally {
     ticket.release();
@@ -238,6 +237,7 @@ const evidenceExportSchema = z.object({
   timezone: timezone.default('Europe/Berlin'),
   caseReference: z.string().trim().max(180).optional().default(''),
   notes: z.string().trim().max(2000).optional().default(''),
+  background: z.boolean().optional().default(false),
 });
 
 const evidenceTimelineSchema = z.object({
@@ -357,14 +357,28 @@ recordingsRouter.post('/export/prepare', authorize('operator'), asyncHandler(asy
   const input = evidenceExportSchema.parse(req.body || {});
   const preview = recordingEvidenceExportService.preview(input);
   if (preview.empty) throw new AppError(404, 'EXPORT_NO_RECORDINGS', 'Keine Aufnahmebloecke im gewaehlten Zeitraum gefunden');
-  const ticket = evidenceDownloadTickets.create(input, req.user);
   res.set({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+  if (input.background) return res.status(202).json({ ...recordingEvidenceExportService.startJob(input, req.user), preview });
+  const ticket = evidenceDownloadTickets.create(input, req.user);
   res.json({ ...ticket, preview });
+}));
+
+recordingsRouter.get('/export/status/:jobId', authorize('operator'), asyncHandler(async (req, res) => {
+  res.set({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+  const id = z.string().uuid().parse(req.params.jobId);
+  res.json(recordingEvidenceExportService.jobStatus(id, req.user,
+    (input, session) => evidenceDownloadTickets.create(input, session)));
 }));
 
 recordingsRouter.post('/export', authorize('operator'), asyncHandler(async (req, res) => {
   const input = evidenceExportSchema.parse(req.body || {});
-  const result = await recordingEvidenceExportService.create(input, { requestedBy: req.user?.sub || 'user' });
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  req.once('aborted', abort);
+  res.once('close', () => { if (!res.writableEnded) abort(); });
+  res.setTimeout(2 * 3600_000, abort);
+  const result = await recordingEvidenceExportService.create(input, { requestedBy: req.user?.sub || 'user', signal: controller.signal });
+  req.off('aborted', abort);
   res.set({
     'Cache-Control': 'private, no-store',
     'X-Content-Type-Options': 'nosniff',

@@ -22,7 +22,7 @@ test('camera recording playback route preserves authentication and rejects full 
   assert.match(routes, /recordingsRouter\.use\(authenticate\)/);
   assert.match(routes, /recordingsRouter\.get\('\/:id\/cloud\/:block\/clip\/:part\.ts'/);
   assert.match(routes, /renderCloudRecordingClip\(/);
-  assert.match(routes, /segment\.playable === true/);
+  assert.match(routes, /candidate\.segmentIndex === segmentIndex && candidate\.playable === true/);
   assert.match(policy, /recordings\?limit=100/);
   assert.doesNotMatch(policy, /return path === '\/api\/recordings\/.*file'/);
 });

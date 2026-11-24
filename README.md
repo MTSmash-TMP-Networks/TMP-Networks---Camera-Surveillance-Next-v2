@@ -28,7 +28,7 @@
 
 Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
 
-**Aktuelle Version:** `2.20.104` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+**Aktuelle Version:** `2.20.105` · **Installationsart:** Docker · **Oberflächensprachen:** 24
 
 ## Funktionen
 
@@ -192,6 +192,8 @@ Die Nutzung unterliegt den mit der Software bereitgestellten **[Lizenzbedingunge
 **TMP Camera Surveillance Next** · TMP-SYSTEM-SERVICE GmbH
 
 
-### Behördenexport für ganze Tage (2.20.104)
+### Behördenexport als MP4 (2.20.105)
 
-Der Behördenexport kann jetzt einen kompletten Kalendertag über **Ganzer Tag (00:00–24:00)** auswählen. Große ZIP-/ZIP64-Archive werden direkt an den Browser übertragen, statt zunächst als mehrgigabytegroße Kopie auf dem Kameraserver gespeichert und danach als JavaScript-Blob geladen zu werden. Die ZIP-Datei enthält weiterhin `manifest.json`, `README.txt`, `export.m3u8` und die Original-Aufnahmeblöcke mit SHA-256- und CRC32-Prüfsummen. Für den Download dient eine kurzlebige, einmalige und rollenbeschränkte Freigabe. Die eigentlichen Aufnahmen werden nicht verändert. **Wiedergabe:** Das heruntergeladene ZIP vollständig entpacken, dabei die Ordnerstruktur `segments/` beibehalten und anschließend `export.m3u8` in VLC öffnen. Die Playlist kennzeichnet die durch FFmpeg zurückgesetzten Zeitstempel nun an jeder Segmentgrenze, damit auch nach dem ersten Segment weitergespielt wird.
+Der Behördenexport bleibt ein ZIP-/ZIP64-Download. Die Datei enthält ausschließlich `export.mp4`, `manifest.json` und `README.txt`. Die Original-Aufnahmeblöcke werden serverseitig zu einer MP4 mit durchgehender Medienzeitachse zusammengefügt. Video wird bei kompatiblen Blöcken ohne Neucodierung übernommen; Nicht-AAC-Audio kann in AAC umgewandelt werden. Aufnahmelücken werden im Manifest dokumentiert, nicht mit künstlichem Videomaterial gefüllt. Der erste/letzte Block kann über das gewählte Zeitfenster hinausragen. Bei inkompatiblen Aufnahmeformaten bricht der Export mit einem Hinweis ab, statt eine unvollständige MP4 auszuliefern.
+
+Ein vollständiger Kalendertag (00:00–24:00) ist weiterhin auswählbar. Die Oberfläche wartet auf die fertige MP4 und startet dann den nativen ZIP-Download mit einer einmaligen, rollenbeschränkten Freigabe. Das ZIP wird nicht zusätzlich auf dem Server gespeichert. Für die temporäre MP4 ist ausreichend freier Speicher erforderlich; nach dem Download bzw. Ablauf wird sie entfernt. SHA-256 und CRC32 beziehen sich auf die exportierte MP4. Originalaufnahmen bleiben unverändert.
