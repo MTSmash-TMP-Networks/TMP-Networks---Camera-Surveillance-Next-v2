@@ -1,6 +1,6 @@
 # Übersetzungen, Sprachumschaltung und Qualitätssicherung
 
-Die Browseroberfläche von **TMP Camera Surveillance Next 2.20.104** unterstützt 24 Sprachen. Das internationale Übersetzungssystem liegt unter `frontend/src/i18n/`.
+Die Browseroberfläche von **TMP Camera Surveillance Next 2.20.105** unterstützt 24 Sprachen. Das internationale Übersetzungssystem liegt unter `frontend/src/i18n/`.
 
 ## Unterstützte Sprachen
 
