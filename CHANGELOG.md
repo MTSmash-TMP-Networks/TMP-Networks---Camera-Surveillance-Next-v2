@@ -1,3 +1,12 @@
+## 2.20.105 – Behördenexport als fertige MP4
+
+- ZIP enthält nur export.mp4, manifest.json und README.txt; keine TS-Dateien und keine M3U8-Playlist mehr.
+- Zusammenhängende Medienzeitachse und MP4-Sample-Index; Videostream wird bei kompatiblen Blöcken ohne Neucodierung übernommen. Nicht-AAC-Ton wird bei Bedarf in AAC umgewandelt.
+- Ganztagesexport mit serverseitiger MP4-Vorbereitung und anschließendem nativen ZIP64-Download. Temporäre MP4 wird nach Download oder Ablauf bereinigt.
+- Exportmanifest enthält SHA-256/CRC32 der MP4 und Zeitzuordnung der Quellblöcke; Lücken werden nicht mit künstlichen Daten gefüllt. Originalaufnahmen bleiben unverändert.
+- Inkompatible Quellformate oder unvollständige MP4 führen zu einem expliziten Fehler; Speicherprüfung und begrenzte parallele Vorbereitung.
+- Regressionstest mit echten H.264-/AAC-TS-Dateien, drei gezielten Suchpositionen, ZIP-Inhalt und Prüfsummen.
+
 ## 2.20.104 – Export-M3U8: Wiedergabe über alle Aufnahmeblöcke
 
 - Behebung des Behördenexport-Fehlers, bei dem M3U8-Player nach dem ersten Aufnahmeblock stehen bleiben konnten.

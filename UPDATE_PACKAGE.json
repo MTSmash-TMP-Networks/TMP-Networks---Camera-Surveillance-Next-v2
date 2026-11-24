@@ -1,18 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.104",
+  "version": "2.20.105",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.104",
-  "summary": "Fehler behoben: export.m3u8 spielt mehrere Original-Aufnahmeblöcke fortlaufend ab.",
-  "createdAt": "2026-11-24T17:30:00+01:00",
+  "title": "TMP Camera Surveillance Next 2.20.105",
+  "summary": "Behördenexport: eine fertige MP4 statt TS-Blöcken und M3U8 im ZIP.",
+  "createdAt": "2026-11-24T17:45:00+01:00",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Fix export.m3u8 playback beyond the first TS block by marking each independent timestamp reset with EXT-X-DISCONTINUITY",
-    "Apply the correction to both legacy and streaming ZIP64 evidence exports",
-    "Preserve HLS playback for other continuous-timestamp consumers",
-    "Add multi-block real-FFmpeg playback regression and playlist boundary/recording gap tests",
-    "Clarify complete ZIP extraction before VLC playback while preserving original videos and their SHA-256/CRC32 checksums",
-    "Leave HLS live audio, recordings, camera permissions and private Plesk PHP untouched"
+    "One seekable MP4 in the ZIP with checksums and source timeline",
+    "Background preparation with scoped one-time download ticket and ZIP64 streaming",
+    "Preserve original recording files and camera data",
+    "Real FFmpeg seek and ZIP integrity regression tests"
   ],
   "preserve": [
     ".env",
@@ -35,12 +33,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.104",
-  "packageId": "tmp-camera-surveillance-next-2.20.104",
+  "name": "TMP Camera Surveillance Next v2.20.105",
+  "packageId": "tmp-camera-surveillance-next-2.20.105",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Correct HLS discontinuity tags for timestamp-reset MPEG-TS recording blocks in both evidence export paths.",
+  "description": "Create a seekable MP4 from compatible recording blocks and stream a ZIP with the MP4 and its verification manifest.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Behebt die Wiedergabe der export.m3u8, die bei einzelnen HLS-Playern nach dem ersten TS-Aufnahmeblock endete. Jede weitere Originaldatei wird nun mit #EXT-X-DISCONTINUITY gekennzeichnet. Die Videos und Prüfsummen werden nicht verändert. ZIP vor Wiedergabe vollständig entpacken.",
-  "fileCount": 515
+  "releaseNotes": "ZIP mit export.mp4, manifest.json und README.txt. Server erstellt die MP4 vor dem Download, Originalaufnahmen bleiben unverändert. Bei unterschiedlichen Aufnahmeformaten bitte kürzere Zeiträume wählen. Ausreichend Speicher für temporäre MP4 erforderlich.",
+  "fileCount": 517
 }
