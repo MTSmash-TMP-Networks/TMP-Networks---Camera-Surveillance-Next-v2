@@ -57,14 +57,6 @@ test('discontinuity resets follow every block even across recording-session boun
     'Do not emit duplicate discontinuity markers for a recovered block');
 });
 
-test('both legacy and streaming authorities use timestamp-aware export.m3u8', () => {
-  const source = fs.readFileSync(path.join(root,
-    'backend/src/services/recording/RecordingEvidenceExport.js'), 'utf8');
-  assert.equal((source.match(/timestampResetPerSegment:\s*true/g) || []).length, 2,
-    'Both create() and stream() must mark all MPEG-TS archive boundaries');
-  assert.match(source, /Vor der Wiedergabe das ZIP vollstaendig entpacken/);
-});
-
 test('FFmpeg can decode all original reset-timestamp blocks from the exported VOD playlist', (t) => {
   const ffmpeg = spawnSync('ffmpeg', ['-version'], { encoding: 'utf8' });
   const ffprobe = spawnSync('ffprobe', ['-version'], { encoding: 'utf8' });

@@ -35,13 +35,17 @@ jobs:
       - name: Install FFmpeg for real multi-segment M3U8 decoding
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq --no-install-recommends ffmpeg
+          sudo apt-get install -y -qq --no-install-recommends ffmpeg unzip
           ffmpeg -version
           ffprobe -version
       - name: Verify multi-segment evidence.m3u8 playback with reset MPEG-TS timestamps
         env:
           REQUIRE_FFMPEG: '1'
         run: node --test backend/test-node/evidence-hls-segment-continuity.test.mjs
+      - name: Verify indexed MP4 across independent recording blocks and ZIP contents
+        env:
+          REQUIRE_FFMPEG: '1'
+        run: node --test backend/test-node/evidence-mp4-export.test.mjs
       - name: Verify recording command stays stable
         run: npm test --prefix backend -- test/recording-command.test.js
       - name: Verify one visible Live player when toggling audio
