@@ -24,6 +24,12 @@ jobs:
           node --test backend/test-node/broker-pipeline.test.mjs
           node --test backend/test-node/go2rtc-control-api.test.mjs
           node --test backend/test-node/cloud-live-audio.test.mjs
+      - name: Check export module, ticket and route syntax
+        run: |
+          node --check backend/src/services/recording/RecordingEvidenceExport.js
+          node --check backend/src/services/recording/EvidenceDownloadTickets.js
+          node --check backend/src/services/recording/ZipStoreWriter.js
+          node --check backend/src/routes/recordings.js
       - name: Verify native streaming evidence ZIP and large-day download contract
         run: node --test backend/test-node/evidence-streaming-zip.test.mjs
       - name: Verify recording command stays stable
