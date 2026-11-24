@@ -102,7 +102,8 @@ test('audio stays enabled on direct and fallback paths', () => {
   assert.match(ffmpegCommand, /libopus/);
   assert.match(ffmpegCommand, /aac/);
   assert.match(player, /Volume2|VolumeX/);
-  assert.match(livePool, /hasAudio: Boolean\(session\.media\?\.audio\)/);
+  assert.match(livePool, /hasAudio: Boolean\(session\.audioEnabled\)/);
+  assert.match(orchestrator, /session\.audioEnabled = Boolean\(verifiedAudioCodec\)/);
 });
 
 test('hidden browser-wide camera decoding is disabled by default', () => {
@@ -251,7 +252,8 @@ test('permanent camera publishers are initialized at backend startup independent
 
 test('background camera video previews avoid optional audio stalls', () => {
   assert.match(orchestrator, /const videoOnlyPreview = session\.permanent \|\| \['motion', 'prebuffer'\]\.includes/);
-  assert.match(orchestrator, /if \(profile\?\.audioCodec && !videoOnlyPreview\)/);
+  assert.match(orchestrator, /const wantsAudio = !session\.permanent && !\['motion', 'prebuffer'\]\.includes/);
+  assert.match(orchestrator, /if \(wantsAudio && !videoOnlyPreview\)/);
   assert.match(orchestrator, /if \(broker\.audioConfigured && !session\.permanent\)/);
 });
 
@@ -367,11 +369,14 @@ test('stable reconnect pins the exact profile and transport candidate', () => {
   assert.match(orchestrator, /activeTransport: candidate\.transport/);
 });
 
-test('permanent preview preserves camera audio; dedicated auxiliary workers remain video-only', () => {
+test('permanent preview remains video-only; explicit live audio reuses the A/V producer', () => {
   assert.match(orchestrator, /const videoOnlyPreview = session\.permanent \|\| \['motion', 'prebuffer'\]\.includes/);
   assert.match(orchestrator, /GO2RTC_AUXILIARY_AUDIO_DISABLED/);
   assert.doesNotMatch(orchestrator, /GO2RTC_PREVIEW_AUDIO_DISABLED/);
-  assert.match(orchestrator, /startRing\(broker\.audio, true\)/);
+  assert.match(orchestrator, /if \(broker\.audioConfigured && !session\.permanent\)/);
+  assert.match(orchestrator, /session\.purpose === 'live-audio'\s*\? await startRing\(broker\.audioBrokerName, true\)/);
+  assert.match(orchestrator, /await startRing\(broker\.video, true, broker\.audioBrokerName\)/);
+  assert.match(orchestrator, /if \(!ring\) ring = await startRing\(broker\.video, false\)/);
 });
 
 test('automatic profile initial grace is twelve seconds, extended only with active media progress', () => {
