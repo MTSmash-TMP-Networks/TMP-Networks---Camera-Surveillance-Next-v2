@@ -24,6 +24,8 @@ jobs:
           node --test backend/test-node/broker-pipeline.test.mjs
           node --test backend/test-node/go2rtc-control-api.test.mjs
           node --test backend/test-node/cloud-live-audio.test.mjs
+      - name: Verify native streaming evidence ZIP and large-day download contract
+        run: node --test backend/test-node/evidence-streaming-zip.test.mjs
       - name: Verify recording command stays stable
         run: npm test --prefix backend -- test/recording-command.test.js
       - name: Verify one visible Live player when toggling audio
