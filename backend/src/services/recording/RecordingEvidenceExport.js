@@ -358,6 +358,8 @@ class RecordingEvidenceExportService {
     for (const entry of mediaEntries) mediaStats.push(await describeZipEntry(entry));
     const statByName = new Map(mediaStats.map((entry) => [entry.name, entry]));
 
+    // Each original MPEG-TS block has independent FFmpeg timestamps. Inform
+    // HLS players about the reset at every block transition (RFC 8216).
     const playlist = buildVodPlaylist(selection.selected.flatMap((item) => item.blocks.map((block, index) => ({
       duration_seconds: block.durationSeconds || 1,
       gap_seconds: block.gapSeconds || (index === 0 ? 0 : 0),
@@ -365,7 +367,7 @@ class RecordingEvidenceExportService {
       is_discontinuity: block.discontinuity || index === 0,
       exportName: block.exportName,
       size_bytes: block.sizeBytes,
-    }))), (segment) => segment.exportName);
+    }))), (segment) => segment.exportName, { timestampResetPerSegment: true });
 
     const manifest = {
       schema: 1,
@@ -498,6 +500,8 @@ class RecordingEvidenceExportService {
     }
     const statByName = new Map();
 
+    // Each original MPEG-TS block has independent FFmpeg timestamps. Inform
+    // HLS players about the reset at every block transition (RFC 8216).
     const playlist = buildVodPlaylist(selection.selected.flatMap((item) => item.blocks.map((block, index) => ({
       duration_seconds: block.durationSeconds || 1,
       gap_seconds: block.gapSeconds || (index === 0 ? 0 : 0),
@@ -505,7 +509,7 @@ class RecordingEvidenceExportService {
       is_discontinuity: block.discontinuity || index === 0,
       exportName: block.exportName,
       size_bytes: block.sizeBytes,
-    }))), (segment) => segment.exportName);
+    }))), (segment) => segment.exportName, { timestampResetPerSegment: true });
 
     const buildManifest = () => ({
       schema: 1,
