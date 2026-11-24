@@ -10,6 +10,7 @@ import { cloudArchiveHlsCache, selectArchiveWindow } from '../services/recording
 import { renderCloudMp4Download, CLOUD_MP4_SECONDS } from '../services/recording/CloudRecordingDownload.js';
 import { recordingEvidenceExportService } from '../services/recording/RecordingEvidenceExport.js';
 import { evidenceDownloadTickets } from '../services/recording/EvidenceDownloadTickets.js';
+import { archivePlaybackSessions, buildArchivePlayback } from '../services/recording/ArchivePlayback.js';
 import { logger } from '../utils/logger.js';
 import { recordingPolicyRepository } from '../services/recording/RecordingPolicyRepository.js';
 import { recordingScheduler } from '../services/recording/RecordingScheduler.js';
@@ -123,6 +124,22 @@ recordingsRouter.get('/export/download/:ticket', asyncHandler(async (req, res) =
     req.off('aborted', abort);
   }
 }));
+
+// Immutable per-player HLS snapshot. No arbitrary path or recording ID is
+// accepted by this unauthenticated-by-header route; the media token and
+// snapshot owner must both match, and the account is revalidated.
+recordingsRouter.get('/archive/playback/:sessionId/index.m3u8', (req, res) => {
+  const id = z.string().uuid().parse(req.params.sessionId);
+  const payload = authService.verifyMediaToken(typeof req.query.token === 'string' ? req.query.token : '', {
+    path: 'archive-playback:' + id, action: 'read',
+  });
+  const session = archivePlaybackSessions.get(id, payload.sub);
+  const account = authService.revalidateWebSocketUser({ sub: session.userId, ver: session.version });
+  if (session.scope === 'day') authService.requireRole(account.role, 'operator');
+  res.set({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff', 'Content-Type': 'application/vnd.apple.mpegurl; charset=utf-8' });
+  res.send(session.playlist);
+});
 
 recordingsRouter.use(authenticate);
 
@@ -240,6 +257,11 @@ const evidenceExportSchema = z.object({
   background: z.boolean().optional().default(false),
 });
 
+const archivePlaybackSchema = z.union([
+  z.object({ recordingId: z.coerce.number().int().positive() }).strict(),
+  z.object({ cameraId: z.string().min(1).max(160), date, timezone: timezone.default('Europe/Berlin') }).strict(),
+]);
+
 const evidenceTimelineSchema = z.object({
   cameraId: z.string().min(1).max(160).optional(),
   date: date,
@@ -340,6 +362,44 @@ recordingsRouter.get('/motion/status', (_req, res) => {
 recordingsRouter.post('/scheduler/run', authorize('admin'), asyncHandler(async (_req, res) => res.json(await recordingScheduler.tick())));
 recordingsRouter.get('/retention/status', (_req, res) => res.json(retentionManager.status()));
 recordingsRouter.get('/compression/status', (_req, res) => res.json(recordingCompressionService.status()));
+
+recordingsRouter.post('/archive/playback', asyncHandler(async (req, res) => {
+  const input = archivePlaybackSchema.parse(req.body || {});
+  let blocks, options;
+  if ('recordingId' in input) {
+    const recording = recordingService.get(input.recordingId);
+    if (!recording) throw new AppError(404, 'RECORDING_NOT_FOUND', 'Aufnahme nicht gefunden');
+    if (!['ready', 'ready_with_gaps', 'recording'].includes(recording.status) || recording.archiveFormat !== 'block_archive_v1') {
+      throw new AppError(409, 'RECORDING_NOT_READY', 'Aufnahme besitzt keine abspielbaren Bloecke.');
+    }
+    blocks = recordingService.segments(input.recordingId).map((block) => ({ ...block, recordingId: input.recordingId }));
+    options = { scope: 'recording', fallbackStart: recording.startedAt };
+  } else {
+    authService.requireRole(req.user.role, 'operator');
+    const selection = recordingEvidenceExportService.select({ ...input, startTime: '00:00', endTime: '24:00' });
+    blocks = selection.selected.flatMap((item) => item.blocks);
+    options = { scope: 'day', timezone: input.timezone, startIso: selection.startIso, endIso: selection.endIso };
+  }
+  const expiresIn = Math.max(1, Math.floor(config.mediaTokenTtlSeconds));
+  const tokens = new Map();
+  const playback = buildArchivePlayback(blocks, { ...options, uriForBlock: (block) => {
+    const recordingId = Number(block.recordingId);
+    if (!tokens.has(recordingId)) tokens.set(recordingId, authService.signMediaToken({
+      userId: req.user.sub, path: 'recording:' + recordingId, action: 'read', expiresIn,
+    }));
+    return '/api/recordings/' + recordingId + '/blocks/' + Number(block.segmentIndex) + '/file?token=' + encodeURIComponent(tokens.get(recordingId));
+  } });
+  const sessionId = archivePlaybackSessions.create({ playlist: playback.playlist, user: req.user, scope: options.scope, expiresIn });
+  const token = authService.signMediaToken({ userId: req.user.sub, path: 'archive-playback:' + sessionId, action: 'read', expiresIn });
+  res.set({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+  res.json({ sessionId, expiresIn, format: 'hls', timeline: playback.timeline,
+    url: '/api/recordings/archive/playback/' + sessionId + '/index.m3u8?token=' + encodeURIComponent(token) });
+}));
+
+recordingsRouter.delete('/archive/playback/:sessionId', (req, res) => {
+  archivePlaybackSessions.release(z.string().uuid().parse(req.params.sessionId), req.user.sub);
+  res.status(204).end();
+});
 
 recordingsRouter.get('/export/timeline', authorize('operator'), asyncHandler(async (req, res) => {
   const input = evidenceTimelineSchema.parse(req.query || {});

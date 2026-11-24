@@ -118,6 +118,7 @@ backend/src/services/ptz/PtzClientPool.js
 backend/src/services/ptz/PtzCommandRuntime.js
 backend/src/services/ptz/PtzService.js
 backend/src/services/ptz/ptzCapability.js
+backend/src/services/recording/ArchivePlayback.js
 backend/src/services/recording/BlockArchive.js
 backend/src/services/recording/CloudArchiveHlsCache.js
 backend/src/services/recording/CloudRecordingClip.js
@@ -157,6 +158,7 @@ backend/src/utils/logger.js
 backend/src/utils/url.js
 backend/test-node/adaptive-camera-start.test.mjs
 backend/test-node/ai-event-analysis-regression.test.mjs
+backend/test-node/archive-global-timeline.test.mjs
 backend/test-node/broker-pipeline.test.mjs
 backend/test-node/camera-bootstrap-fairness-26.test.mjs
 backend/test-node/camera-discovery-final-policy-regression.test.mjs
@@ -400,6 +402,7 @@ frontend/src/pages/SystemStatusPage.jsx
 frontend/src/pages/UpdatePage.jsx
 frontend/src/pages/UsersPage.jsx
 frontend/src/services/api.js
+frontend/src/services/archivePlaybackTimeline.js
 frontend/src/services/cameraDiscoveryState.js
 frontend/src/services/cloudWebAppLink.js
 frontend/src/services/eventSocket.js

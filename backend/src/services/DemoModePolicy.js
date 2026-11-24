@@ -6,6 +6,9 @@ const SAFE_MUTATIONS = Object.freeze([
   { method: 'POST', pattern: /^\/api\/auth\/ws-token$/ },
   { method: 'POST', pattern: /^\/api\/streams\/[^/]+\/(?:session|heartbeat|client-event)$/ },
   { method: 'POST', pattern: /^\/api\/recordings\/\d+\/token$/ },
+  // Playback session creation/release only affects ephemeral manifest memory.
+  { method: 'POST', pattern: /^\/api\/recordings\/archive\/playback$/ },
+  { method: 'DELETE', pattern: /^\/api\/recordings\/archive\/playback\/[0-9a-f-]{36}$/i },
   { method: 'POST', pattern: /^\/api\/recordings\/cameras\/[^/]+\/plans\/preview$/ },
   { method: 'POST', pattern: /^\/api\/recordings\/export\/preview$/ },
   // Authentication and admin authorization are enforced by systemRouter after this policy.

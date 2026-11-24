@@ -1467,7 +1467,7 @@ class RecordingService {
     if (!['ready', 'ready_with_gaps', 'recording'].includes(row.status)) throw new AppError(409, 'RECORDING_NOT_READY', 'Aufnahme ist noch nicht abspielbereit');
     if (!this.isBlockArchive(row)) return null;
     const segments = recordingRepository.playableSegmentsInternal(id);
-    const playlist = buildVodPlaylist(segments, (segment) => `/api/recordings/${id}/blocks/${segment.segment_index}/file?token=${encodeURIComponent(token)}`);
+    const playlist = buildVodPlaylist(segments, (segment) => `/api/recordings/${id}/blocks/${segment.segment_index}/file?token=${encodeURIComponent(token)}`, { timestampResetPerSegment: true });
     if (!playlist) throw new AppError(409, 'RECORDING_BLOCKS_MISSING', row.status === 'recording' ? 'Diese Aufnahme läuft noch; es wurde noch kein Block abgeschlossen. Bitte nach der ersten Blocklänge erneut versuchen.' : 'Keine abspielbaren Aufnahmeblöcke vorhanden');
     return playlist;
   }

@@ -28,7 +28,7 @@
 
 Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
 
-**Aktuelle Version:** `2.20.105` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+**Aktuelle Version:** `2.20.106` · **Installationsart:** Docker · **Oberflächensprachen:** 24
 
 ## Funktionen
 
@@ -197,3 +197,7 @@ Die Nutzung unterliegt den mit der Software bereitgestellten **[Lizenzbedingunge
 Der Behördenexport bleibt ein ZIP-/ZIP64-Download. Die Datei enthält ausschließlich `export.mp4`, `manifest.json` und `README.txt`. Die Original-Aufnahmeblöcke werden serverseitig zu einer MP4 mit durchgehender Medienzeitachse zusammengefügt. Video wird bei kompatiblen Blöcken ohne Neucodierung übernommen; Nicht-AAC-Audio kann in AAC umgewandelt werden. Aufnahmelücken werden im Manifest dokumentiert, nicht mit künstlichem Videomaterial gefüllt. Der erste/letzte Block kann über das gewählte Zeitfenster hinausragen. Bei inkompatiblen Aufnahmeformaten bricht der Export mit einem Hinweis ab, statt eine unvollständige MP4 auszuliefern.
 
 Ein vollständiger Kalendertag (00:00–24:00) ist weiterhin auswählbar. Die Oberfläche wartet auf die fertige MP4 und startet dann den nativen ZIP-Download mit einer einmaligen, rollenbeschränkten Freigabe. Das ZIP wird nicht zusätzlich auf dem Server gespeichert. Für die temporäre MP4 ist ausreichend freier Speicher erforderlich; nach dem Download bzw. Ablauf wird sie entfernt. SHA-256 und CRC32 beziehen sich auf die exportierte MP4. Originalaufnahmen bleiben unverändert.
+
+### Aufnahmeplayer mit durchgehender Zeitachse (2.20.106)
+
+Ein Klick auf die Tagesübersicht öffnet einen Player mit der Zeitachse des gesamten gewählten Kalendertags dieser Kamera. Vorhandene Aufnahmezeiten sind farbig markiert, Lücken bleiben sichtbar. Der Regler, die Pfeiltasten und die Sprungschaltflächen ermöglichen Vor- und Rücksprünge auch innerhalb eines Aufnahmeblocks. Beim Öffnen einer einzelnen Aufnahme steht deren gesamter abgeschlossener Zeitraum zur Verfügung; auch im lokalen mobilen Player. Eine unveränderliche HLS-Wiedergabeliste verbindet die Blöcke ohne erneute Videokodierung. Die MP4-Behördenexporte bleiben unverändert. Ein neuer Playeraufruf aktualisiert die Liste mit inzwischen abgeschlossenen Blöcken.
