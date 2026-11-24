@@ -227,7 +227,15 @@ export function writeJournal(sessionDir, payload) {
   syncDirectory(sessionDir);
 }
 
-export function buildVodPlaylist(segments, uriForSegment) {
+/**
+ * timestampResetPerSegment is required for the archive recorder's MPEG-TS
+ * files created with FFmpeg -reset_timestamps 1. HLS requires an explicit
+ * discontinuity before every following block in that mode, otherwise players
+ * may stop at the first block when DTS/PTS jump backwards.
+ *
+ * Default stays unchanged for existing continuous-timestamp HLS consumers.
+ */
+export function buildVodPlaylist(segments, uriForSegment, { timestampResetPerSegment = false } = {}) {
   const playable = segments.filter(isPlayableBlock);
   if (!playable.length) return null;
   const targetDuration = Math.max(1, Math.ceil(Math.max(...playable.map((segment) => safeNumber(segment.duration_seconds ?? segment.durationSeconds, 1)))));
@@ -241,7 +249,7 @@ export function buildVodPlaylist(segments, uriForSegment) {
   ];
   playable.forEach((segment, position) => {
     const gapSeconds = safeNumber(segment.gap_seconds ?? segment.gapSeconds);
-    if (position > 0 && (gapSeconds > 0 || segment.status === 'recovered' || segment.is_discontinuity)) lines.push('#EXT-X-DISCONTINUITY');
+    if (position > 0 && (timestampResetPerSegment || gapSeconds > 0 || segment.status === 'recovered' || segment.is_discontinuity)) lines.push('#EXT-X-DISCONTINUITY');
     lines.push(`#EXTINF:${Math.max(0.001, safeNumber(segment.duration_seconds ?? segment.durationSeconds, 1)).toFixed(3)},`);
     lines.push(uriForSegment(segment));
   });
