@@ -146,8 +146,32 @@ function endRecord(entryCount, centralSize, centralOffset, zip64EndOffset, useZi
   return Buffer.concat(parts);
 }
 
-async function writeBuffer(output, buffer) { if (!output.write(buffer)) await once(output, 'drain'); }
-async function writeFile(output, filePath) { const input = fs.createReadStream(filePath); for await (const chunk of input) await writeBuffer(output, chunk); }
+async function writeBuffer(output, buffer) {
+  if (output.destroyed || output.writableEnded) throw new Error('ZIP_DOWNLOAD_CONNECTION_CLOSED');
+  if (output.write(buffer)) return;
+  await new Promise((resolve, reject) => {
+    const cleanup = () => {
+      output.off('drain', onDrain);
+      output.off('close', onClose);
+      output.off('error', onError);
+    };
+    const onDrain = () => { cleanup(); resolve(); };
+    const onClose = () => { cleanup(); reject(new Error('ZIP_DOWNLOAD_CONNECTION_CLOSED')); };
+    const onError = (error) => { cleanup(); reject(error); };
+    output.once('drain', onDrain);
+    output.once('close', onClose);
+    output.once('error', onError);
+    if (output.destroyed) onClose();
+  });
+}
+async function writeFile(output, filePath) {
+  const input = fs.createReadStream(filePath);
+  try {
+    for await (const chunk of input) await writeBuffer(output, chunk);
+  } finally {
+    input.destroy();
+  }
+}
 
 export async function describeZipEntry(entry) {
   const nameBuffer = encodeName(entry.name);
@@ -183,4 +207,58 @@ export async function createStoredZip(entries, outputPath) {
   output.end();
   await once(output, 'finish');
   return { outputPath, entryCount: prepared.length, sizeBytes: (await fs.promises.stat(outputPath)).size, zip64: requiresZip64, entries: prepared.map((entry) => ({ name: entry.name, sizeBytes: entry.size, sha256: entry.sha256, crc32: entry.crc32.toString(16).padStart(8, '0') })) };
+}
+
+
+/**
+ * Writes a complete ZIP/ZIP64 archive directly to an HTTP writable without a
+ * temporary multi-gigabyte ZIP or a browser Blob. Entries may be provided by
+ * an async generator, so a verified manifest can be generated *after* all
+ * media-entry SHA-256 and CRC32 values have been collected.
+ *
+ * File content is read in bounded stream chunks. The writer intentionally
+ * keeps only the ZIP central-directory headers in memory.
+ */
+export async function writeStoredZipStream(entries, output, { signal } = {}) {
+  const central = [];
+  let bytes = 0;
+  let count = 0;
+  let requiresZip64 = false;
+  for await (const candidate of entries) {
+    if (signal?.aborted) throw new Error('ZIP_DOWNLOAD_CONNECTION_CLOSED');
+    const entry = candidate.nameBuffer ? candidate : await describeZipEntry(candidate);
+    const offset = bytes;
+    if (needsZip64(entry.size) || needsZip64(offset)) requiresZip64 = true;
+    const local = localHeader(entry.nameBuffer, entry);
+    await writeBuffer(output, local);
+    bytes += local.length;
+    if (entry.kind === 'buffer') {
+      await writeBuffer(output, entry.buffer);
+      bytes += entry.buffer.length;
+    } else {
+      await writeFile(output, entry.filePath);
+      bytes += entry.size;
+    }
+    central.push(centralHeader(entry.nameBuffer, entry, offset));
+    count += 1;
+    candidate.onWritten?.({
+      name: entry.name,
+      size: entry.size,
+      sha256: entry.sha256,
+      crc32: entry.crc32,
+    });
+  }
+  const centralOffset = bytes;
+  let centralSize = 0;
+  for (const header of central) {
+    await writeBuffer(output, header);
+    centralSize += header.length;
+  }
+  if (needsZip64(centralOffset) || needsZip64(centralSize) || count > MAX_U16) requiresZip64 = true;
+  const footer = endRecord(count, centralSize, centralOffset,
+    centralOffset + centralSize, requiresZip64);
+  await writeBuffer(output, footer);
+  output.end();
+  await once(output, 'finish');
+  return { sizeBytes: centralOffset + centralSize + footer.length, entryCount: count, zip64: requiresZip64 };
 }
