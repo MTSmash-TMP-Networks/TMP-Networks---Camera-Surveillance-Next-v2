@@ -39,6 +39,8 @@ export class EvidenceDownloadTickets {
     });
     return {
       downloadUrl: `/api/recordings/export/download/${id}?token=${encodeURIComponent(token)}`,
+      filename: 'TMP_Behoerdenexport_' + input.date + '_' +
+        input.startTime.replace(':', '') + '-' + input.endTime.replace(':', '') + '.zip',
       expiresInSeconds: 300,
     };
   }
