@@ -171,7 +171,14 @@ export function MobileRecordingsPage() {
     setBusy(true); setError('');
     try {
       const token = await api.recordingToken(recording.id);
-      setPlaying({ ...recording, url: token.url, format: token.format || 'file' });
+      if (token.format === 'hls') {
+        const playback = await api.recordingArchivePlayback({ recordingId: recording.id });
+        if (playing?.sessionId) void api.releaseRecordingArchivePlayback(playing.sessionId).catch(() => {});
+        setPlaying({ ...recording, ...playback, startedAt: playback.timeline.startIso });
+      } else {
+        if (playing?.sessionId) void api.releaseRecordingArchivePlayback(playing.sessionId).catch(() => {});
+        setPlaying({ ...recording, url: token.url, format: token.format || 'file' });
+      }
     } catch (reason) { setError(reason.message || t('mobile.loadFailed')); }
     finally { setBusy(false); }
   }
@@ -203,7 +210,7 @@ export function MobileRecordingsPage() {
       </div>}
     {playing && <div className="mobile-recording-modal" role="dialog" aria-modal="true" aria-label={t('mobile.recordings.playback')}>
       <div className="mobile-recording-modal-head"><strong>{cameraNames[playing.cameraId] || t('mobile.recordings.playback')}</strong>
-        <button type="button" onClick={() => setPlaying(null)} aria-label={t('mobile.close')}><X size={22}/></button></div>
+        <button type="button" onClick={() => { if (playing?.sessionId) void api.releaseRecordingArchivePlayback(playing.sessionId).catch(() => {}); setPlaying(null); }} aria-label={t('mobile.close')}><X size={22}/></button></div>
       <RecordingArchivePlayer source={playing}/>
     </div>}
   </section>;

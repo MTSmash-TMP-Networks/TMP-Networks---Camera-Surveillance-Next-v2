@@ -153,17 +153,6 @@ function timelineClickIso(event, interval) {
   const ratio = clamp((Number(event.clientX) - rect.left) / rect.width, 0, 1);
   return new Date(startMs + ((endMs - startMs) * ratio)).toISOString();
 }
-function mediaOffsetForBlock(block, clickedMs) {
-  const startMs = Date.parse(block?.startIso || '');
-  const endMs = Date.parse(block?.endIso || '');
-  const mediaStart = Math.max(0, Number(block?.mediaStartSeconds || 0));
-  const mediaEnd = Math.max(mediaStart, Number(block?.mediaEndSeconds ?? mediaStart));
-  if (!Number.isFinite(clickedMs) || !Number.isFinite(startMs) || clickedMs <= startMs) return mediaStart;
-  if (!Number.isFinite(endMs) || endMs <= startMs) return mediaStart;
-  const ratio = clamp((Math.min(clickedMs, endMs) - startMs) / (endMs - startMs), 0, 1);
-  return mediaStart + ((mediaEnd - mediaStart) * ratio);
-}
-
 export function RecordingsPage() {
   const { t, locale } = useI18n();
   const dispatch = useDispatch();
@@ -190,7 +179,8 @@ export function RecordingsPage() {
   const [archiveTimeline, setArchiveTimeline] = useState(null);
   const [timelineHint, setTimelineHint] = useState('');
   const timelineOpenTimer = useRef(null);
-  const playbackAdvanceRef = useRef(false);
+  const playbackRequestRef = useRef(0);
+  const playingRef = useRef(null);
   const [exportBusy, setExportBusy] = useState(false);
   const [busy, setBusy] = useState(false);
   const [applyGlobalRetention, setApplyGlobalRetention] = useState(false);
@@ -236,60 +226,35 @@ export function RecordingsPage() {
     return loadExportTimeline();
   }
 
+  function releasePlayback(source) {
+    if (source?.sessionId) void api.releaseRecordingArchivePlayback(source.sessionId).catch(() => {});
+  }
+  function showPlayback(source, requestId) {
+    if (requestId !== playbackRequestRef.current) { releasePlayback(source); return; }
+    releasePlayback(playingRef.current);
+    playingRef.current = source;
+    setPlaying(source);
+  }
+  function closePlayback() {
+    playbackRequestRef.current++;
+    releasePlayback(playingRef.current);
+    playingRef.current = null;
+    setPlaying(null);
+  }
+
   async function openTimelineInterval(entry, interval, clickedAtIso = interval?.startIso) {
+    const requestId = ++playbackRequestRef.current;
     setError('');
     setTimelineHint('');
-    if (entry?.camera?.id) setCameraId(entry.camera.id);
-    const clickedMs = Date.parse(clickedAtIso || interval?.startIso || '');
-    const playbackBlocks = Array.isArray(entry?.playbackBlocks)
-      ? [...entry.playbackBlocks]
-        .filter((block) => Number.isFinite(Date.parse(block?.startIso || '')) && Number.isFinite(Date.parse(block?.endIso || '')))
-        .sort((left, right) => Date.parse(left.startIso) - Date.parse(right.startIso))
-      : [];
-    const futureBlocks = playbackBlocks.filter((block) => Date.parse(block.endIso) > clickedMs);
-    const firstBlock = futureBlocks[0] || null;
-    const queue = [];
-    const seen = new Set();
-    for (const block of futureBlocks) {
-      const key = String(block.recordingId);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      queue.push({ id: block.recordingId, startedAt: block.startIso });
-    }
-    if (!queue.length) {
-      const intervalIndex = Math.max(0, (entry?.intervals || []).findIndex((candidate) => candidate === interval || candidate.startIso === interval?.startIso));
-      for (const candidate of (entry?.intervals || []).slice(intervalIndex)) {
-        for (const id of (Array.isArray(candidate?.recordingIds) ? candidate.recordingIds : [])) {
-          const key = String(id);
-          if (seen.has(key)) continue;
-          seen.add(key);
-          queue.push({ id, startedAt: candidate.startIso });
-        }
-      }
-    }
-    const targetId = queue[0]?.id;
-    if (!targetId) {
-      setTimelineHint(t('recordings.timeline.noPlayableRange'));
-      return;
-    }
-    const localRecording = [...active, ...items].find((item) => String(item.id) === String(targetId));
-    const startOffsetSeconds = firstBlock ? mediaOffsetForBlock(firstBlock, clickedMs) : 0;
+    if (!entry?.camera?.id) return;
+    setCameraId(entry.camera.id);
     try {
-      const token = await api.recordingToken(targetId);
-      setPlaying({
-        ...(localRecording || {}),
-        id: targetId,
-        cameraId: entry.camera.id,
-        startedAt: clickedAtIso || firstBlock?.startIso || interval.startIso,
-        endedAt: interval.endIso,
-        url: token.url,
-        format: token.format || 'file',
-        startOffsetSeconds,
-        playbackQueue: queue,
-        playbackIndex: 0,
-        playbackSessionId: `${Date.now()}-${Math.random()}`,
-      });
-    } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
+      const playback = await api.recordingArchivePlayback({ cameraId: entry.camera.id, date: archiveDate, timezone: localTimezone() });
+      showPlayback({ ...playback, cameraId: entry.camera.id, cameraName: entry.camera.name,
+        startedAt: playback.timeline.startIso, initialWallIso: clickedAtIso || interval.startIso }, requestId);
+    } catch (e) {
+      if (requestId === playbackRequestRef.current) setTimelineHint(recordingErrorMessage(e, { t, locale }));
+    }
   }
 
   function queueTimelineOpen(entry, interval, clickedAtIso) {
@@ -300,41 +265,12 @@ export function RecordingsPage() {
     }, 220);
   }
 
-  async function advanceTimelinePlayback() {
-    if (playbackAdvanceRef.current || !playing?.playbackQueue?.length) return;
-    const nextIndex = Number(playing.playbackIndex || 0) + 1;
-    const nextItem = playing.playbackQueue[nextIndex];
-    if (!nextItem) return;
-    const sessionId = playing.playbackSessionId;
-    playbackAdvanceRef.current = true;
-    try {
-      const token = await api.recordingToken(nextItem.id);
-      const localRecording = [...active, ...items].find((item) => String(item.id) === String(nextItem.id));
-      setPlaying((current) => {
-        if (!current || current.playbackSessionId !== sessionId) return current;
-        return {
-          ...(localRecording || {}),
-          id: nextItem.id,
-          cameraId: current.cameraId,
-          startedAt: nextItem.startedAt || localRecording?.startedAt || current.startedAt,
-          url: token.url,
-          format: token.format || 'file',
-          startOffsetSeconds: 0,
-          playbackQueue: current.playbackQueue,
-          playbackIndex: nextIndex,
-          playbackSessionId: current.playbackSessionId,
-        };
-      });
-    } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
-    finally { playbackAdvanceRef.current = false; }
-  }
-
   function selectTimelineForExport(entry, interval) {
     if (timelineOpenTimer.current) {
       clearTimeout(timelineOpenTimer.current);
       timelineOpenTimer.current = null;
     }
-    setPlaying(null);
+    closePlayback();
     updateExportForm({ cameraId: entry.camera.id, date: archiveDate, startTime: interval.startTime, endTime: interval.endTime });
     setTab('export');
   }
@@ -364,7 +300,12 @@ export function RecordingsPage() {
     } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
   }
 
-  useEffect(() => () => { if (timelineOpenTimer.current) clearTimeout(timelineOpenTimer.current); }, []);
+  useEffect(() => () => {
+    if (timelineOpenTimer.current) clearTimeout(timelineOpenTimer.current);
+    playbackRequestRef.current++;
+    if (playingRef.current?.sessionId) void api.releaseRecordingArchivePlayback(playingRef.current.sessionId).catch(() => {});
+    playingRef.current = null;
+  }, []);
   useEffect(() => { dispatch(loadCameras()); }, [dispatch]);
   useEffect(() => {
     if (!cameras.length) return;
@@ -400,11 +341,22 @@ export function RecordingsPage() {
     setBusy(true); try { await api.deleteRecording(recording.id); await loadArchive(); } catch (e) { setError(recordingErrorMessage(e, { t, locale })); } finally { setBusy(false); }
   }
   async function open(recording, download = false) {
+    const requestId = download ? null : ++playbackRequestRef.current;
     try {
-      const token = await api.recordingToken(recording.id);
-      if (download) window.location.assign(token.downloadUrl);
-      else setPlaying({ ...recording, url: token.url, format: token.format || 'file' });
-    } catch (e) { setError(recordingErrorMessage(e, { t, locale })); }
+      if (!download && recording.archiveFormat === 'block_archive_v1') {
+        const playback = await api.recordingArchivePlayback({ recordingId: recording.id });
+        showPlayback({ ...recording, ...playback, cameraName: cameraNames[recording.cameraId],
+          startedAt: playback.timeline.startIso }, requestId);
+      } else {
+        const token = await api.recordingToken(recording.id);
+        if (download) window.location.assign(token.downloadUrl);
+        else if (token.format === 'hls') {
+          const playback = await api.recordingArchivePlayback({ recordingId: recording.id });
+          showPlayback({ ...recording, ...playback, cameraName: cameraNames[recording.cameraId],
+            startedAt: playback.timeline.startIso }, requestId);
+        } else showPlayback({ ...recording, url: token.url, format: token.format || 'file' }, requestId);
+      }
+    } catch (e) { if (download || requestId === playbackRequestRef.current) setError(recordingErrorMessage(e, { t, locale })); }
   }
   async function savePlanning() {
     const validationErrors = validateRecordingPlans(plans, { prebufferMaxSeconds: capabilities?.recordingPrebufferMaxSeconds || 10, t });
@@ -638,6 +590,6 @@ export function RecordingsPage() {
 
     {tab === 'storage' && <RecordingStorageSettings canConfigure={user?.role === 'admin'}/>}
 
-    {playing && <div className="video-modal" role="dialog" aria-modal="true"><div className="video-modal-card"><header><div><strong>{cameraNames[playing.cameraId] || t('live.recording')}</strong><small>{dateTime(playing.startedAt, locale, t)}{playing.playbackQueue?.length > 1 ? ` · ${Number(playing.playbackIndex || 0) + 1}/${playing.playbackQueue.length}` : ''}</small></div><button onClick={() => setPlaying(null)} aria-label={t('recordings.modal.close')}><X/></button></header><RecordingArchivePlayer source={playing} onEnded={advanceTimelinePlayback}/></div></div>}
+    {playing && <div className="video-modal" role="dialog" aria-modal="true"><div className="video-modal-card"><header><div><strong>{cameraNames[playing.cameraId] || t('live.recording')}</strong><small>{dateTime(playing.startedAt, locale, t)}</small></div><button onClick={closePlayback} aria-label={t('recordings.modal.close')}><X/></button></header><RecordingArchivePlayer source={playing}/></div></div>}
   </div>;
 }
