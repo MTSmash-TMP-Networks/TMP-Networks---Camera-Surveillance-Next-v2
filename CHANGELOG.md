@@ -1,3 +1,13 @@
+## 2.20.102 – Ganztägiger Behördenexport ohne temporäres Riesen-ZIP
+
+- Behördenexport wurde für große Tagesarchive auf direktes ZIP-/ZIP64-Streaming umgestellt. Der Backend-Server legt nicht mehr das komplette Archiv als Zwischenkopie in data/recordings/_exports ab.
+- Der Browser lädt Dateien nativ statt den vollständigen Download zunächst als JavaScript-Blob im Speicher zu sammeln.
+- Einmalige, kurzlebige und benutzergebundene Exportfreigaben mit Rollen-/Widerrufsprüfung schützen den neuen GET-Downloadweg; maximal zwei parallele Transfers.
+- Unveränderte Original-Aufnahmeblöcke; manifest.json, Wiedergabeplaylist und Einzelsegment-Prüfsummen (SHA-256/CRC32) bleiben enthalten.
+- Ganzer Tag: 00:00 bis 24:00 (exklusiv) mit Behandlung von Sommer-/Winterzeitumstellung; kein Verlust der letzten Minute.
+- Tests für ZIP-Integrität, Streaming und Export-Browservertrag ergänzt.
+- Live-AAC, Kameraaufnahmen, Kiosk, Datenbank, Benutzer und die private PHP-WebApp 3.1.3 bleiben unverändert.
+
 ## 2.20.101 – Bereinigtes Projekt-README und einheitliche Versionshistorie
 
 - README vollständig auf Deutsch überarbeitet: zentriertes originales Produktlogo, Produktübersicht, Funktionen, Schnellstart, Installationshinweise, Betrieb, Sicherheit und Dokumentation.
