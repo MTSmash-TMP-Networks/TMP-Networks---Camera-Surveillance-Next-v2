@@ -165,7 +165,7 @@ c07cd330548ff2ef20832668315705b2d7ab8e8652619c497eab7d016f417d0f  backend/test-n
 f8b7481e96fb2015ba98b876b9ae41b6eb626cf0b48c804baf88ef746b442d5d  backend/test-node/camera-thumbnail-cache.test.mjs
 79540812240cac61dc31feb25abeb807e87a75656d1b698b140fac0743e5daf2  backend/test-node/cloud-archive-hls-cache.test.mjs
 8e867797fceb4b2b9c41f0900cb251a169824a41693df50e924df73a546ac859  backend/test-node/cloud-live-audio.test.mjs
-70cd40977b17053bff44d1b70de9fb31c4ff084e794492b918a9d1e19f0caaf1  backend/test-node/cloud-recording-clip.test.mjs
+c74e33a3cb1e8c2cb27fe79da7daaf12df7f21377795faa9b87584bec2a801ec  backend/test-node/cloud-recording-clip.test.mjs
 e5c840224489b8c0ad4eb962e070f4f0b60f62f55abd73cc29671b512583e536  backend/test-node/cloud-recording-download.test.mjs
 fcbd7e170aaeaeba1e41cc5e241dd3caf8d5402c7b8be41047ad84a4b943305f  backend/test-node/container-status-branding.test.mjs
 a525788b3acf4c812a59d9ebb9a281d15064d9c13840f8364647d63bd71617d0  backend/test-node/demo-mode-regression.test.mjs
