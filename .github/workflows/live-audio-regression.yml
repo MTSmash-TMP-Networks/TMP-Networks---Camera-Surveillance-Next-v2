@@ -46,6 +46,10 @@ jobs:
         env:
           REQUIRE_FFMPEG: '1'
         run: node --test backend/test-node/evidence-mp4-export.test.mjs
+      - name: Verify day-wide archive HLS and wall-clock seeking across sessions
+        env:
+          REQUIRE_FFMPEG: '1'
+        run: node --test backend/test-node/archive-global-timeline.test.mjs
       - name: Verify recording command stays stable
         run: npm test --prefix backend -- test/recording-command.test.js
       - name: Verify one visible Live player when toggling audio

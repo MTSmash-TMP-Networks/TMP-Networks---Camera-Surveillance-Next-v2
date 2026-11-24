@@ -18,7 +18,6 @@ export function RecordingArchivePlayer({ source, onEnded }) {
   const [draftMs, setDraftMs] = useState(null);
   const [gap, setGap] = useState(false);
   const dragRef = useRef(false);
-  const draftRef = useRef(null);
   const pendingSeekRef = useRef(null);
   const skipRef = useRef(null);
   const model = useMemo(() => normalizeArchiveTimeline(source?.timeline), [source?.timeline]);
@@ -58,6 +57,7 @@ export function RecordingArchivePlayer({ source, onEnded }) {
       setVideoTime(position.skipTo);
     } else if (!Number.isFinite(position.skipTo)) skipRef.current = null;
     setWallMs(position.wallMs);
+    if (!video.paused) setGap(false);
   }
 
   function finishDrag(event) {
@@ -65,7 +65,6 @@ export function RecordingArchivePlayer({ source, onEnded }) {
     dragRef.current = false;
     const target = model.startMs + Number(event.currentTarget.value) * 1000;
     setDraftMs(null);
-    draftRef.current = null;
     seekWall(target);
   }
 
@@ -77,7 +76,6 @@ export function RecordingArchivePlayer({ source, onEnded }) {
     setDraftMs(null);
     setGap(Boolean(initial?.gap));
     dragRef.current = false;
-    draftRef.current = null;
     skipRef.current = null;
     let hls = null;
     let cancelled = false;
@@ -177,10 +175,10 @@ export function RecordingArchivePlayer({ source, onEnded }) {
           aria-valuetext={formatTime(displayMs, true)}
           onPointerDown={() => { dragRef.current = true; }}
           onPointerUp={finishDrag}
-          onPointerCancel={() => { dragRef.current = false; draftRef.current = null; setDraftMs(null); }}
+          onPointerCancel={() => { dragRef.current = false; setDraftMs(null); }}
           onChange={(event) => {
             const target = model.startMs + Number(event.currentTarget.value) * 1000;
-            if (dragRef.current) { draftRef.current = target; setDraftMs(target); }
+            if (dragRef.current) { setDraftMs(target); }
             else seekWall(target);
           }}/>
       </div>

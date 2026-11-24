@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Camera, ChevronRight, CircleAlert, CircleCheck, Download, LogOut, Monitor, Play, RefreshCw, Search, ShieldCheck, Video, WifiOff, X } from 'lucide-react';
@@ -144,6 +144,19 @@ export function MobileRecordingsPage() {
   const [recordings, setRecordings] = useState([]);
   const [active, setActive] = useState([]);
   const [playing, setPlaying] = useState(null);
+  const playbackRef = useRef(null);
+  const playbackRequestRef = useRef(0);
+  useEffect(() => () => {
+    playbackRequestRef.current++;
+    if (playbackRef.current?.sessionId) void api.releaseRecordingArchivePlayback(playbackRef.current.sessionId).catch(() => {});
+    playbackRef.current = null;
+  }, []);
+  function closePlayback() {
+    playbackRequestRef.current++;
+    if (playbackRef.current?.sessionId) void api.releaseRecordingArchivePlayback(playbackRef.current.sessionId).catch(() => {});
+    playbackRef.current = null;
+    setPlaying(null);
+  }
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -168,17 +181,22 @@ export function MobileRecordingsPage() {
   }, [selectedCamera, t]);
 
   async function open(recording) {
+    const requestId = ++playbackRequestRef.current;
     setBusy(true); setError('');
     try {
       const token = await api.recordingToken(recording.id);
+      let source;
       if (token.format === 'hls') {
         const playback = await api.recordingArchivePlayback({ recordingId: recording.id });
-        if (playing?.sessionId) void api.releaseRecordingArchivePlayback(playing.sessionId).catch(() => {});
-        setPlaying({ ...recording, ...playback, startedAt: playback.timeline.startIso });
-      } else {
-        if (playing?.sessionId) void api.releaseRecordingArchivePlayback(playing.sessionId).catch(() => {});
-        setPlaying({ ...recording, url: token.url, format: token.format || 'file' });
+        source = { ...recording, ...playback, startedAt: playback.timeline.startIso };
+      } else source = { ...recording, url: token.url, format: token.format || 'file' };
+      if (requestId !== playbackRequestRef.current) {
+        if (source.sessionId) void api.releaseRecordingArchivePlayback(source.sessionId).catch(() => {});
+        return;
       }
+      if (playbackRef.current?.sessionId) void api.releaseRecordingArchivePlayback(playbackRef.current.sessionId).catch(() => {});
+      playbackRef.current = source;
+      setPlaying(source);
     } catch (reason) { setError(reason.message || t('mobile.loadFailed')); }
     finally { setBusy(false); }
   }
@@ -210,7 +228,7 @@ export function MobileRecordingsPage() {
       </div>}
     {playing && <div className="mobile-recording-modal" role="dialog" aria-modal="true" aria-label={t('mobile.recordings.playback')}>
       <div className="mobile-recording-modal-head"><strong>{cameraNames[playing.cameraId] || t('mobile.recordings.playback')}</strong>
-        <button type="button" onClick={() => { if (playing?.sessionId) void api.releaseRecordingArchivePlayback(playing.sessionId).catch(() => {}); setPlaying(null); }} aria-label={t('mobile.close')}><X size={22}/></button></div>
+        <button type="button" onClick={closePlayback} aria-label={t('mobile.close')}><X size={22}/></button></div>
       <RecordingArchivePlayer source={playing}/>
     </div>}
   </section>;
