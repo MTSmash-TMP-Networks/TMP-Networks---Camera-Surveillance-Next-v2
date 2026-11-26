@@ -129,6 +129,7 @@ backend/src/services/recording/MotionDetectionAlgorithm.js
 backend/src/services/recording/MotionDetectionService.js
 backend/src/services/recording/MotionLocalSegmentSource.js
 backend/src/services/recording/MotionZone.js
+backend/src/services/recording/NetworkUploadPolicy.js
 backend/src/services/recording/RecordingCommand.js
 backend/src/services/recording/RecordingCompressionCommand.js
 backend/src/services/recording/RecordingCompressionService.js

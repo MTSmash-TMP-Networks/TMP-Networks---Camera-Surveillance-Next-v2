@@ -11,6 +11,8 @@ import { config } from '../config.js';
 import { encryptSecret, decryptSecret } from './credentialVault.js';
 import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
+import { isRecordingStoragePath } from './recording/RecordingStoragePaths.js';
+import { networkUploadPolicy, selectNetworkUploadCandidates, claimNetworkUpload, runNetworkUploadBatch } from './recording/NetworkUploadPolicy.js';
 
 const execFile = promisify(execFileCallback);
 const SETTINGS_KEY = 'recording_storage_mode_v2';
@@ -501,6 +503,34 @@ function purgeUnusedProfiles() {
     WHERE active=0 AND id NOT IN (SELECT DISTINCT storage_profile_id FROM recording_segments WHERE storage_profile_id IS NOT NULL)`).run();
 }
 
+function safeUploadSource(segment) {
+  const source = path.resolve(segment.file_path || '');
+  // A failed or interrupted compression may still own the last good copy.
+  // Do not transfer/delete it until compression recovery has resolved this.
+  if (!isRecordingStoragePath(source, { allowRoot: false }) ||
+      fs.existsSync(source + '.compression-backup') || fs.existsSync(source + '.compressing')) return false;
+  try {
+    const stat = fs.lstatSync(source);
+    return stat.isFile() && isRecordingStoragePath(fs.realpathSync(source), { allowRoot: false });
+  } catch (error) {
+    // Missing local source may be a recoverable, already completed upload.
+    return error?.code === 'ENOENT';
+  }
+}
+
+function uploadPolicy() {
+  let freeBytes = Infinity;
+  try {
+    const stats = fs.statfsSync(config.recordingsDir);
+    freeBytes = Number(stats.bavail) * Number(stats.bsize);
+  } catch { /* age and backlog still guarantee forward progress */ }
+  const pending = db.prepare("SELECT COALESCE(SUM(size_bytes),0) AS bytes FROM recording_segments WHERE storage_state IN ('pending','uploading','upload_failed') AND status IN ('ready','recovered') AND storage_profile_id IS NOT NULL").get();
+  return networkUploadPolicy({
+    freeBytes, pendingBytes: Number(pending?.bytes || 0),
+    minimumFreeBytes: config.recordingMinFreeBytes, compressionEnabled: config.recordingCompressionEnabled,
+  });
+}
+
 function counts() {
   const out = { local: 0, pending: 0, uploading: 0, remote: 0, upload_failed: 0 };
   for (const row of db.prepare('SELECT storage_state,COUNT(*) AS count FROM recording_segments GROUP BY storage_state').all()) {
@@ -573,6 +603,7 @@ export class NetworkRecordingStorageService {
     this.lastTransferAt = null;
     this.lastReconcileAt = null;
     this.lastReconcile = null;
+    this.lastUploadPressure = null;
   }
 
   settings() {
@@ -585,6 +616,7 @@ export class NetworkRecordingStorageService {
         localSpool: config.recordingsDir,
         cacheDir: CACHE_DIR,
         cacheMaxBytes: CACHE_MAX_BYTES,
+        uploadPressure: this.lastUploadPressure,
         lastError: this.lastError,
         lastTransferAt: this.lastTransferAt,
         lastReconcileAt: this.lastReconcileAt,
@@ -681,6 +713,9 @@ export class NetworkRecordingStorageService {
       ORDER BY id ASC LIMIT ?`).all(Math.max(1, Math.min(100000, Number(limit) || 2000)));
     for (const segment of rows) {
       summary.examined += 1;
+      if (!safeUploadSource(segment)) continue;
+      const compression = db.prepare('SELECT status FROM recording_compression_jobs WHERE recording_id=? AND segment_index=?').get(segment.recording_id, segment.segment_index);
+      if (compression?.status === 'processing') continue;
       const profile = profileRow(segment.storage_profile_id);
       if (!profile) continue;
       const localPath = path.resolve(segment.file_path || '');
@@ -752,25 +787,23 @@ export class NetworkRecordingStorageService {
     this.running = true;
     try {
       purgeUnusedProfiles();
-      const rows = db.prepare(`SELECT s.* FROM recording_segments s
-        JOIN recordings r ON r.id=s.recording_id
-        LEFT JOIN recording_compression_jobs c ON c.recording_id=s.recording_id AND c.segment_index=s.segment_index
-        WHERE s.storage_profile_id IS NOT NULL AND s.remote_path IS NOT NULL
-          AND s.storage_state IN ('pending','uploading','upload_failed')
-          AND s.status IN ('ready','recovered')
-          AND r.status IN ('recording','ready','ready_with_gaps')
-          AND (
-            ?=0
-            OR c.status IN ('completed','skipped','failed')
-          )
-        ORDER BY s.id ASC LIMIT 6`).all(
-          config.recordingCompressionEnabled ? 1 : 0,
-        );
-      for (const segment of rows) await this.uploadSegment(segment);
+      const policy = uploadPolicy();
+      if (policy.pressure !== this.lastUploadPressure) {
+        logger.info({ pressure: policy.pressure, concurrency: policy.concurrency },
+          'Netzwerk-Aufnahmeupload: adaptive Archivierungsprioritaet');
+        this.lastUploadPressure = policy.pressure;
+      }
+      const rows = selectNetworkUploadCandidates(db, policy);
+      await runNetworkUploadBatch(rows, policy.concurrency, (segment) => this.uploadSegment(segment, policy));
     } finally { this.running = false; }
   }
 
-  async uploadSegment(segment) {
+  async uploadSegment(segment, policy = uploadPolicy()) {
+    // Refresh the selection: compression may have claimed a queued row while
+    // another upload was awaiting the network. Never use a stale row.
+    const claimed = claimNetworkUpload(db, segment.id, policy, safeUploadSource);
+    if (!claimed) return false;
+    segment = claimed;
     const profile = profileRow(segment.storage_profile_id);
     if (!profile) {
       db.prepare("UPDATE recording_segments SET storage_state='upload_failed',storage_error='NETWORK_STORAGE_PROFILE_MISSING' WHERE id=?").run(segment.id);
@@ -778,8 +811,15 @@ export class NetworkRecordingStorageService {
       return false;
     }
     const localPath = path.resolve(segment.file_path || '');
-    const localExists = Boolean(localPath && fs.existsSync(localPath));
-    const expectedBytes = Number(localExists ? fs.statSync(localPath).size : (segment.size_bytes || 0));
+    let localExists, expectedBytes;
+    try {
+      localExists = Boolean(localPath && fs.existsSync(localPath));
+      expectedBytes = Number(localExists ? fs.statSync(localPath).size : (segment.size_bytes || 0));
+    } catch (error) {
+      db.prepare("UPDATE recording_segments SET storage_state='upload_failed',storage_error='NETWORK_STORAGE_LOCAL_FILE_MISSING' WHERE id=?").run(segment.id);
+      this.lastError = 'NETWORK_STORAGE_LOCAL_FILE_MISSING';
+      return false;
+    }
     if (!localExists) {
       try {
         await verifyRemoteFile(profile, segment.remote_path, expectedBytes);
@@ -794,7 +834,6 @@ export class NetworkRecordingStorageService {
         return false;
       }
     }
-    db.prepare("UPDATE recording_segments SET storage_state='uploading',storage_error=NULL WHERE id=?").run(segment.id);
     try {
       let verifiedBytes = null;
       if (segment.storage_state === 'uploading') {
