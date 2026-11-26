@@ -7,7 +7,7 @@ const SNAPSHOT_TTL_MS = 30 * 60 * 1000;
 const SCAN_LIMIT = 200000;
 const fail = (code = 'SMB_INVENTORY_INVALID') => new AppError(422, code, 'SMB-Archivbestand konnte nicht sicher verarbeitet werden.');
 const key = value => String(value || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').normalize('NFC').toLowerCase();
-const allowedPath = value => typeof value === 'string' && !!value && value.split('/').every(part => part && part !== '.' && part !== '..' && !/[\x00-\x1f\x7f\\:*?"<>|;]/.test(part));
+const allowedPath = value => typeof value === 'string' && !!value && value.split('/').every(part => part && part !== '.' && part !== '..' && !/[. ]$/.test(part) && !/[\x00-\x1f\x7f\\:*?"<>|;]/.test(part));
 export function archiveRoot(value) {
   const root = String(value || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
   if (!allowedPath(root)) throw fail('SMB_INVENTORY_UNSAFE_ROOT');
@@ -142,6 +142,7 @@ export class SmbArchiveInventory {
       // requests and no download of recording contents.
       const output = await this.runSmb(profile, 'recurse; ls "' + smbPath(job.root) + '\\*"', { timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
       this.current(job.profileId);
+      if (/NT_STATUS_|ERRDOS|ERRSRV|ERRHRD/i.test(String(output.stderr || ''))) throw fail();
       const listing = parseSmbArchiveListing(output.stdout, job.root);
       job.result = classifyArchiveListing(listing, job.root, dbState(this.db), this.now());
       job.completedAt = new Date(this.now()).toISOString();
@@ -184,6 +185,7 @@ export class SmbArchiveInventory {
           this.verifyCandidate(job, entry);
           const parent = entry.path.slice(0,entry.path.lastIndexOf('/'));
           const check = await this.runSmb(profile, 'ls "' + smbPath(entry.path) + '"');
+          if (/NT_STATUS_|ERRDOS|ERRSRV|ERRHRD/i.test(String(check.stderr || ''))) throw fail();
           const listed = parseSmbArchiveListing(check.stdout, parent).entries;
           if (listed.length !== 1 || listed[0].path !== entry.path || listed[0].attributes !== entry.attributes ||
               listed[0].bytes !== entry.bytes || listed[0].mtime !== entry.mtime) { job.progress.skipped++; continue; }
