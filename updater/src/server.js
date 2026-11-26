@@ -245,6 +245,7 @@ async function initializeUpdater() {
     await ensureDirectories();
     await recoverAfterSelfRestart();
     await recoverStaleFinishingStatus();
+    await runBackupRetention('startup');
     const issues = runtimeIssues();
     startupState = {
       status: issues.length ? 'degraded' : 'ok',
@@ -1126,6 +1127,21 @@ function isPermissionError(error) {
 }
 
 
+async function runBackupRetention(mode) {
+  try {
+    const script = path.join(PROJECT_DIR, 'scripts', 'update-backup-cleanup.mjs');
+    if (!fs.existsSync(script)) return;
+    const result = await execute(process.execPath, [script, '--' + mode], {
+      cwd: PROJECT_DIR, env: { DATA_DIR }, timeoutMs: 5 * 60_000,
+    });
+    const summary = result.stdout.trim();
+    if (summary) await appendStatusLog(summary);
+    log('info', 'Update-Backup-Bereinigung abgeschlossen', { mode, summary });
+  } catch (error) {
+    log('warn', 'Update-Backup-Bereinigung fehlgeschlagen; Betrieb wird fortgesetzt', { mode, error });
+  }
+}
+
 async function runDockerCacheCleanup(reason = 'update') {
   if (!DOCKER_CACHE_CLEANUP_ENABLED) {
     await appendStatusLog(`Docker-Cache-Bereinigung ist deaktiviert (${reason})`);
@@ -1137,7 +1153,7 @@ async function runDockerCacheCleanup(reason = 'update') {
     return;
   }
   try {
-    const result = await execute('sh', [cleanupScript, reason], { cwd: PROJECT_DIR, timeoutMs: 15 * 60_000 });
+    const result = await execute('sh', [cleanupScript, reason], { cwd: PROJECT_DIR, timeoutMs: 15 * 60_000, env: { TMP_CAMERA_BACKUP_RETENTION_HANDLED: '1' } });
     const summary = String(result.stdout || '').trim().split(/\r?\n/).filter(Boolean).slice(-2).join(' | ');
     await appendStatusLog(summary ? `Docker-Speicherbereinigung: ${summary}` : `Docker-Speicherbereinigung abgeschlossen (${reason})`);
   } catch (error) {
@@ -1277,6 +1293,7 @@ async function performInstall(input) {
     const runningServices = (await compose(['ps', '--services', '--status', 'running'], context, { timeoutMs: 60_000 })).stdout.split(/\r?\n/).filter(Boolean);
     await updateStatus({ phase: 'cleanup', progress: 16, message: 'Alter Docker-Build-Cache wird bereinigt' });
     await runDockerCacheCleanup('pre-update-build');
+    await runBackupRetention('before-update');
     await appendStatusLog('Backup-Speicher wird geprueft und Sicherung wird vorbereitet');
     backup = await createBackup(context, inspected.installedVersion);
     await updateStatus({ backupId: backup.id, phase: 'installing', progress: 28, message: 'Neue Programmdateien werden installiert' });
@@ -1315,6 +1332,7 @@ async function performInstall(input) {
     const versionAfterInstall = currentVersion();
     if (versionAfterInstall !== inspected.version) throw new Error(`Installierte VERSION ist ${versionAfterInstall}, erwartet wurde ${inspected.version}`);
     await updateStatus({ phase: 'cleanup', progress: 99, message: 'Nicht mehr benötigte Docker-Images und Build-Caches werden entfernt' });
+    await runBackupRetention('post-update');
     await runDockerCacheCleanup('post-update');
     await appendHistory({ id: crypto.randomUUID(), packageId: input.packageId, fromVersion: inspected.installedVersion, toVersion: inspected.version, status: 'installed', backupId: backup.id, startedAt, completedAt: new Date().toISOString(), installedBy: input.installedBy || null });
     const updaterLog = newUpdaterImage
@@ -1416,10 +1434,25 @@ async function performSystemRestart(input) {
 async function performRollback(input) {
   const startedAt = new Date().toISOString();
   try {
-    const backupDir = path.resolve(backupRoot(), String(input.backupId || ''));
-    if (!backupDir.startsWith(`${path.resolve(backupRoot())}${path.sep}`)) throw new Error('Ungültige Sicherungs-ID');
-    const metadata = loadJsonSync(path.join(backupDir, 'backup.json'), null);
-    if (!metadata?.id || metadata.id !== input.backupId) throw new Error('Sicherung nicht gefunden');
+    const requestedId = String(input.backupId || '');
+    if (!/^update-[A-Za-z0-9_.:-]+$/.test(requestedId)) throw new Error('Ungültige Sicherungs-ID');
+    let backupDir, metadata;
+    for (const root of [...new Set([backupRoot(), BACKUPS_DIR, FALLBACK_BACKUPS_DIR])]) {
+      const candidate = path.join(root, requestedId);
+      try {
+        if (!(await fsp.lstat(candidate)).isDirectory() ||
+            !(await fsp.lstat(path.join(candidate, 'source'))).isDirectory() ||
+            !(await fsp.lstat(path.join(candidate, 'backup.json'))).isFile()) continue;
+        const item = loadJsonSync(path.join(candidate, 'backup.json'), null);
+        if (item?.id !== requestedId) continue;
+        backupDir = candidate;
+        metadata = item;
+        break;
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+    if (!metadata || !backupDir) throw new Error('Sicherung nicht gefunden');
     const context = await dockerContext();
     await updateStatus({ state: 'running', phase: 'rollback', progress: 5, message: `Rollback auf ${metadata.version} wird vorbereitet`, logs: [], startedAt, backupId: metadata.id, error: null, diagnosticId: input.requestId });
     await restoreBackup({ id: metadata.id, directory: backupDir, source: path.join(backupDir, 'source') }, context);

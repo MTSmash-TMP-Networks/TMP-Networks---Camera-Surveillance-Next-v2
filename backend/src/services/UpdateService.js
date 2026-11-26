@@ -178,16 +178,24 @@ function publicContainerStatus(payload) {
 }
 
 async function listBackups() {
-  try {
-    const entries = await fsp.readdir(backupsDir, { withFileTypes: true });
-    const items = [];
-    for (const entry of entries) {
-      if (!entry.isDirectory() || !entry.name.startsWith('update-')) continue;
-      const item = await readJson(path.join(backupsDir, entry.name, 'backup.json'), null);
-      if (item?.id) items.push({ id: item.id, version: item.version, createdAt: item.createdAt, database: Boolean(item.database) });
-    }
-    return items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 20);
-  } catch { return []; }
+  const items = new Map();
+  for (const root of [...new Set([backupsDir, path.join(config.updatesDir, 'backups')])]) {
+    try {
+      const entries = await fsp.readdir(root, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || !/^update-[A-Za-z0-9_.:-]+$/.test(entry.name)) continue;
+        const dir = path.join(root, entry.name);
+        const metadataFile = path.join(dir, 'backup.json');
+        if (!(await fsp.lstat(metadataFile).catch(() => null))?.isFile() ||
+            !(await fsp.lstat(path.join(dir, 'source')).catch(() => null))?.isDirectory()) continue;
+        const item = await readJson(metadataFile, null);
+        if (item?.id === entry.name && !items.has(item.id)) items.set(item.id, {
+          id: item.id, version: item.version, createdAt: item.createdAt, database: Boolean(item.database),
+        });
+      }
+    } catch { /* A missing or inaccessible fallback must not hide primary backups. */ }
+  }
+  return [...items.values()].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 20);
 }
 
 // Hard-coded official repository: do not allow arbitrary update URLs supplied by clients.
