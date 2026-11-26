@@ -82,6 +82,24 @@ systemRouter.get('/recording-storage', asyncHandler(async (req, res) => {
   res.json(await recordingStorageService.overview({ requestId: req.id }));
 }));
 
+systemRouter.get('/recording-storage/inventory', (_req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.json(recordingStorageService.inventoryStatus());
+});
+systemRouter.post('/recording-storage/inventory/scan', (req, res) => {
+  if (demoModeSettingsService.status().readOnly) throw new AppError(403, 'DEMO_READ_ONLY', 'Demo mode');
+  res.status(202).json(recordingStorageService.scanInventory(req.user.sub));
+});
+systemRouter.post('/recording-storage/inventory/cleanup', (req, res) => {
+  const input = z.object({ id: z.string().uuid(), confirmation: z.literal('DELETE_PREVIEWED_ORPHANS') }).strict().parse(req.body || {});
+  if (demoModeSettingsService.status().readOnly) throw new AppError(403, 'DEMO_READ_ONLY', 'Demo mode');
+  res.status(202).json(recordingStorageService.cleanInventory(input.id, req.user.sub, () => !demoModeSettingsService.status().readOnly));
+});
+systemRouter.post('/recording-storage/inventory/stop', (req, res) => {
+  const input = z.object({ id: z.string().uuid() }).strict().parse(req.body || {});
+  res.json(recordingStorageService.stopInventoryCleanup(input.id));
+});
+
 systemRouter.post('/recording-storage/test', asyncHandler(async (req, res) => {
   const input = recordingStorageSchema.parse(req.body || {});
   res.json(await recordingStorageService.test(input, { requestId: req.id }));

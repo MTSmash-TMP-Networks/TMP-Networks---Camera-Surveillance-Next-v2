@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next **2.20.111** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.112** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
 
 ## Before you start: disk and backups
 
@@ -575,7 +575,7 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.111 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.112 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
 
 
 ### Kamera-Encoderdiagnose (ab v2.20.43)
@@ -600,3 +600,9 @@ The day view opens one chronological HLS player for the selected camera and day.
 After a rejected SMB authentication attempt (including logon failure, account lockout or expired credentials), the server pauses further SMB commands to the same configured host for 60 minutes. The cooldown is persisted in SQLite and also covers playback, export, retention deletion and manual connection tests. Different configured host aliases are not automatically unified. SMB client invocations to that host are serialized, while other targets and SFTP remain independent. The storage page reports the earliest retry time, refreshed every ten seconds. Finished recordings remain in the local spool until a verified upload succeeds; ensure sufficient disk capacity during an outage. Wait for the cooldown to expire and resolve incorrect credentials or NAS-side lockouts before testing again. If an expired password is changed, older storage profiles may also require credential maintenance.
 
 Since 2.20.111 each new SMB session to the same configured host waits at least one second after the preceding session finishes by default. Protocol fallback and diagnostic TCP probes share the same pacing; disk pressure does not bypass it. Configure `NETWORK_RECORDING_SMB_SESSION_GAP_MS` (250–10000 ms, default 1000). Other hosts and SFTP remain independent. Short recording blocks or a slow NAS can increase the local backlog; monitor free space and storage status. The 60-minute authentication cooldown remains in effect.
+
+### SMB archive inventory and cleanup (2.20.112)
+
+Administrators can scan the active camera directory in Recordings → Storage → SMB inventory and cleanup. A manually started recursive SMB listing reports share-reported capacity and free bytes, logical file sizes, largest folders and database references without downloading recordings. The job status is local and does not trigger SMB connections. Scans are bounded to 180 seconds, 32 MiB of listing output and 200,000 entries; incomplete or unrecognized listings cannot be cleaned. A large scan occupies the existing paced SMB queue, so maintain sufficient local recording space.
+
+Only generated video files or old uploading-UUID files at least seven days old, inside a generated recording-ID directory whose ID is absent from SQLite but no higher than its last issued ID, and without any database reference, enter the preview (maximum 200). Existing recording IDs, other files and uncertain candidates are protected. An administrator must confirm that the directory belongs exclusively to this installation and the displayed files are expendable. The preview expires after 30 minutes. Before each exact-file deletion the active profile, file size, modification time and live database references are rechecked. The SMB session gap and authentication cooldown still apply. Errors stop the batch; it can also be stopped manually. Rescan after each batch. Never recursively delete directories, use deletion wildcards, or clean other shares, NAS recycle bins or snapshots. Logical file sizes do not guarantee physical space recovery; snapshots, quotas and the NAS recycle bin may affect it. Do not clean shared archive roots or recently restored databases.

@@ -24,7 +24,8 @@ jobs:
           node --check backend/src/services/NetworkRecordingStorageService.js
           node --check backend/src/services/recording/SmbAuthGuard.js
           node --check backend/src/services/recording/RecordingCompressionService.js
-          node --test backend/test-node/network-recording-storage-regression.test.mjs backend/test-node/recording-storage-integrity-regression.test.mjs
+          node --check backend/src/services/recording/SmbArchiveInventory.js
+          node --test backend/test-node/network-recording-storage-regression.test.mjs backend/test-node/recording-storage-integrity-regression.test.mjs backend/test-node/smb-archive-inventory.test.mjs
       - name: Validate the Compose V2 plugin inside the updater image
         run: |
           docker build --tag tmp-camera-updater-compose-v2-ci updater
@@ -100,3 +101,56 @@ jobs:
           npm run test:ci --prefix frontend
           npm run build --prefix frontend
           npm run test --prefix updater
+
+  smb-archive-inventory-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Samba clients and local test server
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends samba smbclient
+      - name: Exercise actual SMB listing and exact-file cleanup on a disposable share
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK="$(mktemp -d)"
+          chmod 755 "$WORK"
+          mkdir -p "$WORK/archive/TMP-Camera/recording-1" "$WORK/archive/TMP-Camera/recording-2" "$WORK/private" "$WORK/state" "$WORK/lock" "$WORK/cache" "$WORK/pid"
+          printf 'keep' > "$WORK/archive/TMP-Camera/recording-1/000001-0123456789.ts"
+          printf 'remove' > "$WORK/archive/TMP-Camera/recording-2/000001-0123456789.ts"
+          printf 'private' > "$WORK/archive/TMP-Camera/notes.txt"
+          touch -d '30 days ago' "$WORK/archive/TMP-Camera/recording-2/000001-0123456789.ts"
+          chmod -R a+rwX "$WORK/archive"
+          cat > "$WORK/smb.conf" <<EOF
+          [global]
+            server role = standalone server
+            security = user
+            map to guest = Bad User
+            interfaces = 127.0.0.1
+            bind interfaces only = yes
+            smb ports = 1445
+            server min protocol = SMB2_02
+            private dir = $WORK/private
+            state directory = $WORK/state
+            lock directory = $WORK/lock
+            cache directory = $WORK/cache
+            pid directory = $WORK/pid
+            log file = $WORK/samba.log
+          [archive]
+            path = $WORK/archive
+            guest ok = yes
+            read only = no
+            force user = nobody
+          EOF
+          sudo smbd -D -s "$WORK/smb.conf"
+          trap 'sudo kill "$(cat "$WORK/pid/smbd.pid")" 2>/dev/null || true; sudo rm -rf "$WORK"' EXIT
+          for i in $(seq 1 20); do
+            if smbclient //127.0.0.1/archive -p 1445 -N -c 'pwd' >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          smbclient //127.0.0.1/archive -p 1445 -N -c 'recurse; ls "\TMP-Camera\*"'
+          SMB_INVENTORY_TEST_PORT=1445 node --test backend/test-node/smb-archive-inventory.test.mjs
