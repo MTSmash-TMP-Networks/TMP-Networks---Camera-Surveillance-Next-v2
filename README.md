@@ -28,7 +28,7 @@
 
 Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
 
-**Aktuelle Version:** `2.20.110` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+**Aktuelle Version:** `2.20.111` · **Installationsart:** Docker · **Oberflächensprachen:** 24
 
 ## Funktionen
 
@@ -209,3 +209,5 @@ Fertige Aufnahmeblöcke dürfen nach zehn Minuten Wartezeit auf die optionale Hi
 ### SMB-Kontoschutz (ab 2.20.110)
 
 Nach einer abgelehnten SMB-Anmeldung (z. B. `NT_STATUS_LOGON_FAILURE`, gesperrtes Konto oder abgelaufenes Kennwort) setzt die Anwendung alle weiteren SMB-Verbindungsversuche zum betreffenden konfigurierten Servernamen bzw. zur IP-Adresse für 60 Minuten aus. Die Sperrfrist wird in der Systemdatenbank gespeichert. Uploads, Abrufe, manuelle Verbindungstests und Löschoperationen nutzen dieselbe Sperre. Das Frontend zeigt unter Aufnahmen → Speicher den frühesten nächsten Versuch an. Aufnahmen werden lokal gepuffert, solange ausreichend Speicher vorhanden ist; bereits archivierte Daten bleiben erhalten. Andere Speicherziele und SFTP sind nicht betroffen. SMB-Client-Aufrufe zum selben Server werden seriell ausgeführt, um parallele Fehlanmeldungen zu verhindern. Unterschiedliche Host-Aliase werden nicht automatisch als derselbe Server erkannt. Nach Ablauf wird automatisch erneut versucht. Bei einer dauerhaften NAS-Sperre oder falschen Zugangsdaten muss das Problem am NAS bzw. in den Speicherprofilen behoben werden.
+
+Ab 2.20.111 wartet jede neue SMB-Sitzung am selben konfigurierten Host standardmäßig mindestens eine Sekunde nach Abschluss der vorherigen Sitzung. Das gilt auch für Protokoll-Fallbacks und diagnostische TCP-Probes, unabhängig vom Upload-Rückstau. Einstellbar über `NETWORK_RECORDING_SMB_SESSION_GAP_MS` (250–10000 ms, Standard 1000). Andere Hosts und SFTP werden dadurch nicht gebremst. Bei sehr kurzen Aufnahmeblöcken oder langsamem NAS kann der lokale Rückstau wachsen; Speicherstatus und freien Platz überwachen. Die 60-minütige Kontoschutzpause nach abgelehnter Anmeldung bleibt bestehen.
