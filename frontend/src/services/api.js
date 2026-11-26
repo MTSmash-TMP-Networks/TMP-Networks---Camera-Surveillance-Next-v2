@@ -299,7 +299,7 @@ export const api = {
   recordingStorage: () => request('/system/recording-storage', { cache: 'no-store' }),
   recordingStorageInventory: () => request('/system/recording-storage/inventory', { cache: 'no-store' }),
   scanRecordingStorageInventory: () => request('/system/recording-storage/inventory/scan', { method: 'POST' }),
-  cleanupRecordingStorageInventory: id => request('/system/recording-storage/inventory/cleanup', { method: 'POST', body: { id, confirmation: 'DELETE_PREVIEWED_ORPHANS' } }),
+  cleanupRecordingStorageInventory: (id, scope = 'preview') => request('/system/recording-storage/inventory/cleanup', { method: 'POST', body: { id, confirmation: scope === 'all' ? 'DELETE_ALL_SCANNED_ORPHANS' : 'DELETE_PREVIEWED_ORPHANS' } }),
   stopRecordingStorageInventory: id => request('/system/recording-storage/inventory/stop', { method: 'POST', body: { id } }),
   testRecordingStorage: (input) => request('/system/recording-storage/test', { method: 'POST', body: input }),
   saveRecordingStorage: (input) => request('/system/recording-storage', { method: 'PUT', body: input }),

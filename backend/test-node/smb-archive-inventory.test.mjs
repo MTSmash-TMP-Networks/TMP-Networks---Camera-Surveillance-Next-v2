@@ -137,7 +137,7 @@ test('real Samba guest share: enumerate and remove only the confirmed test orpha
   assert.equal(scanned.phase,'ready',JSON.stringify(scanned));
   assert.equal(scanned.result.buckets.orphan.count,1);
   assert.equal(scanned.result.buckets.referenced.count,1);
-  inventory.startCleanup(started.id,'admin',()=>true);
+  inventory.startCleanup(started.id,'admin',()=>true,'all');
   const finished=await new Promise((resolve,reject)=>{
     const start=Date.now();const timer=setInterval(()=>{const s=inventory.status();if(['finished','failed'].includes(s.phase)){clearInterval(timer);resolve(s);}else if(Date.now()-start>20000){clearInterval(timer);reject(new Error('cleanup timeout'));}},50);
   });
@@ -148,4 +148,73 @@ test('real Samba guest share: enumerate and remove only the confirmed test orpha
   assert.ok(entries.some(e=>e.path===root+'/recording-1/'+file));
   assert.ok(entries.some(e=>e.path===root+'/notes.txt'));
   assert.ok(!entries.some(e=>e.path===root+'/recording-2/'+file));
+});
+
+
+test('full cleanup handles more than the 200-file preview without exposing or expanding the approved snapshot', async t => {
+  const db=fixtureDb(t);
+  const profile={id:'active',protocol:'smb',base_path:root};
+  const names=Array.from({length:235},(_,i)=>String(i+1).padStart(6,'0')+'-0123456789.ts');
+  const full=list(row('recording-2','D',0),'\\TMP-Camera\\recording-2',...names.map(n=>row(n,'A',20)));
+  let deleted=[], pauses=0;
+  const inventory=new SmbArchiveInventory({db,activeProfile:()=>profile,now:()=>now,pauseBetweenBatches:async()=>{pauses++;},runSmb:async(_profile,command,options={})=>{
+    if(command.startsWith('recurse;')) return {stdout:full};
+    const name=command.match(/\\([^\\"]+)"$/)[1];
+    assert.ok(names.includes(name));
+    options.beforeExec?.();
+    if(command.startsWith('ls ')) return {stdout:list(row(name,'A',20))};
+    deleted.push(name);
+    return {stdout:'',stderr:''};
+  }});
+  let job=inventory.startScan('admin');
+  const ready=await untilPhase(inventory,['ready','failed']);
+  assert.equal(ready.phase,'ready');
+  assert.equal(ready.result.preview.length,200);
+  assert.equal(ready.result.buckets.orphan.count,235);
+  assert.equal(ready.candidates,undefined);
+  assert.equal(ready.selected,undefined);
+  assert.throws(()=>inventory.startCleanup(job.id,'admin',()=>true,'unexpected'));
+  inventory.startCleanup(job.id,'admin',()=>true,'preview');
+  let finished=await untilPhase(inventory,['finished','failed']);
+  assert.equal(finished.phase,'finished');
+  assert.equal(deleted.length,200);
+  assert.equal(pauses,3);
+  deleted=[]; pauses=0;
+  job=inventory.startScan('admin');
+  await untilPhase(inventory,['ready']);
+  const accepted=inventory.startCleanup(job.id,'admin',()=>true,'all');
+  assert.equal(accepted.progress.total,235);
+  assert.equal(accepted.cleanupBytes,4700);
+  assert.equal(accepted.candidates,undefined);
+  assert.equal(accepted.selected,undefined);
+  finished=await untilPhase(inventory,['finished','failed']);
+  assert.equal(finished.phase,'finished');
+  assert.equal(finished.progress.deleted,235);
+  assert.equal(finished.progress.deletedBytes,4700);
+  assert.equal(new Set(deleted).size,235);
+  assert.equal(pauses,4);
+  assert.equal(inventory.job.candidates,undefined);
+  assert.equal(inventory.job.selected,undefined);
+  assert.throws(()=>inventory.startCleanup(job.id,'admin',()=>true,'all'));
+});
+
+test('stopping bulk cleanup at a batch boundary prevents further deletion', async t => {
+  const db=fixtureDb(t);
+  const profile={id:'active',protocol:'smb',base_path:root};
+  const names=Array.from({length:60},(_,i)=>String(i+1).padStart(6,'0')+'-0123456789.ts');
+  const full=list(row('recording-2','D',0),'\\TMP-Camera\\recording-2',...names.map(n=>row(n,'A',20)));
+  let deleted=0;
+  const inventory=new SmbArchiveInventory({db,activeProfile:()=>profile,now:()=>now,pauseBetweenBatches:async()=>inventory.stopCleanup(inventory.status().id),runSmb:async(_profile,command,options={})=>{
+    if(command.startsWith('recurse;')) return {stdout:full};
+    options.beforeExec?.();
+    if(command.startsWith('ls ')) return {stdout:list(row(command.match(/\\([^\\"]+)"$/)[1],'A',20))};
+    deleted++;return {stdout:''};
+  }});
+  const job=inventory.startScan('admin');
+  await untilPhase(inventory,['ready']);
+  inventory.startCleanup(job.id,'admin',()=>true,'all');
+  const finished=await untilPhase(inventory,['finished','stopped','failed']);
+  assert.equal(finished.phase,'stopped');
+  assert.equal(deleted,50);
+  assert.equal(finished.progress.total,60);
 });

@@ -1,8 +1,11 @@
 import { randomUUID } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 import { AppError } from '../../utils/errors.js';
 
 export const ORPHAN_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 export const PREVIEW_LIMIT = 200;
+const CLEANUP_BATCH_SIZE = 50;
+const CLEANUP_BATCH_PAUSE_MS = 5000;
 const SNAPSHOT_TTL_MS = 30 * 60 * 1000;
 const SCAN_LIMIT = 200000;
 const fail = (code = 'SMB_INVENTORY_INVALID') => new AppError(422, code, 'SMB-Archivbestand konnte nicht sicher verarbeitet werden.');
@@ -83,7 +86,7 @@ function eligible(entry, root, state, now) {
       entry.mtime > now - ORPHAN_AGE_MS) return null;
   return generated;
 }
-export function classifyArchiveListing(listing, root, state, now = Date.now()) {
+export function classifyArchiveListing(listing, root, state, now = Date.now(), onCandidates = () => {}) {
   const buckets = Object.fromEntries(['referenced','orphan','protected','other'].map(name => [name, { count: 0, bytes: 0 }]));
   const folders = new Map(), candidates = [];
   let count = 0, bytes = 0;
@@ -101,24 +104,27 @@ export function classifyArchiveListing(listing, root, state, now = Date.now()) {
     buckets[category].count++; buckets[category].bytes += entry.bytes;
     if (category === 'orphan') candidates.push({ ...entry, ...orphan });
   }
-  // Show and delete exactly the same bounded set, oldest first. A new scan
-  // is required before another batch can be approved.
+  // Keep the complete frozen scan privately, but expose only a bounded sample.
+  // Both cleanup scopes use this exact snapshot, never new/unscanned files.
   candidates.sort((a,b) => a.mtime - b.mtime || a.path.localeCompare(b.path));
-  const preview = candidates.slice(0, PREVIEW_LIMIT);
+  for (const entry of candidates) Object.freeze(entry);
+  Object.freeze(candidates);
+  onCandidates(candidates);
+  const preview = Object.freeze(candidates.slice(0, PREVIEW_LIMIT));
   return { capacity: listing.capacity, count, bytes, directories: listing.directories, buckets,
     topFolders: [...folders.values()].sort((a,b) => b.bytes-a.bytes).slice(0,20),
     preview, previewBytes: preview.reduce((sum,entry) => sum+entry.bytes,0), previewLimit: PREVIEW_LIMIT };
 }
 
 export class SmbArchiveInventory {
-  constructor({ db, activeProfile, runSmb, now = Date.now, onFinish = () => {} }) {
-    Object.assign(this, { db, activeProfile, runSmb, now, onFinish });
+  constructor({ db, activeProfile, runSmb, now = Date.now, onFinish = () => {}, pauseBetweenBatches = () => delay(CLEANUP_BATCH_PAUSE_MS) }) {
+    Object.assign(this, { db, activeProfile, runSmb, now, onFinish, pauseBetweenBatches });
     this.job = null;
   }
   busy() { return ['scanning','cleaning'].includes(this.job?.phase); }
   status() {
     if (!this.job) return { phase: 'idle' };
-    const { actor, stop, canMutate, ...publicJob } = this.job;
+    const { actor, stop, canMutate, candidates, selected, ...publicJob } = this.job;
     return publicJob;
   }
   current(profileId) {
@@ -144,19 +150,25 @@ export class SmbArchiveInventory {
       this.current(job.profileId);
       if (/NT_STATUS_|ERRDOS|ERRSRV|ERRHRD/i.test(String(output.stderr || ''))) throw fail();
       const listing = parseSmbArchiveListing(output.stdout, job.root);
-      job.result = classifyArchiveListing(listing, job.root, dbState(this.db), this.now());
+      job.result = classifyArchiveListing(listing, job.root, dbState(this.db), this.now(), candidates => { job.candidates = candidates; });
       job.completedAt = new Date(this.now()).toISOString();
       job.expiresAt = new Date(this.now() + SNAPSHOT_TTL_MS).toISOString();
       job.phase = 'ready';
     } catch (error) { job.phase = 'failed'; job.error = error?.code || 'SMB_INVENTORY_INVALID'; }
   }
-  startCleanup(id, actor, canMutate) {
+  startCleanup(id, actor, canMutate, scope = 'preview') {
+    if (!['preview','all'].includes(scope)) throw fail('SMB_INVENTORY_INVALID');
     const job = this.job;
     if (!job || job.phase !== 'ready' || job.id !== id || job.actor !== actor ||
         this.now() >= Date.parse(job.expiresAt) || !job.result?.preview?.length || !canMutate()) throw fail('SMB_INVENTORY_STALE');
     const profile = this.current(job.profileId);
+    const selected = scope === 'all' ? job.candidates : job.result.preview;
+    if (!selected?.length || (scope === 'all' && selected.length !== job.result.buckets.orphan.count)) throw fail('SMB_INVENTORY_STALE');
+    job.selected = selected;
+    job.cleanupScope = scope;
+    job.cleanupBytes = scope === 'all' ? job.result.buckets.orphan.bytes : job.result.previewBytes;
     job.phase = 'cleaning';
-    job.progress = { total: job.result.preview.length, deleted: 0, deletedBytes: 0, skipped: 0, failed: 0 };
+    job.progress = { total: selected.length, deleted: 0, deletedBytes: 0, skipped: 0, failed: 0 };
     job.canMutate = canMutate;
     void this.clean(job, profile);
     return this.status();
@@ -173,18 +185,26 @@ export class SmbArchiveInventory {
     if (!generated || entry.mtime > this.now() - ORPHAN_AGE_MS ||
         this.db.prepare('SELECT 1 FROM recordings WHERE id=?').get(generated.recordingId) ||
         Number(this.db.prepare("SELECT seq FROM sqlite_sequence WHERE name='recordings'").get()?.seq || 0) < generated.recordingId ||
-        this.db.prepare("SELECT 1 FROM recording_segments WHERE lower(replace(remote_path,char(92),'/')) IN (?,?) LIMIT 1").get(key(entry.path),key(generated.finalPath))) {
+        this.db.prepare("SELECT 1 FROM recording_segments WHERE substr(lower(trim(replace(remote_path,char(92),'/'),'/')), -length(?))=? OR substr(lower(trim(replace(remote_path,char(92),'/'),'/')), -length(?))=? LIMIT 1").get(...[entry.path,generated.finalPath].flatMap(value => { const suffix = key(value).split('/').slice(-2).join('/'); return [suffix,suffix]; }))) {
       throw fail('SMB_INVENTORY_CHANGED');
     }
   }
   async clean(job, profile) {
     try {
-      for (const entry of job.result.preview) {
+      for (let index = 0; index < job.selected.length; index++) {
         if (job.stop || !job.canMutate()) break;
+        // Give recording transfers additional time between bounded groups.
+        // The regular per-host SMB session pacing still applies to every call.
+        if (index > 0 && index % CLEANUP_BATCH_SIZE === 0) {
+          await this.pauseBetweenBatches();
+          if (job.stop || !job.canMutate()) break;
+        }
+        const entry = job.selected[index];
         try {
           this.verifyCandidate(job, entry);
           const parent = entry.path.slice(0,entry.path.lastIndexOf('/'));
-          const check = await this.runSmb(profile, 'ls "' + smbPath(entry.path) + '"');
+          const check = await this.runSmb(profile, 'ls "' + smbPath(entry.path) + '"',
+            { beforeExec: () => this.verifyCandidate(job, entry) });
           if (/NT_STATUS_|ERRDOS|ERRSRV|ERRHRD/i.test(String(check.stderr || ''))) throw fail();
           const listed = parseSmbArchiveListing(check.stdout, parent).entries;
           if (listed.length !== 1 || listed[0].path !== entry.path || listed[0].attributes !== entry.attributes ||
@@ -206,8 +226,10 @@ export class SmbArchiveInventory {
     finally {
       job.completedAt = new Date(this.now()).toISOString();
       // A completed/failed batch is never reusable.
-      try { this.onFinish({ id: job.id, actor: job.actor, profileId: job.profileId, phase: job.phase, ...job.progress }); } catch {}
+      try { this.onFinish({ id: job.id, actor: job.actor, profileId: job.profileId, phase: job.phase, scope: job.cleanupScope, plannedBytes: job.cleanupBytes, ...job.progress }); } catch {}
       delete job.canMutate;
+      delete job.candidates;
+      delete job.selected;
     }
   }
 }

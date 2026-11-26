@@ -79,7 +79,10 @@ export const RECORDING_STORAGE_MESSAGE_KEYS = Object.freeze([
   "recordings.storage.inventory.finished",
   "recordings.storage.inventory.skipped",
   "recordings.storage.inventory.stop",
-  "recordings.storage.inventory.error"
+  "recordings.storage.inventory.error",
+  "recordings.storage.inventory.allNotice",
+  "recordings.storage.inventory.confirmAll",
+  "recordings.storage.inventory.cleanAll"
 ]);
 
 const values = {
@@ -212,7 +215,7 @@ for (const [locale, messages] of Object.entries(authCooldownMessages)) values[lo
 const inventoryMessages = {
   "de": [
     "SMB-Bestand und Bereinigung",
-    "Liest den tatsächlichen Bestand im konfigurierten Kameraordner direkt über SMB. Die Kapazität entspricht der vom SMB-Server gemeldeten Freigabe; Papierkorb und Snapshots sind nicht enthalten. Nur bestätigte Vorschau-Dateien werden gelöscht.",
+    "Liest den tatsächlichen Bestand im konfigurierten Kameraordner direkt über SMB. Die Kapazität entspricht der vom SMB-Server gemeldeten Freigabe; Papierkorb und Snapshots sind nicht enthalten.",
     "NAS-Bestand prüfen",
     "SMB-Bestand wird gelesen …",
     "SMB-Kapazität",
@@ -231,11 +234,14 @@ const inventoryMessages = {
     "Bereinigung beendet – Bestand erneut prüfen",
     "Übersprungen",
     "Bereinigung stoppen",
-    "Bestand oder Bereinigung konnte nicht sicher abgeschlossen werden"
+    "Bestand oder Bereinigung konnte nicht sicher abgeschlossen werden",
+    "Die Vorschau zeigt nur die ersten 200 Dateien. Die vollständige Bereinigung umfasst alle beim letzten Scan ermittelten Altdateien; sie läuft gedrosselt im Hintergrund und kann gestoppt werden.",
+    "Ich bestätige, dass dieser Ordner ausschließlich dieser Installation gehört und ALLE ermittelten Altdateien entbehrlich sind, auch die nicht angezeigten. Die Löschung ist unwiderruflich.",
+    "Alle bereinigbaren Altdateien löschen"
   ],
   "en": [
     "SMB inventory and cleanup",
-    "Read the actual contents of the configured camera folder over SMB. Capacity is reported by the SMB share; recycle bins and snapshots are not included. Only confirmed preview files are deleted.",
+    "Read the actual contents of the configured camera folder over SMB. Capacity is reported by the SMB share; recycle bins and snapshots are not included.",
     "Scan NAS inventory",
     "Reading SMB inventory …",
     "SMB capacity",
@@ -254,11 +260,14 @@ const inventoryMessages = {
     "Cleanup ended – scan again",
     "Skipped",
     "Stop cleanup",
-    "Inventory or cleanup could not be completed safely"
+    "Inventory or cleanup could not be completed safely",
+    "The preview shows only the first 200 files. Full cleanup covers all old files identified by the last scan; it runs at a controlled pace in the background and can be stopped.",
+    "I confirm this folder belongs exclusively to this installation and ALL identified old files, including those not shown, are expendable. Deletion is irreversible.",
+    "Delete all cleanable old files"
   ],
   "fr": [
     "Inventaire et nettoyage SMB",
-    "Lecture du contenu réel du dossier caméra via SMB. Capacité déclarée par le partage ; corbeille et instantanés non inclus. Seuls les fichiers confirmés sont supprimés.",
+    "Lecture du contenu réel du dossier caméra via SMB. Capacité déclarée par le partage ; corbeille et instantanés non inclus.",
     "Analyser le NAS",
     "Lecture de l’inventaire SMB…",
     "Capacité SMB",
@@ -277,11 +286,14 @@ const inventoryMessages = {
     "Nettoyage terminé – relancer l’analyse",
     "Ignorés",
     "Arrêter le nettoyage",
-    "Inventaire ou nettoyage non terminé en toute sécurité"
+    "Inventaire ou nettoyage non terminé en toute sécurité",
+    "L’aperçu affiche uniquement les 200 premiers fichiers. Le nettoyage complet concerne tous les anciens fichiers identifiés lors de la dernière analyse ; il s’exécute à débit limité en arrière-plan et peut être arrêté.",
+    "Je confirme que ce dossier appartient exclusivement à cette installation et que TOUS les anciens fichiers identifiés, même non affichés, sont inutiles. La suppression est irréversible.",
+    "Supprimer tous les anciens fichiers nettoyables"
   ],
   "es": [
     "Inventario y limpieza SMB",
-    "Lee el contenido real de la carpeta de cámaras por SMB. Capacidad indicada por el recurso compartido; papelera e instantáneas no incluidas. Solo se eliminan los archivos confirmados.",
+    "Lee el contenido real de la carpeta de cámaras por SMB. Capacidad indicada por el recurso compartido; papelera e instantáneas no incluidas.",
     "Analizar NAS",
     "Leyendo inventario SMB…",
     "Capacidad SMB",
@@ -300,11 +312,14 @@ const inventoryMessages = {
     "Limpieza finalizada – volver a analizar",
     "Omitidos",
     "Detener limpieza",
-    "No se pudo completar el inventario o la limpieza de forma segura"
+    "No se pudo completar el inventario o la limpieza de forma segura",
+    "La vista previa muestra solo los primeros 200 archivos. La limpieza completa abarca todos los archivos antiguos identificados en el último análisis; se ejecuta en segundo plano a un ritmo limitado y se puede detener.",
+    "Confirmo que esta carpeta pertenece exclusivamente a esta instalación y que TODOS los archivos antiguos identificados, incluidos los no mostrados, son prescindibles. La eliminación es irreversible.",
+    "Eliminar todos los archivos antiguos limpiables"
   ],
   "it": [
     "Inventario e pulizia SMB",
-    "Legge il contenuto effettivo della cartella delle telecamere tramite SMB. Capacità dichiarata dalla condivisione; cestino e snapshot esclusi. Elimina solo i file confermati.",
+    "Legge il contenuto effettivo della cartella delle telecamere tramite SMB. Capacità dichiarata dalla condivisione; cestino e snapshot esclusi.",
     "Analizza NAS",
     "Lettura inventario SMB…",
     "Capacità SMB",
@@ -323,11 +338,14 @@ const inventoryMessages = {
     "Pulizia terminata – ripetere l’analisi",
     "Saltati",
     "Ferma pulizia",
-    "Impossibile completare in sicurezza l’inventario o la pulizia"
+    "Impossibile completare in sicurezza l’inventario o la pulizia",
+    "L’anteprima mostra solo i primi 200 file. La pulizia completa include tutti i vecchi file individuati nell’ultima scansione; viene eseguita in background a ritmo limitato e può essere interrotta.",
+    "Confermo che questa cartella appartiene esclusivamente a questa installazione e che TUTTI i vecchi file individuati, anche quelli non visualizzati, sono superflui. L’eliminazione è irreversibile.",
+    "Elimina tutti i vecchi file eliminabili"
   ],
   "nl": [
     "SMB-inventaris en opschoning",
-    "Leest de werkelijke inhoud van de cameramap via SMB. Capaciteit gemeld door de share; prullenbak en snapshots niet inbegrepen. Alleen bevestigde bestanden worden verwijderd.",
+    "Leest de werkelijke inhoud van de cameramap via SMB. Capaciteit gemeld door de share; prullenbak en snapshots niet inbegrepen.",
     "NAS inventariseren",
     "SMB-inventaris lezen…",
     "SMB-capaciteit",
@@ -346,11 +364,14 @@ const inventoryMessages = {
     "Opschoning beëindigd – opnieuw scannen",
     "Overgeslagen",
     "Opschoning stoppen",
-    "Inventarisatie of opschoning kon niet veilig worden voltooid"
+    "Inventarisatie of opschoning kon niet veilig worden voltooid",
+    "Het voorbeeld toont alleen de eerste 200 bestanden. Volledige opschoning omvat alle oude bestanden die bij de laatste scan zijn gevonden, verloopt gedoseerd op de achtergrond en kan worden gestopt.",
+    "Ik bevestig dat deze map uitsluitend bij deze installatie hoort en ALLE gevonden oude bestanden, ook de niet getoonde, overbodig zijn. Verwijdering is onomkeerbaar.",
+    "Alle opschoonbare oude bestanden verwijderen"
   ],
   "pl": [
     "Inwentaryzacja i czyszczenie SMB",
-    "Odczytuje rzeczywistą zawartość folderu kamer przez SMB. Pojemność zgłoszona przez udział; bez kosza i migawek. Usuwane są tylko potwierdzone pliki.",
+    "Odczytuje rzeczywistą zawartość folderu kamer przez SMB. Pojemność zgłoszona przez udział; bez kosza i migawek.",
     "Skanuj NAS",
     "Odczyt inwentaryzacji SMB…",
     "Pojemność SMB",
@@ -369,11 +390,14 @@ const inventoryMessages = {
     "Czyszczenie zakończone – skanuj ponownie",
     "Pominięte",
     "Zatrzymaj czyszczenie",
-    "Nie można bezpiecznie zakończyć inwentaryzacji lub czyszczenia"
+    "Nie można bezpiecznie zakończyć inwentaryzacji lub czyszczenia",
+    "Podgląd pokazuje tylko pierwsze 200 plików. Pełne czyszczenie obejmuje wszystkie stare pliki z ostatniego skanowania, działa w tle z ograniczoną szybkością i można je zatrzymać.",
+    "Potwierdzam, że folder należy wyłącznie do tej instalacji i WSZYSTKIE wykryte stare pliki, również niewyświetlane, są zbędne. Usunięcie jest nieodwracalne.",
+    "Usuń wszystkie stare pliki do wyczyszczenia"
   ],
   "pt-BR": [
     "Inventário e limpeza SMB",
-    "Lê o conteúdo real da pasta de câmeras via SMB. Capacidade informada pelo compartilhamento; lixeira e snapshots não incluídos. Apenas arquivos confirmados são excluídos.",
+    "Lê o conteúdo real da pasta de câmeras via SMB. Capacidade informada pelo compartilhamento; lixeira e snapshots não incluídos.",
     "Verificar NAS",
     "Lendo inventário SMB…",
     "Capacidade SMB",
@@ -392,11 +416,14 @@ const inventoryMessages = {
     "Limpeza encerrada – verificar novamente",
     "Ignorados",
     "Parar limpeza",
-    "Não foi possível concluir o inventário ou a limpeza com segurança"
+    "Não foi possível concluir o inventário ou a limpeza com segurança",
+    "A prévia mostra apenas os primeiros 200 arquivos. A limpeza completa abrange todos os arquivos antigos identificados na última verificação; ocorre em segundo plano com ritmo limitado e pode ser interrompida.",
+    "Confirmo que esta pasta pertence exclusivamente a esta instalação e que TODOS os arquivos antigos identificados, inclusive os não exibidos, são dispensáveis. A exclusão é irreversível.",
+    "Excluir todos os arquivos antigos elegíveis"
   ],
   "tr": [
     "SMB envanteri ve temizleme",
-    "Kamera klasörünün gerçek içeriğini SMB üzerinden okur. Kapasite paylaşım tarafından bildirilir; çöp kutusu ve anlık görüntüler dahil değildir. Yalnızca onaylanan dosyalar silinir.",
+    "Kamera klasörünün gerçek içeriğini SMB üzerinden okur. Kapasite paylaşım tarafından bildirilir; çöp kutusu ve anlık görüntüler dahil değildir.",
     "NAS envanterini tara",
     "SMB envanteri okunuyor…",
     "SMB kapasitesi",
@@ -415,11 +442,14 @@ const inventoryMessages = {
     "Temizleme bitti – yeniden tara",
     "Atlanan",
     "Temizlemeyi durdur",
-    "Envanter veya temizleme güvenli şekilde tamamlanamadı"
+    "Envanter veya temizleme güvenli şekilde tamamlanamadı",
+    "Önizleme yalnızca ilk 200 dosyayı gösterir. Tam temizleme son taramada belirlenen tüm eski dosyaları kapsar; arka planda sınırlı hızda çalışır ve durdurulabilir.",
+    "Bu klasörün yalnızca bu kuruluma ait olduğunu ve gösterilmeyenler dahil belirlenen TÜM eski dosyaların gereksiz olduğunu onaylıyorum. Silme geri alınamaz.",
+    "Temizlenebilir tüm eski dosyaları sil"
   ],
   "cs": [
     "Inventář a čištění SMB",
-    "Čte skutečný obsah složky kamer přes SMB. Kapacitu hlásí sdílení; koš a snímky nejsou zahrnuty. Odstraní se jen potvrzené soubory.",
+    "Čte skutečný obsah složky kamer přes SMB. Kapacitu hlásí sdílení; koš a snímky nejsou zahrnuty.",
     "Prohledat NAS",
     "Načítání inventáře SMB…",
     "Kapacita SMB",
@@ -438,11 +468,14 @@ const inventoryMessages = {
     "Čištění skončilo – znovu prohledat",
     "Přeskočeno",
     "Zastavit čištění",
-    "Inventář nebo čištění nelze bezpečně dokončit"
+    "Inventář nebo čištění nelze bezpečně dokončit",
+    "Náhled zobrazuje pouze prvních 200 souborů. Úplné čištění zahrnuje všechny staré soubory z posledního skenu, běží omezenou rychlostí na pozadí a lze je zastavit.",
+    "Potvrzuji, že složka patří výhradně této instalaci a VŠECHNY zjištěné staré soubory, včetně nezobrazených, jsou postradatelné. Odstranění je nevratné.",
+    "Odstranit všechny čistitelné staré soubory"
   ],
   "da": [
     "SMB-oversigt og oprydning",
-    "Læser kamera-mappens faktiske indhold via SMB. Kapaciteten rapporteres af delingen; papirkurv og snapshots er ikke inkluderet. Kun bekræftede filer slettes.",
+    "Læser kamera-mappens faktiske indhold via SMB. Kapaciteten rapporteres af delingen; papirkurv og snapshots er ikke inkluderet.",
     "Scan NAS",
     "Læser SMB-oversigt…",
     "SMB-kapacitet",
@@ -461,11 +494,14 @@ const inventoryMessages = {
     "Oprydning afsluttet – scan igen",
     "Sprunget over",
     "Stop oprydning",
-    "Oversigt eller oprydning kunne ikke fuldføres sikkert"
+    "Oversigt eller oprydning kunne ikke fuldføres sikkert",
+    "Forhåndsvisningen viser kun de første 200 filer. Fuld oprydning omfatter alle gamle filer fundet ved sidste scanning, kører med begrænset hastighed i baggrunden og kan stoppes.",
+    "Jeg bekræfter, at mappen kun tilhører denne installation, og at ALLE fundne gamle filer, også de ikke viste, kan undværes. Sletning kan ikke fortrydes.",
+    "Slet alle gamle filer, der kan ryddes op"
   ],
   "sv": [
     "SMB-inventering och rensning",
-    "Läser kameramappens faktiska innehåll via SMB. Kapaciteten rapporteras av delningen; papperskorg och ögonblicksbilder ingår inte. Endast bekräftade filer tas bort.",
+    "Läser kameramappens faktiska innehåll via SMB. Kapaciteten rapporteras av delningen; papperskorg och ögonblicksbilder ingår inte.",
     "Skanna NAS",
     "Läser SMB-inventering…",
     "SMB-kapacitet",
@@ -484,11 +520,14 @@ const inventoryMessages = {
     "Rensning avslutad – skanna igen",
     "Överhoppade",
     "Stoppa rensning",
-    "Inventering eller rensning kunde inte slutföras säkert"
+    "Inventering eller rensning kunde inte slutföras säkert",
+    "Förhandsvisningen visar endast de första 200 filerna. Fullständig rensning omfattar alla gamla filer från senaste skanningen, körs med begränsad hastighet i bakgrunden och kan stoppas.",
+    "Jag bekräftar att mappen endast tillhör denna installation och att ALLA identifierade gamla filer, även de som inte visas, kan undvaras. Radering kan inte ångras.",
+    "Radera alla rensningsbara gamla filer"
   ],
   "nb": [
     "SMB-oversikt og opprydding",
-    "Leser det faktiske innholdet i kameramappen via SMB. Kapasitet rapporteres av delingen; papirkurv og øyeblikksbilder er ikke inkludert. Bare bekreftede filer slettes.",
+    "Leser det faktiske innholdet i kameramappen via SMB. Kapasitet rapporteres av delingen; papirkurv og øyeblikksbilder er ikke inkludert.",
     "Skann NAS",
     "Leser SMB-oversikt…",
     "SMB-kapasitet",
@@ -507,11 +546,14 @@ const inventoryMessages = {
     "Opprydding avsluttet – skann på nytt",
     "Hoppet over",
     "Stopp opprydding",
-    "Oversikt eller opprydding kunne ikke fullføres sikkert"
+    "Oversikt eller opprydding kunne ikke fullføres sikkert",
+    "Forhåndsvisningen viser bare de første 200 filene. Full opprydding omfatter alle gamle filer fra siste skanning, kjører med begrenset hastighet i bakgrunnen og kan stoppes.",
+    "Jeg bekrefter at mappen kun tilhører denne installasjonen, og at ALLE identifiserte gamle filer, også de som ikke vises, kan unnværes. Sletting kan ikke angres.",
+    "Slett alle gamle filer som kan ryddes opp"
   ],
   "fi": [
     "SMB-inventaario ja siivous",
-    "Lukee kamerakansion todellisen sisällön SMB:n kautta. Jaon ilmoittama kapasiteetti; roskakori ja tilannevedokset eivät sisälly. Vain vahvistetut tiedostot poistetaan.",
+    "Lukee kamerakansion todellisen sisällön SMB:n kautta. Jaon ilmoittama kapasiteetti; roskakori ja tilannevedokset eivät sisälly.",
     "Tarkista NAS",
     "Luetaan SMB-inventaariota…",
     "SMB-kapasiteetti",
@@ -530,11 +572,14 @@ const inventoryMessages = {
     "Siivous päättynyt – tarkista uudelleen",
     "Ohitettu",
     "Pysäytä siivous",
-    "Inventaario tai siivous ei valmistunut turvallisesti"
+    "Inventaario tai siivous ei valmistunut turvallisesti",
+    "Esikatselu näyttää vain 200 ensimmäistä tiedostoa. Täysi siivous kattaa kaikki viime tarkistuksessa tunnistetut vanhat tiedostot, toimii taustalla rajoitetulla nopeudella ja voidaan pysäyttää.",
+    "Vahvistan, että kansio kuuluu yksinomaan tähän asennukseen ja KAIKKI tunnistetut vanhat tiedostot, myös näyttämättömät, ovat tarpeettomia. Poistoa ei voi perua.",
+    "Poista kaikki siivottavat vanhat tiedostot"
   ],
   "ro": [
     "Inventar și curățare SMB",
-    "Citește conținutul real al folderului camerelor prin SMB. Capacitate raportată de partajare; coșul și instantaneele nu sunt incluse. Se șterg numai fișierele confirmate.",
+    "Citește conținutul real al folderului camerelor prin SMB. Capacitate raportată de partajare; coșul și instantaneele nu sunt incluse.",
     "Scanează NAS",
     "Citire inventar SMB…",
     "Capacitate SMB",
@@ -553,11 +598,14 @@ const inventoryMessages = {
     "Curățare încheiată – scanează din nou",
     "Omise",
     "Oprește curățarea",
-    "Inventarul sau curățarea nu au putut fi finalizate în siguranță"
+    "Inventarul sau curățarea nu au putut fi finalizate în siguranță",
+    "Previzualizarea afișează doar primele 200 de fișiere. Curățarea completă cuprinde toate fișierele vechi identificate la ultima scanare, rulează în fundal cu ritm limitat și poate fi oprită.",
+    "Confirm că folderul aparține exclusiv acestei instalări și că TOATE fișierele vechi identificate, inclusiv cele neafișate, sunt dispensabile. Ștergerea este ireversibilă.",
+    "Șterge toate fișierele vechi eligibile"
   ],
   "hu": [
     "SMB-leltár és tisztítás",
-    "A kameramappa tényleges tartalmának olvasása SMB-n keresztül. A kapacitást a megosztás jelenti; a lomtár és a pillanatképek nem szerepelnek. Csak jóváhagyott fájlok törlődnek.",
+    "A kameramappa tényleges tartalmának olvasása SMB-n keresztül. A kapacitást a megosztás jelenti; a lomtár és a pillanatképek nem szerepelnek.",
     "NAS vizsgálata",
     "SMB-leltár olvasása…",
     "SMB-kapacitás",
@@ -576,11 +624,14 @@ const inventoryMessages = {
     "Tisztítás befejezve – új vizsgálat",
     "Kihagyva",
     "Tisztítás leállítása",
-    "A leltár vagy tisztítás nem fejezhető be biztonságosan"
+    "A leltár vagy tisztítás nem fejezhető be biztonságosan",
+    "Az előnézet csak az első 200 fájlt mutatja. A teljes tisztítás az utolsó vizsgálat során azonosított összes régi fájlt érinti, korlátozott ütemben fut a háttérben és leállítható.",
+    "Megerősítem, hogy a mappa kizárólag ehhez a telepítéshez tartozik, és az ÖSSZES azonosított régi fájl, a nem megjelenítettek is, nélkülözhető. A törlés nem vonható vissza.",
+    "Minden tisztítható régi fájl törlése"
   ],
   "el": [
     "Απογραφή και εκκαθάριση SMB",
-    "Διαβάζει το πραγματικό περιεχόμενο του φακέλου καμερών μέσω SMB. Χωρητικότητα από το κοινόχρηστο στοιχείο· κάδος και στιγμιότυπα δεν περιλαμβάνονται. Διαγράφονται μόνο επιβεβαιωμένα αρχεία.",
+    "Διαβάζει το πραγματικό περιεχόμενο του φακέλου καμερών μέσω SMB. Χωρητικότητα από το κοινόχρηστο στοιχείο· κάδος και στιγμιότυπα δεν περιλαμβάνονται.",
     "Σάρωση NAS",
     "Ανάγνωση απογραφής SMB…",
     "Χωρητικότητα SMB",
@@ -599,11 +650,14 @@ const inventoryMessages = {
     "Η εκκαθάριση έληξε – νέα σάρωση",
     "Παραλείφθηκαν",
     "Διακοπή εκκαθάρισης",
-    "Η απογραφή ή η εκκαθάριση δεν ολοκληρώθηκε με ασφάλεια"
+    "Η απογραφή ή η εκκαθάριση δεν ολοκληρώθηκε με ασφάλεια",
+    "Η προεπισκόπηση δείχνει μόνο τα πρώτα 200 αρχεία. Η πλήρης εκκαθάριση αφορά όλα τα παλιά αρχεία της τελευταίας σάρωσης, εκτελείται στο παρασκήνιο με περιορισμένο ρυθμό και μπορεί να διακοπεί.",
+    "Επιβεβαιώνω ότι ο φάκελος ανήκει αποκλειστικά σε αυτή την εγκατάσταση και ΟΛΑ τα εντοπισμένα παλιά αρχεία, ακόμη και όσα δεν εμφανίζονται, είναι περιττά. Η διαγραφή είναι μη αναστρέψιμη.",
+    "Διαγραφή όλων των παλιών αρχείων προς εκκαθάριση"
   ],
   "uk": [
     "Інвентаризація та очищення SMB",
-    "Читає фактичний вміст папки камер через SMB. Місткість повідомляє спільний ресурс; кошик і знімки не враховано. Видаляються лише підтверджені файли.",
+    "Читає фактичний вміст папки камер через SMB. Місткість повідомляє спільний ресурс; кошик і знімки не враховано.",
     "Сканувати NAS",
     "Читання інвентарю SMB…",
     "Місткість SMB",
@@ -622,11 +676,14 @@ const inventoryMessages = {
     "Очищення завершено – сканувати знову",
     "Пропущено",
     "Зупинити очищення",
-    "Не вдалося безпечно завершити інвентаризацію або очищення"
+    "Не вдалося безпечно завершити інвентаризацію або очищення",
+    "Попередній перегляд показує лише перші 200 файлів. Повне очищення охоплює всі старі файли, виявлені останнім скануванням, працює у фоні з обмеженою швидкістю й може бути зупинене.",
+    "Підтверджую, що папка належить виключно цій інсталяції, а ВСІ виявлені старі файли, включно з непоказаними, не потрібні. Видалення незворотне.",
+    "Видалити всі старі файли, придатні до очищення"
   ],
   "ru": [
     "Инвентаризация и очистка SMB",
-    "Читает фактическое содержимое папки камер через SMB. Ёмкость сообщается общим ресурсом; корзина и снимки не учитываются. Удаляются только подтверждённые файлы.",
+    "Читает фактическое содержимое папки камер через SMB. Ёмкость сообщается общим ресурсом; корзина и снимки не учитываются.",
     "Сканировать NAS",
     "Чтение инвентаря SMB…",
     "Ёмкость SMB",
@@ -645,11 +702,14 @@ const inventoryMessages = {
     "Очистка завершена – сканировать снова",
     "Пропущено",
     "Остановить очистку",
-    "Не удалось безопасно завершить инвентаризацию или очистку"
+    "Не удалось безопасно завершить инвентаризацию или очистку",
+    "Предпросмотр показывает только первые 200 файлов. Полная очистка охватывает все старые файлы последнего сканирования, выполняется в фоне с ограниченной скоростью и может быть остановлена.",
+    "Подтверждаю, что папка принадлежит исключительно этой установке, а ВСЕ выявленные старые файлы, включая непоказанные, не нужны. Удаление необратимо.",
+    "Удалить все старые файлы, доступные для очистки"
   ],
   "ar": [
     "جرد SMB وتنظيفه",
-    "قراءة المحتوى الفعلي لمجلد الكاميرات عبر SMB. السعة من المشاركة؛ سلة المحذوفات واللقطات غير مشمولة. تُحذف الملفات المؤكدة فقط.",
+    "قراءة المحتوى الفعلي لمجلد الكاميرات عبر SMB. السعة من المشاركة؛ سلة المحذوفات واللقطات غير مشمولة.",
     "فحص NAS",
     "جارٍ قراءة جرد SMB…",
     "سعة SMB",
@@ -668,11 +728,14 @@ const inventoryMessages = {
     "انتهى التنظيف – أعد الفحص",
     "تم التخطي",
     "إيقاف التنظيف",
-    "تعذر إكمال الجرد أو التنظيف بأمان"
+    "تعذر إكمال الجرد أو التنظيف بأمان",
+    "تعرض المعاينة أول 200 ملف فقط. يشمل التنظيف الكامل جميع الملفات القديمة المحددة في الفحص الأخير، ويعمل في الخلفية بمعدل محدود ويمكن إيقافه.",
+    "أؤكد أن هذا المجلد يخص هذا التثبيت حصراً وأن جميع الملفات القديمة المحددة، بما فيها غير المعروضة، غير لازمة. لا يمكن التراجع عن الحذف.",
+    "حذف جميع الملفات القديمة القابلة للتنظيف"
   ],
   "zh-CN": [
     "SMB 清单与清理",
-    "通过 SMB 读取摄像机文件夹的实际内容。容量由共享报告；不包含回收站和快照。仅删除已确认的文件。",
+    "通过 SMB 读取摄像机文件夹的实际内容。容量由共享报告；不包含回收站和快照。",
     "扫描 NAS",
     "正在读取 SMB 清单…",
     "SMB 容量",
@@ -691,11 +754,14 @@ const inventoryMessages = {
     "清理结束 – 重新扫描",
     "已跳过",
     "停止清理",
-    "无法安全完成清单或清理"
+    "无法安全完成清单或清理",
+    "预览仅显示前 200 个文件。完整清理涵盖上次扫描识别出的所有旧文件，以受限速度在后台运行，并可停止。",
+    "我确认此文件夹仅属于此安装，并且所有识别出的旧文件（包括未显示的文件）均不再需要。删除无法撤销。",
+    "删除所有可清理的旧文件"
   ],
   "zh-TW": [
     "SMB 清單與清理",
-    "透過 SMB 讀取攝影機資料夾的實際內容。容量由共用資源回報；不含資源回收筒及快照。僅刪除已確認的檔案。",
+    "透過 SMB 讀取攝影機資料夾的實際內容。容量由共用資源回報；不含資源回收筒及快照。",
     "掃描 NAS",
     "正在讀取 SMB 清單…",
     "SMB 容量",
@@ -714,11 +780,14 @@ const inventoryMessages = {
     "清理結束 – 重新掃描",
     "已略過",
     "停止清理",
-    "無法安全完成清單或清理"
+    "無法安全完成清單或清理",
+    "預覽僅顯示前 200 個檔案。完整清理涵蓋上次掃描識別出的所有舊檔案，以受限速度在背景執行，並可停止。",
+    "我確認此資料夾僅屬於此安裝，且所有識別出的舊檔案（包含未顯示的檔案）均不再需要。刪除無法復原。",
+    "刪除所有可清理的舊檔案"
   ],
   "ja": [
     "SMB インベントリとクリーンアップ",
-    "SMB 経由でカメラフォルダーの実際の内容を読み取ります。容量は共有から報告され、ごみ箱とスナップショットは含まれません。確認したファイルのみ削除します。",
+    "SMB 経由でカメラフォルダーの実際の内容を読み取ります。容量は共有から報告され、ごみ箱とスナップショットは含まれません。",
     "NAS をスキャン",
     "SMB インベントリ読み取り中…",
     "SMB 容量",
@@ -737,11 +806,14 @@ const inventoryMessages = {
     "クリーンアップ終了 – 再スキャン",
     "スキップ",
     "クリーンアップを停止",
-    "インベントリまたはクリーンアップを安全に完了できませんでした"
+    "インベントリまたはクリーンアップを安全に完了できませんでした",
+    "プレビューには最初の 200 ファイルのみ表示されます。完全クリーンアップは前回のスキャンで検出したすべての古いファイルを対象とし、速度を制限してバックグラウンドで実行され、停止できます。",
+    "このフォルダーがこのインストール専用で、表示されていないものも含め検出されたすべての古いファイルが不要であることを確認します。削除は取り消せません。",
+    "クリーンアップ可能な古いファイルをすべて削除"
   ],
   "ko": [
     "SMB 목록 및 정리",
-    "SMB를 통해 카메라 폴더의 실제 내용을 읽습니다. 공유에서 보고한 용량이며 휴지통과 스냅샷은 포함되지 않습니다. 확인한 파일만 삭제합니다.",
+    "SMB를 통해 카메라 폴더의 실제 내용을 읽습니다. 공유에서 보고한 용량이며 휴지통과 스냅샷은 포함되지 않습니다.",
     "NAS 검사",
     "SMB 목록 읽는 중…",
     "SMB 용량",
@@ -760,7 +832,10 @@ const inventoryMessages = {
     "정리 종료 – 다시 검사",
     "건너뜀",
     "정리 중지",
-    "목록 또는 정리를 안전하게 완료하지 못했습니다"
+    "목록 또는 정리를 안전하게 완료하지 못했습니다",
+    "미리 보기에는 처음 200개 파일만 표시됩니다. 전체 정리는 마지막 검사에서 식별된 모든 오래된 파일을 대상으로 하며, 제한된 속도로 백그라운드에서 실행되고 중지할 수 있습니다.",
+    "이 폴더가 이 설치에만 속하며 표시되지 않은 파일을 포함하여 식별된 모든 오래된 파일이 불필요함을 확인합니다. 삭제는 취소할 수 없습니다.",
+    "정리 가능한 오래된 파일 모두 삭제"
   ]
 };
 for (const [locale, messages] of Object.entries(inventoryMessages)) values[locale].push(...messages);

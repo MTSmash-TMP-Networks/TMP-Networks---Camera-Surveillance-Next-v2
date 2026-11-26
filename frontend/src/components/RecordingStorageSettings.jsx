@@ -35,6 +35,7 @@ function SmbArchiveInventoryPanel({ profile, disabled, t }) {
   const [job, setJob] = useState(null);
   const [working, setWorking] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [confirmAll, setConfirmAll] = useState(false);
   const [error, setError] = useState('');
   const busy = ['scanning','cleaning'].includes(job?.phase);
   useEffect(() => {
@@ -50,7 +51,7 @@ function SmbArchiveInventoryPanel({ profile, disabled, t }) {
     }).catch(() => {}), 2000);
     return () => { mounted = false; clearInterval(timer); };
   }, [busy]);
-  useEffect(() => { setConfirmed(false); }, [job?.id, job?.phase, profile.id]);
+  useEffect(() => { setConfirmed(false); setConfirmAll(false); }, [job?.id, job?.phase, profile.id]);
   async function action(fn) {
     setWorking(true); setError('');
     try { setJob(await fn()); }
@@ -60,7 +61,7 @@ function SmbArchiveInventoryPanel({ profile, disabled, t }) {
   const result = job?.profileId === profile.id ? job?.result : null;
   const preview = result?.preview || [];
   const progress = job?.progress;
-  const ready = job?.phase === 'ready' && Boolean(result) && Date.parse(job.expiresAt) > Date.now();
+  const ready = job?.phase === 'ready' && job.profileId === profile.id && Boolean(result) && Date.parse(job.expiresAt) > Date.now();
   const stat = (label, value, detail) => <article><small>{label}</small><strong>{value}</strong><span>{detail}</span></article>;
   const count = value => Number(value || 0).toLocaleString();
   return <div className="storage-status-card">
@@ -93,10 +94,16 @@ function SmbArchiveInventoryPanel({ profile, disabled, t }) {
         <label style={{display:'flex',alignItems:'flex-start',gap:8}}><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} disabled={disabled || working}/><span>{t('recordings.storage.inventory.confirm')}</span></label>
         <button className="secondary-button" type="button" disabled={!confirmed || disabled || working} onClick={() => action(() => api.cleanupRecordingStorageInventory(job.id))}>{t('recordings.storage.inventory.clean')} ({count(preview.length)})</button>
       </div>}
+      {ready && result.buckets.orphan.count > preview.length && <div className="storage-credential-hint" style={{display:'block',marginTop:12}}>
+        <strong>{t('recordings.storage.inventory.cleanAll')} · {count(result.buckets.orphan.count)} · {formatArchiveBytes(result.buckets.orphan.bytes)}</strong>
+        <p>{t('recordings.storage.inventory.allNotice')}</p>
+        <label style={{display:'flex',alignItems:'flex-start',gap:8}}><input type="checkbox" checked={confirmAll} onChange={event => setConfirmAll(event.target.checked)} disabled={disabled || working}/><span>{t('recordings.storage.inventory.confirmAll')}</span></label>
+        <button className="secondary-button" type="button" disabled={!confirmAll || disabled || working} onClick={() => action(() => api.cleanupRecordingStorageInventory(job.id, 'all'))}>{t('recordings.storage.inventory.cleanAll')} ({count(result.buckets.orphan.count)})</button>
+      </div>}
     </>}
     {progress && <div role="status">
       <strong>{job.phase === 'cleaning' ? t('recordings.storage.inventory.cleaning') : t('recordings.storage.inventory.finished')}</strong>
-      <p>{count(progress.deleted)} / {count(progress.total)} · {formatArchiveBytes(progress.deletedBytes)} · {t('recordings.storage.inventory.skipped')}: {count(progress.skipped)} · {t('recordings.storage.transferFailed')}: {count(progress.failed)}</p>
+      <p>{count(progress.deleted)} / {count(progress.total)} · {formatArchiveBytes(progress.deletedBytes)}{job.cleanupBytes != null && ' / ' + formatArchiveBytes(job.cleanupBytes)} · {t('recordings.storage.inventory.skipped')}: {count(progress.skipped)} · {t('recordings.storage.transferFailed')}: {count(progress.failed)}</p>
       <progress max={progress.total} value={progress.deleted+progress.skipped+progress.failed}/>
       {job.phase === 'cleaning' && <button className="secondary-button" type="button" disabled={working} onClick={() => action(() => api.stopRecordingStorageInventory(job.id))}>{t('recordings.storage.inventory.stop')}</button>}
     </div>}

@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.112",
+  "version": "2.20.113",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.112",
-  "summary": "SMB-Bestand, Kapazität und sichere bestätigte Bereinigung verwaister Kamera-Dateien.",
+  "title": "TMP Camera Surveillance Next 2.20.113",
+  "summary": "Einmal bestätigte, vollständige und gedrosselte SMB-Altdateibereinigung.",
   "createdAt": "2026-11-26",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "SMB share capacity, real file inventory and largest archive folders",
-    "Read-only database reconciliation and bounded orphan preview",
-    "Explicit admin confirmation; revalidate file metadata and current database before exact deletion",
-    "Background jobs, cancellation, pacing, audit log and 24 languages"
+    "Separate explicit approval for all cleanable files in the immutable scan",
+    "Keep 200-file API preview; process all approved files individually with paced SMB sessions and 50-file breaks",
+    "Recheck live database, file metadata, active target and admin authorization before deletion; stop on error or cancellation",
+    "Progress in files and bytes, audit log, 24 languages and regression tests"
   ],
   "preserve": [
     ".env",
@@ -33,12 +33,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.112",
-  "packageId": "tmp-camera-surveillance-next-2.20.112",
+  "name": "TMP Camera Surveillance Next v2.20.113",
+  "packageId": "tmp-camera-surveillance-next-2.20.113",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "SMB archive inventory with capacity, database reconciliation and conservative admin-confirmed cleanup of stale generated files.",
+  "description": "Full safe SMB archive cleanup using a private immutable scan snapshot, explicit administrator approval, throttled per-file verification and cancellation.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Aufnahmen → Speicher zeigt einen manuell abrufbaren SMB-Bestand mit Kapazität, freiem Speicher, Dateigrößen und Datenbankabgleich. Nur mindestens sieben Tage alte, eindeutig benannte Altdateien ohne Aufnahme-ID oder Datenbankreferenz werden nach Vorschau und ausdrücklicher Bestätigung bereinigt. Löschaufträge sind begrenzt, abbrechbar und nutzen den bestehenden SMB-Kontoschutz. Keine fremden Freigaben, Snapshots oder Papierkörbe werden gelöscht.",
+  "releaseNotes": "Aufnahmen → Speicher: Nach einem neuen Scan kann der gesamte bereinigbare Altbestand einmalig bestätigt und im Hintergrund gelöscht werden. Die Vorschau bleibt auf 200 Dateien begrenzt. Einzelfallprüfung, Kontoschutz und Verbindungspausen bleiben aktiv; nach jeweils 50 Dateien zusätzliche fünf Sekunden Pause. Fehler oder Abbruch stoppen die Bereinigung. Nach einem Backend-Neustart erneut scannen und bestätigen.",
   "fileCount": 526
 }
