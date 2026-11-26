@@ -142,6 +142,7 @@ backend/src/services/recording/RecordingScheduler.js
 backend/src/services/recording/RecordingStoragePaths.js
 backend/src/services/recording/RetentionManager.js
 backend/src/services/recording/RetentionPolicy.js
+backend/src/services/recording/SmbArchiveInventory.js
 backend/src/services/recording/SmbAuthGuard.js
 backend/src/services/recording/ZipStoreWriter.js
 backend/src/services/recordingRepository.js
@@ -213,6 +214,7 @@ backend/test-node/remote-proxy-policy.test.mjs
 backend/test-node/remote-proxy-transfer.test.mjs
 backend/test-node/reolink-onvif-port-8000.test.mjs
 backend/test-node/runtime-permissions.test.mjs
+backend/test-node/smb-archive-inventory.test.mjs
 backend/test-node/smtp-client.test.mjs
 backend/test-node/snapshot-native-recovery.test.mjs
 backend/test-node/standalone-license.test.mjs

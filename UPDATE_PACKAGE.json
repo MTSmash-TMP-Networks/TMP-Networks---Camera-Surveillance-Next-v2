@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.111",
+  "version": "2.20.112",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.111",
-  "summary": "Vorbeugender SMB-Schutz durch zeitlich getrennte Verbindungsaufbauten.",
+  "title": "TMP Camera Surveillance Next 2.20.112",
+  "summary": "SMB-Bestand, Kapazität und sichere bestätigte Bereinigung verwaister Kamera-Dateien.",
   "createdAt": "2026-11-26",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Minimum one-second quiet interval between SMB sessions per configured host",
-    "Pace negotiation fallback and TCP diagnostics; avoid redundant collision probes",
-    "Keep authentication cooldown and verified archival under disk pressure",
-    "Configurable interval and regression tests for timing, errors and host isolation"
+    "SMB share capacity, real file inventory and largest archive folders",
+    "Read-only database reconciliation and bounded orphan preview",
+    "Explicit admin confirmation; revalidate file metadata and current database before exact deletion",
+    "Background jobs, cancellation, pacing, audit log and 24 languages"
   ],
   "preserve": [
     ".env",
@@ -33,12 +33,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.111",
-  "packageId": "tmp-camera-surveillance-next-2.20.111",
+  "name": "TMP Camera Surveillance Next v2.20.112",
+  "packageId": "tmp-camera-surveillance-next-2.20.112",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Preventive per-host SMB session pacing, including protocol fallback and diagnostic TCP connections, with persistent authentication cooldown.",
+  "description": "SMB archive inventory with capacity, database reconciliation and conservative admin-confirmed cleanup of stale generated files.",
   "minVersion": "2.20.32",
-  "releaseNotes": "SMB-Sitzungen zum selben konfigurierten Server erhalten standardmäßig eine Sekunde Ruhezeit nach jeder Sitzung. Einstellbar über NETWORK_RECORDING_SMB_SESSION_GAP_MS. Auch Fallback und Diagnose unterliegen der Pause; keine Ausnahme bei Speicherdruck. 60-minütige Kontoschutzpause bleibt aktiv. Lokale Aufnahmeblöcke werden erst nach erfolgreicher Übertragung und Größenprüfung entfernt.",
-  "fileCount": 524
+  "releaseNotes": "Aufnahmen → Speicher zeigt einen manuell abrufbaren SMB-Bestand mit Kapazität, freiem Speicher, Dateigrößen und Datenbankabgleich. Nur mindestens sieben Tage alte, eindeutig benannte Altdateien ohne Aufnahme-ID oder Datenbankreferenz werden nach Vorschau und ausdrücklicher Bestätigung bereinigt. Löschaufträge sind begrenzt, abbrechbar und nutzen den bestehenden SMB-Kontoschutz. Keine fremden Freigaben, Snapshots oder Papierkörbe werden gelöscht.",
+  "fileCount": 526
 }

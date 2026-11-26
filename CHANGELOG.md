@@ -1,3 +1,10 @@
+## 2.20.112 – SMB-Bestandsübersicht und sichere Archivbereinigung
+
+- SMB-Freigabekapazität, freier Speicher, echte logische Dateigrößen und größte Verzeichnisse direkt aus dem aktiven Kamera-Zielordner ermitteln.
+- Lesender Datenbankabgleich mit getrennten Kategorien für erfasste, bereinigbare, geschützte und sonstige Dateien. Hintergrundauftrag mit lokalem Status statt dauernder NAS-Anfragen.
+- Ausschließlich bestätigte Vorschau-Dateien (maximal 200, mindestens sieben Tage alt, verwaiste generierte Aufnahme-ID) nach erneuter Metadaten- und Referenzprüfung löschen. Kein rekursives Löschen oder Löschen fremder Dateien.
+- Abbruch, Ablauf der Vorschau, Audit-Protokoll, bestehende SMB-Zeitabstände und Kontoschutz. 24 Sprachen, SQLite-Regressionstests und ein isolierter Samba-Integrationstest.
+
 ## 2.20.111 – Vorbeugende SMB-Verbindungspausen
 
 - Standardmäßig mindestens 1000 ms Ruhezeit zwischen dem Ende und dem Beginn aufeinanderfolgender SMB-Sitzungen zum selben konfigurierten Host; einstellbar zwischen 250 und 10000 ms.
