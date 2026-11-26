@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
+import { SmbAuthGuard, SMB_AUTH_COOLDOWN_MS, SMB_AUTH_FAILED, SMB_AUTH_COOLDOWN, isSmbAuthenticationFailure } from '../src/services/recording/SmbAuthGuard.js';
 import { networkUploadPolicy, selectNetworkUploadCandidates, claimNetworkUpload, runNetworkUploadBatch, NETWORK_UPLOAD_BYPASS_REASON } from '../src/services/recording/NetworkUploadPolicy.js';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
@@ -51,7 +52,7 @@ test('compression does not race the network transfer worker', () => {
   assert.match(policy, /LEFT JOIN recording_compression_jobs c/);
   assert.match(policy, /c\.status IN \('completed','skipped','failed'\)/);
   assert.match(policy, /r\.status IN \('recording','ready','ready_with_gaps'\)/);
-  assert.match(storage, /claimNetworkUpload\(db, segment\.id, policy, safeUploadSource\)/);
+  assert.match(storage, /claimNetworkUpload\(db, segment\.id, policy, \(row\) =>/);
   assert.match(storage, /fs\.existsSync\(source \+ '\.compression-backup'\) \|\| fs\.existsSync\(source \+ '\.compressing'\)\) return false/);
   assert.match(storage, /stat\.isFile\(\) && isRecordingStoragePath\(fs\.realpathSync\(source\)/);
   assert.ok(compression.indexOf('const transient = this.reconcileTransientFiles()') < compression.indexOf('if (!config.recordingCompressionEnabled) return;'));
@@ -140,4 +141,67 @@ test('bounded upload batch completes all tasks even when one throws', async () =
   assert.equal(peak,2);
   assert.equal(active,0);
   assert.deepEqual(seen.sort((a,b)=>a-b),[1,2,3,4,5,6]);
+});
+
+
+test('SMB authentication failures include account-lock and expired credentials, not ordinary share errors', () => {
+  for (const code of ['LOGON_FAILURE','WRONG_PASSWORD','NO_SUCH_USER','ACCOUNT_LOCKED_OUT','ACCOUNT_DISABLED','ACCOUNT_EXPIRED','PASSWORD_EXPIRED','PASSWORD_MUST_CHANGE','ACCOUNT_RESTRICTION','INVALID_LOGON_HOURS']) {
+    assert.equal(isSmbAuthenticationFailure('session setup failed: NT_STATUS_'+code), true, code);
+  }
+  assert.equal(isSmbAuthenticationFailure('session setup failed: NT_STATUS_ACCESS_DENIED'), true);
+  for (const code of ['ACCESS_DENIED','BAD_NETWORK_NAME','IO_TIMEOUT','NOT_SUPPORTED','OBJECT_NAME_NOT_FOUND']) {
+    assert.equal(isSmbAuthenticationFailure('NT_STATUS_'+code), false, code);
+  }
+});
+
+test('parallel SMB calls share a persisted server cooldown; no extra attempts after the first rejection', async t => {
+  const db = new DatabaseSync(':memory:');
+  t.after(()=>db.close());
+  db.exec('CREATE TABLE system_settings(key TEXT PRIMARY KEY,value TEXT,updated_at TEXT)');
+  let now=Date.parse('2026-11-26T12:00:00Z'), attempts=0;
+  const pauses=[];
+  const guard=new SmbAuthGuard(db,{now:()=>now,onPause:s=>pauses.push(s)});
+  const profile={protocol:'smb',host:'NAS.EXAMPLE.',port:445,username:'one'};
+  const legacy={...profile,host:'nas.example',port:139,username:'two'};
+  const other={...profile,host:'other-nas'};
+  async function rejectLogin() {
+    attempts++;
+    await new Promise(resolve=>setTimeout(resolve,10));
+    throw Object.assign(new Error('rejected'),{code:SMB_AUTH_FAILED});
+  }
+  const results=await Promise.allSettled([guard.run(profile,rejectLogin),guard.run(legacy,rejectLogin),
+    guard.run(profile,rejectLogin),guard.run(profile,rejectLogin)]);
+  assert.equal(attempts,1);
+  assert.equal(results[0].reason.code,SMB_AUTH_FAILED);
+  assert.ok(results.slice(1).every(r=>r.reason.code===SMB_AUTH_COOLDOWN));
+  assert.equal(pauses.length,1);
+  assert.equal(guard.status(legacy).remainingMs,SMB_AUTH_COOLDOWN_MS);
+  assert.equal(await guard.run(other,async()=>42),42);
+  const restarted=new SmbAuthGuard(db,{now:()=>now});
+  now+=SMB_AUTH_COOLDOWN_MS-1;
+  await assert.rejects(restarted.run(legacy,rejectLogin),{code:SMB_AUTH_COOLDOWN});
+  assert.equal(attempts,1);
+  now++;
+  assert.equal(await restarted.run(legacy,async()=>43),43);
+  assert.equal(restarted.status(profile),null);
+  // A fresh failure starts another full cooldown, not a retry storm.
+  await assert.rejects(restarted.run(profile,rejectLogin),{code:SMB_AUTH_FAILED});
+  assert.equal(restarted.status(profile).remainingMs,SMB_AUTH_COOLDOWN_MS);
+  assert.equal(attempts,2);
+});
+
+test('paused profile IDs do not starve eligible uploads to another storage target', t => {
+  const {db,add,policy}=uploadFixture(t);
+  for(let i=1;i<=12;i++) add(i,'completed',1);
+  db.exec("UPDATE recording_segments SET storage_profile_id='blocked' WHERE id<=11");
+  assert.deepEqual(selectNetworkUploadCandidates(db,policy(),['blocked']).map(s=>s.id),[12]);
+});
+
+test('all SMB commands, including manual tests and remote deletion, pass the same auth guard', () => {
+  const source=read('backend/src/services/NetworkRecordingStorageService.js');
+  assert.match(source,/return smbAuthGuard\.run\(profile, \(\) => smbAuthFile/);
+  assert.match(source,/if \(isSmbAuthenticationFailure\(commandOutput\(error\)\)\) throw await smbCommandError/);
+  assert.match(source,/if \(isSmbAuthPause\(error\)\) throw error;/);
+  assert.match(source,/selectNetworkUploadCandidates\(db, policy, blockedProfileIds\)/);
+  assert.match(source,/authCooldowns,/);
 });

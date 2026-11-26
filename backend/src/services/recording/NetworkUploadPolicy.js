@@ -28,9 +28,10 @@ const UPLOAD_WHERE = "s.storage_profile_id IS NOT NULL AND s.remote_path IS NOT 
 const UPLOAD_ELIGIBLE = "(c.status IN ('completed','skipped','failed') OR (COALESCE(c.status,'none') IN ('none','queued','retry') AND (s.storage_state='uploading' OR ?=1 OR COALESCE(julianday(s.finalized_at),julianday(s.ended_at),julianday(s.started_at),0)<=julianday(?))))";
 const argsFor = (policy) => [policy.bypass ? 1 : 0, new Date(policy.cutoffMs).toISOString()];
 
-export function selectNetworkUploadCandidates(db, policy) {
+export function selectNetworkUploadCandidates(db, policy, blockedProfileIds = []) {
+  const allowed = blockedProfileIds.length ? ' AND s.storage_profile_id NOT IN (' + blockedProfileIds.map(() => '?').join(',') + ')' : '';
   return db.prepare('SELECT s.* ' + UPLOAD_JOIN + ' WHERE ' + UPLOAD_WHERE + ' AND ' +
-    UPLOAD_ELIGIBLE + ' ORDER BY s.id ASC LIMIT ?').all(...argsFor(policy), policy.concurrency * 3);
+    UPLOAD_ELIGIBLE + allowed + ' ORDER BY s.id ASC LIMIT ?').all(...argsFor(policy), ...blockedProfileIds, policy.concurrency * 3);
 }
 
 /** Claim and recheck immediately before reading a file. The compressor excludes

@@ -56,7 +56,9 @@ export const RECORDING_STORAGE_MESSAGE_KEYS = Object.freeze([
   "recordings.storage.error.clientMissing",
   "recordings.storage.error.verify",
   "recordings.storage.error.connection",
-  "recordings.storage.error.generic"
+  "recordings.storage.error.generic",
+  "recordings.storage.error.authCooldown",
+  "recordings.storage.authRetryAt"
 ]);
 
 const values = {
@@ -85,6 +87,106 @@ const values = {
   "ja": ["ストレージ", "録画ストレージ", "ローカル保存またはネットワーク機器への直接保存を選択します。SMB/CIFS と SFTP はホスト側のマウントなしで利用できます。", "ローカルストレージ", "録画を Docker ホストに保存します。", "ネットワークストレージ", "完了した録画ブロックをネットワーク上の NAS またはサーバーへ直接転送します。", "プロトコル", "SMB / CIFS", "SFTP / SSH", "サーバー / IP アドレス", "ポート", "SMB 共有", "共有フォルダー名だけを入力してください。例: recordings。/volume1/recordings や完全な SMB パスは入力しないでください。", "保存先フォルダー", "SMB 共有内のフォルダー。", "SFTP サーバー上の絶対または相対フォルダー。", "ドメイン / ワークグループ", "SSH ホスト鍵", "初回接続時に新しい鍵を受け入れる", "既知のホスト鍵のみ許可", "保存済みパスワードを維持", "認証情報はローカルデータベースに暗号化して保存され、ブラウザーには返されません。", "現在の保存先", "接続の問題", "ネットワークストレージ有効", "ローカルストレージ有効", "保留中", "ブロックは転送待ちまたはアップロード中です。", "リモート保存済み", "ブロックはネットワーク保存先へ正常に移動しました。", "失敗", "失敗した転送は自動的に再試行されます。", "ローカルバッファ", "有効", "直接ネットワーク接続", "アプリが SMB または SFTP に直接接続します。Docker ホストでの手動マウントは不要です。", "安全な認証情報", "パスワードは暗号化保存されます。SFTP はホスト鍵を記憶し、後の変更を検出します。", "録画ストレージを変更できるのは管理者のみです。", "接続をテスト", "接続をテスト中 …", "接続と書き込みアクセスを正常に確認しました。", "保存先を保存", "保存中 …", "保存先を保存しました。新しい録画ブロックはこの設定を使用します。", "入力したストレージ設定を確認してください。サーバー、SMB 共有、保存先フォルダーは別々の項目です。", "ネットワークストレージの認証に失敗しました。ユーザー名とパスワードを確認してください。", "認証は成功しましたが、保存先で必要な読み取り・書き込み・削除権限がありません。", "SMB サーバーには接続できますが、指定した共有が見つかりません。/volume1/… ではなく共有名だけを指定してください。", "SMB サーバーには接続できますが、SMB3/SMB2 のプロトコルネゴシエーションに失敗しました。", "バックエンドコンテナからサーバー名を解決できません。IP アドレスまたは解決可能なホスト名を使用してください。", "サーバー名は解決できましたが、設定された SMB ポートにバックエンドから接続できません。通常は 445 を使用します。", "サーバーとポートには接続できますが、SMB 操作に失敗しました。共有、権限、NAS の SMB 設定を確認してください。", "バックエンドコンテナに必要な SMB/SFTP クライアントがありません。", "テストファイルを書き込み後に正しく読み戻せませんでした。", "ネットワーク保存先に到達できないか、接続が切断されました。", "ストレージエラー ({code})。"],
   "ko": ["저장소", "녹화 저장소", "로컬 저장소 또는 네트워크 장치에 직접 저장하도록 선택합니다. SMB/CIFS와 SFTP는 호스트 마운트 없이 동작합니다.", "로컬 저장소", "녹화를 Docker 호스트에 저장합니다.", "네트워크 저장소", "완료된 녹화 블록을 네트워크의 NAS 또는 서버로 직접 전송합니다.", "프로토콜", "SMB / CIFS", "SFTP / SSH", "서버 / IP 주소", "포트", "SMB 공유", "공유 폴더 이름만 입력하세요. 예: recordings. /volume1/recordings 또는 전체 SMB 경로를 입력하지 마세요.", "대상 폴더", "SMB 공유 내부의 폴더.", "SFTP 서버의 절대 또는 상대 폴더.", "도메인 / 작업 그룹", "SSH 호스트 키", "첫 연결에서 새 키 허용", "이미 알려진 호스트 키만 허용", "저장된 비밀번호 유지", "인증 정보는 로컬 데이터베이스에 암호화되어 저장되며 브라우저로 반환되지 않습니다.", "활성 저장 대상", "연결 문제", "네트워크 저장소 활성", "로컬 저장소 활성", "대기 중", "블록이 전송 대기 중이거나 업로드되고 있습니다.", "원격 저장됨", "블록이 네트워크 대상으로 성공적으로 이동했습니다.", "실패", "실패한 전송은 자동으로 다시 시도됩니다.", "로컬 버퍼", "활성", "직접 네트워크 연결", "애플리케이션이 SMB 또는 SFTP에 직접 연결합니다. Docker 호스트의 수동 마운트가 필요 없습니다.", "안전한 인증 정보", "비밀번호는 암호화하여 저장합니다. SFTP는 호스트 키를 기억해 이후 변경을 감지합니다.", "관리자만 녹화 저장소를 변경할 수 있습니다.", "연결 테스트", "연결 테스트 중 …", "연결 및 쓰기 권한이 정상적으로 확인되었습니다.", "저장 대상 저장", "저장 중 …", "저장 대상이 저장되었습니다. 새 녹화 블록이 이 설정을 사용합니다.", "입력한 저장소 설정을 확인하세요. 서버, SMB 공유 및 대상 폴더는 각각 별도 항목입니다.", "네트워크 저장소 인증에 실패했습니다. 사용자 이름과 비밀번호를 확인하세요.", "인증은 성공했지만 대상에 필요한 읽기, 쓰기 또는 삭제 권한이 없습니다.", "SMB 서버에는 연결되지만 지정한 공유를 찾을 수 없습니다. /volume1/… 대신 공유 이름만 사용하세요.", "SMB 서버에는 연결되지만 SMB3/SMB2 프로토콜 협상에 실패했습니다.", "백엔드 컨테이너에서 서버 이름을 확인할 수 없습니다. IP 주소 또는 확인 가능한 호스트 이름을 사용하세요.", "서버 이름은 확인되었지만 백엔드에서 설정된 SMB 포트에 연결할 수 없습니다. 일반적으로 445를 사용합니다.", "서버와 포트에는 연결되지만 SMB 작업이 실패했습니다. 공유, 권한 및 NAS SMB 설정을 확인하세요.", "백엔드 컨테이너에 필요한 SMB/SFTP 클라이언트가 없습니다.", "테스트 파일을 쓴 후 올바르게 다시 읽지 못했습니다.", "네트워크 대상에 연결할 수 없거나 연결이 끊어졌습니다.", "저장소 오류 ({code})."],
 };
+
+const authCooldownMessages = {
+  "de": [
+    "SMB-Anmeldung zum Kontoschutz pausiert. Nach einer abgelehnten Anmeldung werden weitere Anmeldeversuche für diesen Server 60 Minuten ausgesetzt. Aufnahmen bleiben lokal gepuffert. Bitte Zugangsdaten und NAS-Kontosperre prüfen.",
+    "Nächster Versuch frühestens"
+  ],
+  "en": [
+    "SMB sign-in paused to protect the account. After a rejected sign-in, further attempts to this server are suspended for 60 minutes. Recordings remain buffered locally. Check credentials and NAS account lockout.",
+    "Next attempt no earlier than"
+  ],
+  "fr": [
+    "Connexion SMB suspendue pour protéger le compte. Après un refus de connexion, les nouvelles tentatives vers ce serveur sont suspendues pendant 60 minutes. Les enregistrements restent stockés localement. Vérifiez les identifiants et le verrouillage du compte NAS.",
+    "Prochaine tentative au plus tôt"
+  ],
+  "es": [
+    "Inicio de sesión SMB pausado para proteger la cuenta. Tras un rechazo, los nuevos intentos a este servidor se suspenden durante 60 minutos. Las grabaciones permanecen almacenadas localmente. Compruebe las credenciales y el bloqueo de la cuenta del NAS.",
+    "Próximo intento como muy pronto"
+  ],
+  "it": [
+    "Accesso SMB sospeso per proteggere l'account. Dopo un accesso rifiutato, i tentativi verso questo server vengono sospesi per 60 minuti. Le registrazioni restano nel buffer locale. Verificare credenziali e blocco dell'account NAS.",
+    "Prossimo tentativo non prima di"
+  ],
+  "nl": [
+    "SMB-aanmelding gepauzeerd ter bescherming van het account. Na een geweigerde aanmelding worden nieuwe pogingen naar deze server 60 minuten uitgesteld. Opnamen blijven lokaal gebufferd. Controleer de inloggegevens en accountblokkering op de NAS.",
+    "Volgende poging op zijn vroegst"
+  ],
+  "pl": [
+    "Logowanie SMB wstrzymane w celu ochrony konta. Po odrzuceniu logowania kolejne próby na tym serwerze są wstrzymywane na 60 minut. Nagrania pozostają w lokalnym buforze. Sprawdź dane logowania i blokadę konta NAS.",
+    "Następna próba najwcześniej"
+  ],
+  "pt-BR": [
+    "Login SMB pausado para proteger a conta. Após uma tentativa rejeitada, novas tentativas neste servidor ficam suspensas por 60 minutos. As gravações permanecem no buffer local. Verifique as credenciais e o bloqueio da conta do NAS.",
+    "Próxima tentativa a partir de"
+  ],
+  "tr": [
+    "Hesabı korumak için SMB oturumu açma duraklatıldı. Reddedilen bir girişten sonra bu sunucuya yeni giriş denemeleri 60 dakika askıya alınır. Kayıtlar yerel arabellekte kalır. Kimlik bilgilerini ve NAS hesap kilidini kontrol edin.",
+    "Sonraki deneme en erken"
+  ],
+  "cs": [
+    "Přihlášení SMB pozastaveno kvůli ochraně účtu. Po odmítnutí přihlášení jsou další pokusy na tomto serveru pozastaveny na 60 minut. Záznamy zůstávají v místní vyrovnávací paměti. Zkontrolujte přihlašovací údaje a uzamčení účtu NAS.",
+    "Další pokus nejdříve"
+  ],
+  "da": [
+    "SMB-login sat på pause for at beskytte kontoen. Efter et afvist login standses nye forsøg til denne server i 60 minutter. Optagelser forbliver i den lokale buffer. Kontrollér loginoplysninger og kontolås på NAS.",
+    "Næste forsøg tidligst"
+  ],
+  "sv": [
+    "SMB-inloggning pausad för att skydda kontot. Efter en nekad inloggning pausas nya försök till denna server i 60 minuter. Inspelningar ligger kvar i den lokala bufferten. Kontrollera inloggningsuppgifter och NAS-kontolåsning.",
+    "Nästa försök tidigast"
+  ],
+  "nb": [
+    "SMB-pålogging satt på pause for å beskytte kontoen. Etter en avvist pålogging stanses nye forsøk til denne serveren i 60 minutter. Opptak beholdes i lokal buffer. Kontroller påloggingsopplysninger og kontolås på NAS.",
+    "Neste forsøk tidligst"
+  ],
+  "fi": [
+    "SMB-kirjautuminen keskeytetty tilin suojaamiseksi. Hylätyn kirjautumisen jälkeen uudet yritykset tälle palvelimelle keskeytetään 60 minuutiksi. Tallenteet säilyvät paikallisessa puskurissa. Tarkista tunnistetiedot ja NAS-tilin lukitus.",
+    "Seuraava yritys aikaisintaan"
+  ],
+  "ro": [
+    "Autentificarea SMB a fost suspendată pentru protejarea contului. După o autentificare respinsă, încercările către acest server sunt suspendate timp de 60 de minute. Înregistrările rămân în memoria tampon locală. Verificați datele de autentificare și blocarea contului NAS.",
+    "Următoarea încercare cel mai devreme"
+  ],
+  "hu": [
+    "Az SMB-bejelentkezés a fiók védelme érdekében szünetel. Elutasított bejelentkezés után az adott szerverre irányuló további próbálkozások 60 percig szünetelnek. A felvételek a helyi pufferben maradnak. Ellenőrizze a hitelesítési adatokat és a NAS-fiók zárolását.",
+    "Következő próbálkozás legkorábban"
+  ],
+  "el": [
+    "Η σύνδεση SMB τέθηκε σε παύση για την προστασία του λογαριασμού. Μετά από απόρριψη σύνδεσης, οι νέες προσπάθειες σε αυτόν τον διακομιστή αναστέλλονται για 60 λεπτά. Οι εγγραφές παραμένουν στην τοπική προσωρινή μνήμη. Ελέγξτε τα διαπιστευτήρια και το κλείδωμα λογαριασμού NAS.",
+    "Επόμενη προσπάθεια το νωρίτερο"
+  ],
+  "uk": [
+    "Вхід через SMB призупинено для захисту облікового запису. Після відхиленого входу повторні спроби до цього сервера призупиняються на 60 хвилин. Записи залишаються в локальному буфері. Перевірте облікові дані та блокування облікового запису NAS.",
+    "Наступна спроба не раніше ніж"
+  ],
+  "ru": [
+    "Вход по SMB приостановлен для защиты учётной записи. После отклонённого входа новые попытки подключения к этому серверу приостанавливаются на 60 минут. Записи остаются в локальном буфере. Проверьте учётные данные и блокировку учётной записи NAS.",
+    "Следующая попытка не ранее"
+  ],
+  "ar": [
+    "تم إيقاف تسجيل الدخول عبر SMB مؤقتًا لحماية الحساب. بعد رفض تسجيل الدخول، تتوقف المحاولات إلى هذا الخادم لمدة 60 دقيقة. تبقى التسجيلات في المخزن المؤقت المحلي. تحقق من بيانات الاعتماد وقفل حساب NAS.",
+    "المحاولة التالية في موعد لا يسبق"
+  ],
+  "zh-CN": [
+    "为保护账户，SMB 登录已暂停。登录被拒绝后，暂停对此服务器的后续登录尝试 60 分钟。录像保留在本地缓冲区。请检查凭据和 NAS 账户锁定状态。",
+    "最早重试时间"
+  ],
+  "zh-TW": [
+    "為保護帳戶，SMB 登入已暫停。登入遭拒後，暫停對此伺服器的後續登入嘗試 60 分鐘。錄影保留在本機緩衝區。請檢查認證資料和 NAS 帳戶鎖定狀態。",
+    "最早重試時間"
+  ],
+  "ja": [
+    "アカウント保護のため SMB ログインを一時停止しました。ログイン拒否後、このサーバーへの再試行を 60 分間停止します。録画はローカルバッファーに保持されます。認証情報と NAS アカウントのロック状態を確認してください。",
+    "次回試行の最短時刻"
+  ],
+  "ko": [
+    "계정 보호를 위해 SMB 로그인이 일시 중지되었습니다. 로그인 거부 후 이 서버에 대한 추가 시도를 60분간 중지합니다. 녹화는 로컬 버퍼에 유지됩니다. 자격 증명과 NAS 계정 잠금을 확인하세요.",
+    "다음 시도 가능 시간"
+  ]
+};
+for (const [locale, messages] of Object.entries(authCooldownMessages)) values[locale].push(...messages);
 
 const requiredLocales = ['de','en','fr','es','it','nl','pl','pt-BR','tr','cs','da','sv','nb','fi','ro','hu','el','uk','ru','ar','zh-CN','zh-TW','ja','ko'];
 for (const locale of requiredLocales) {

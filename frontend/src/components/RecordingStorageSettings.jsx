@@ -8,6 +8,7 @@ function storageError(error, t) {
   const code = String(error?.code || '');
   if (code === 'NETWORK_STORAGE_INVALID' || code === 'NETWORK_STORAGE_PATH_INVALID' || code === 'NETWORK_STORAGE_PROTOCOL_UNSUPPORTED') return t('recordings.storage.error.invalid');
   if (code === 'NETWORK_STORAGE_AUTH_FAILED') return t('recordings.storage.error.auth');
+  if (code === 'NETWORK_STORAGE_AUTH_COOLDOWN') return t('recordings.storage.error.authCooldown');
   if (code === 'NETWORK_STORAGE_PERMISSION_DENIED') return t('recordings.storage.error.permission');
   if (code === 'NETWORK_STORAGE_SHARE_NOT_FOUND') return t('recordings.storage.error.share');
   if (code === 'NETWORK_STORAGE_PROTOCOL_FAILED') return t('recordings.storage.error.protocol');
@@ -56,7 +57,16 @@ export function RecordingStorageSettings({ canConfigure = false }) {
     } finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    let mounted = true;
+    load();
+    // Status polling must never overwrite in-progress credential edits or
+    // clear the result of a manually requested connection test.
+    const timer = setInterval(() => {
+      api.recordingStorage().then(result => { if (mounted) setOverview(result); }).catch(() => {});
+    }, 10000);
+    return () => { mounted = false; clearInterval(timer); };
+  }, []);
 
   const payload = useMemo(() => ({
     mode: form.mode,
@@ -74,6 +84,7 @@ export function RecordingStorageSettings({ canConfigure = false }) {
   const profile = overview?.profile || null;
   const runtime = overview?.runtime || {};
   const counts = runtime.counts || {};
+  const authCooldowns = Array.isArray(runtime.authCooldowns) ? runtime.authCooldowns : [];
   const networkIncomplete = form.mode === 'network' && (!form.host.trim() || !form.basePath.trim() || (form.protocol === 'smb' && !form.share.trim()) || (form.protocol === 'sftp' && !form.username.trim()));
 
   async function testTarget() {
@@ -82,7 +93,7 @@ export function RecordingStorageSettings({ canConfigure = false }) {
       await api.testRecordingStorage(payload);
       setNotice(t('recordings.storage.testOk'));
     } catch (cause) { setError(storageError(cause, t)); }
-    finally { setTesting(false); }
+    finally { setTesting(false); api.recordingStorage().then(setOverview).catch(() => {}); }
   }
 
   async function saveTarget() {
@@ -95,7 +106,7 @@ export function RecordingStorageSettings({ canConfigure = false }) {
       sync(result);
       setNotice(t('recordings.storage.saved'));
     } catch (cause) { setError(storageError(cause, t)); }
-    finally { setSaving(false); }
+    finally { setSaving(false); api.recordingStorage().then(setOverview).catch(() => {}); }
   }
 
   function changeSmbHost(value) {
@@ -127,6 +138,10 @@ export function RecordingStorageSettings({ canConfigure = false }) {
   return <section className="recording-storage-page">
     {error && <div className="form-error">{error}</div>}
     {notice && <div className="form-success">{notice}</div>}
+    {authCooldowns.length > 0 && <div className="form-error" role="status">
+      <strong>{t('recordings.storage.error.authCooldown')}</strong>
+      {authCooldowns.map(target => <div key={target.host}>{target.host} · {t('recordings.storage.authRetryAt')}: <time dateTime={target.retryAt}>{new Date(target.retryAt).toLocaleString()}</time></div>)}
+    </div>}
 
     <div className="storage-hero-card">
       <div className="storage-hero-copy"><span className="storage-icon"><HardDrive/></span><div><h2>{t('recordings.storage.title')}</h2><p>{t('recordings.storage.description')}</p></div></div>
@@ -165,7 +180,7 @@ export function RecordingStorageSettings({ canConfigure = false }) {
     </div>}
 
     <div className="storage-status-card">
-      <header><div><Server/><span><strong>{t('recordings.storage.activeTarget')}</strong><small>{overview?.mode === 'network' && profile ? `${profile.protocol.toUpperCase()} · ${profile.host}:${profile.port}${profile.protocol === 'smb' ? `/${profile.share}` : ''}${profile.basePath ? ` · ${profile.basePath}` : ''}` : runtime.localSpool || '/data/recordings'}</small></span></div>{overview?.mode === 'network' ? <span className={runtime.lastError ? 'storage-status-bad' : 'storage-status-ok'}>{runtime.lastError ? <AlertTriangle/> : <CheckCircle2/>}{runtime.lastError ? t('recordings.storage.connectionIssue') : t('recordings.storage.networkActive')}</span> : <span className="storage-status-ok"><CheckCircle2/> {t('recordings.storage.localActive')}</span>}</header>
+      <header><div><Server/><span><strong>{t('recordings.storage.activeTarget')}</strong><small>{overview?.mode === 'network' && profile ? `${profile.protocol.toUpperCase()} · ${profile.host}:${profile.port}${profile.protocol === 'smb' ? `/${profile.share}` : ''}${profile.basePath ? ` · ${profile.basePath}` : ''}` : runtime.localSpool || '/data/recordings'}</small></span></div>{overview?.mode === 'network' ? <span className={runtime.lastError || authCooldowns.length ? 'storage-status-bad' : 'storage-status-ok'}>{runtime.lastError || authCooldowns.length ? <AlertTriangle/> : <CheckCircle2/>}{runtime.lastError || authCooldowns.length ? t('recordings.storage.connectionIssue') : t('recordings.storage.networkActive')}</span> : <span className="storage-status-ok"><CheckCircle2/> {t('recordings.storage.localActive')}</span>}</header>
       <div className="storage-metrics">
         <article><small>{t('recordings.storage.transferPending')}</small><strong>{Number(counts.pending || 0) + Number(counts.uploading || 0)}</strong><span>{t('recordings.storage.transferPendingHelp')}</span></article>
         <article><small>{t('recordings.storage.transferRemote')}</small><strong>{Number(counts.remote || 0)}</strong><span>{t('recordings.storage.transferRemoteHelp')}</span></article>

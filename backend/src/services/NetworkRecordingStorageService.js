@@ -13,6 +13,7 @@ import { AppError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { isRecordingStoragePath } from './recording/RecordingStoragePaths.js';
 import { networkUploadPolicy, selectNetworkUploadCandidates, claimNetworkUpload, runNetworkUploadBatch } from './recording/NetworkUploadPolicy.js';
+import { SmbAuthGuard, isSmbAuthenticationFailure, isSmbAuthPause } from './recording/SmbAuthGuard.js';
 
 const execFile = promisify(execFileCallback);
 const SETTINGS_KEY = 'recording_storage_mode_v2';
@@ -25,6 +26,11 @@ const CACHE_MAX_BYTES = Math.max(64 * 1024 * 1024, Number(process.env.NETWORK_RE
 const WORKER_INTERVAL_MS = Math.max(5000, Number(process.env.NETWORK_RECORDING_UPLOAD_INTERVAL_MS || 15000) || 15000);
 const COMMAND_TIMEOUT_MS = Math.max(5000, Number(process.env.NETWORK_RECORDING_COMMAND_TIMEOUT_MS || 30000) || 30000);
 const STALE_CACHE_PART_MAX_AGE_MS = Math.max(60_000, Number(process.env.NETWORK_RECORDING_STALE_PART_MAX_AGE_MS || 3_600_000) || 3_600_000);
+
+const smbAuthGuard = new SmbAuthGuard(db, {
+  onPause: ({ host, retryAt }) => logger.warn({ host, retryAt }, 'SMB-Anmeldung zum Kontoschutz fuer 60 Minuten pausiert'),
+  onPersistError: (error) => logger.error({ err: error }, 'SMB-Sperrfrist konnte nicht dauerhaft gespeichert werden; Laufzeitsperre bleibt aktiv'),
+});
 
 function nowIso() { return new Date().toISOString(); }
 function asText(value) { return String(value ?? '').trim(); }
@@ -243,13 +249,13 @@ async function probeTcp(host, port, timeoutMs = 3500) {
 async function smbCommandError(error, profile) {
   if (error instanceof AppError) return error;
   if (error?.code === 'ENOENT') return new AppError(500, 'NETWORK_STORAGE_CLIENT_MISSING', 'Der SMB-Client ist im Backend nicht verfuegbar.');
-  if (error?.killed || error?.signal === 'SIGTERM' || error?.code === 'ETIMEDOUT') return new AppError(504, 'NETWORK_STORAGE_TIMEOUT', 'Zeitueberschreitung beim Zugriff auf den SMB-Server.');
   const output = commandOutput(error);
+  if (isSmbAuthenticationFailure(output)) {
+    return new AppError(422, 'NETWORK_STORAGE_AUTH_FAILED', 'Anmeldung am SMB-Server fehlgeschlagen.');
+  }
+  if (error?.killed || error?.signal === 'SIGTERM' || error?.code === 'ETIMEDOUT') return new AppError(504, 'NETWORK_STORAGE_TIMEOUT', 'Zeitueberschreitung beim Zugriff auf den SMB-Server.');
   if (/nt_status_bad_network_name|nt_status_no_such_device|tree connect failed.*bad_network_name/.test(output)) {
     return new AppError(422, 'NETWORK_STORAGE_SHARE_NOT_FOUND', 'Die SMB-Freigabe wurde auf dem Server nicht gefunden.');
-  }
-  if (/logon failure|nt_status_logon_failure|authentication failed|invalid password|login failed/.test(output)) {
-    return new AppError(422, 'NETWORK_STORAGE_AUTH_FAILED', 'Anmeldung am SMB-Server fehlgeschlagen.');
   }
   if (/permission denied|access denied|nt_status_access_denied|nt_status_privilege_not_held/.test(output)) {
     return new AppError(422, 'NETWORK_STORAGE_PERMISSION_DENIED', 'Der SMB-Benutzer hat nicht die erforderlichen Rechte.');
@@ -318,7 +324,7 @@ function smbArgs(profile, command, { authFile = null, guest = false, maxProtocol
 }
 
 async function runSmb(profile, command, { timeout = COMMAND_TIMEOUT_MS } = {}) {
-  return smbAuthFile(profile, async (authFile, guest) => {
+  return smbAuthGuard.run(profile, () => smbAuthFile(profile, async (authFile, guest) => {
     const ipAddress = await smbResolvedIpv4(profile.host);
     let firstError = null;
     for (const maxProtocol of ['SMB3', 'SMB2']) {
@@ -328,12 +334,13 @@ async function runSmb(profile, command, { timeout = COMMAND_TIMEOUT_MS } = {}) {
         });
       } catch (error) {
         firstError ||= error;
+        if (isSmbAuthenticationFailure(commandOutput(error))) throw await smbCommandError(error, profile);
         if (maxProtocol === 'SMB3' && isSmbProtocolNegotiationFailure(error)) continue;
         throw await smbCommandError(error, profile);
       }
     }
     throw await smbCommandError(firstError, profile);
-  });
+  }));
 }
 
 function sftpTargetArgs(profile, batchFile) {
@@ -381,7 +388,10 @@ function parentPaths(remotePath) {
 async function smbUpload(profile, localPath, remotePath) {
   const safeRemote = escapeCommandPath(remotePath);
   for (const dir of parentPaths(safeRemote)) {
-    try { await runSmb(profile, `mkdir "${dir}"`); } catch { /* put reports real permission/connectivity failures */ }
+    try { await runSmb(profile, `mkdir "${dir}"`); } catch (error) {
+      if (isSmbAuthPause(error)) throw error;
+      /* put reports real permission/connectivity failures */
+    }
   }
   await runSmb(profile, `put "${escapeCommandPath(localPath)}" "${safeRemote}"`, { timeout: Math.max(COMMAND_TIMEOUT_MS, 120000) });
 }
@@ -608,6 +618,8 @@ export class NetworkRecordingStorageService {
 
   settings() {
     const profile = activeProfileRow();
+    const authCooldowns = [...new Map(db.prepare("SELECT DISTINCT host,protocol FROM recording_storage_profiles WHERE protocol='smb'").all()
+      .map((target) => smbAuthGuard.status(target)).filter(Boolean).map((status) => [status.host, status])).values()];
     return {
       mode: storageMode(),
       profile: publicProfile(profile),
@@ -617,6 +629,7 @@ export class NetworkRecordingStorageService {
         cacheDir: CACHE_DIR,
         cacheMaxBytes: CACHE_MAX_BYTES,
         uploadPressure: this.lastUploadPressure,
+        authCooldowns,
         lastError: this.lastError,
         lastTransferAt: this.lastTransferAt,
         lastReconcileAt: this.lastReconcileAt,
@@ -717,7 +730,7 @@ export class NetworkRecordingStorageService {
       const compression = db.prepare('SELECT status FROM recording_compression_jobs WHERE recording_id=? AND segment_index=?').get(segment.recording_id, segment.segment_index);
       if (compression?.status === 'processing') continue;
       const profile = profileRow(segment.storage_profile_id);
-      if (!profile) continue;
+      if (!profile || smbAuthGuard.status(profile)) continue;
       const localPath = path.resolve(segment.file_path || '');
       const localExists = Boolean(localPath && fs.existsSync(localPath));
       const expectedBytes = Number(localExists ? fs.statSync(localPath).size : (segment.size_bytes || 0));
@@ -729,6 +742,7 @@ export class NetworkRecordingStorageService {
           await fs.promises.rm(localPath, { force: true });
           summary.localCopiesRemoved += 1;
         } catch (error) {
+          if (isSmbAuthPause(error)) { this.lastError = error.code; continue; }
           db.prepare("UPDATE recording_segments SET storage_state='pending',storage_error=? WHERE id=?")
             .run(error?.code || 'NETWORK_STORAGE_VERIFY_FAILED', segment.id);
           summary.requeued += 1;
@@ -742,6 +756,7 @@ export class NetworkRecordingStorageService {
             .run(nowIso(), segment.id);
           summary.recoveredRemote += 1;
         } catch (error) {
+          if (isSmbAuthPause(error)) { this.lastError = error.code; continue; }
           db.prepare("UPDATE recording_segments SET storage_state='upload_failed',storage_error='NETWORK_STORAGE_LOCAL_FILE_MISSING' WHERE id=?").run(segment.id);
           summary.missing += 1;
         }
@@ -754,7 +769,8 @@ export class NetworkRecordingStorageService {
             .run(nowIso(), segment.id);
           summary.recoveredRemote += 1;
           summary.localCopiesRemoved += 1;
-        } catch {
+        } catch (error) {
+          if (isSmbAuthPause(error)) { this.lastError = error.code; continue; }
           db.prepare("UPDATE recording_segments SET storage_state='pending',storage_error=NULL WHERE id=?").run(segment.id);
           summary.requeued += 1;
         }
@@ -793,7 +809,9 @@ export class NetworkRecordingStorageService {
           'Netzwerk-Aufnahmeupload: adaptive Archivierungsprioritaet');
         this.lastUploadPressure = policy.pressure;
       }
-      const rows = selectNetworkUploadCandidates(db, policy);
+      const blockedProfileIds = db.prepare("SELECT id,host,protocol FROM recording_storage_profiles WHERE protocol='smb'").all()
+        .filter((profile) => smbAuthGuard.status(profile)).map((profile) => profile.id);
+      const rows = selectNetworkUploadCandidates(db, policy, blockedProfileIds);
       await runNetworkUploadBatch(rows, policy.concurrency, (segment) => this.uploadSegment(segment, policy));
     } finally { this.running = false; }
   }
@@ -801,7 +819,10 @@ export class NetworkRecordingStorageService {
   async uploadSegment(segment, policy = uploadPolicy()) {
     // Refresh the selection: compression may have claimed a queued row while
     // another upload was awaiting the network. Never use a stale row.
-    const claimed = claimNetworkUpload(db, segment.id, policy, safeUploadSource);
+    const claimed = claimNetworkUpload(db, segment.id, policy, (row) => {
+      const target = profileRow(row.storage_profile_id);
+      return safeUploadSource(row) && !(target && smbAuthGuard.status(target));
+    });
     if (!claimed) return false;
     segment = claimed;
     const profile = profileRow(segment.storage_profile_id);
@@ -828,9 +849,10 @@ export class NetworkRecordingStorageService {
         this.lastError = null;
         this.lastTransferAt = recoveredAt;
         return true;
-      } catch {
-        db.prepare("UPDATE recording_segments SET storage_state='upload_failed',storage_error='NETWORK_STORAGE_LOCAL_FILE_MISSING' WHERE id=?").run(segment.id);
-        this.lastError = 'NETWORK_STORAGE_LOCAL_FILE_MISSING';
+      } catch (error) {
+        const code = isSmbAuthPause(error) ? error.code : 'NETWORK_STORAGE_LOCAL_FILE_MISSING';
+        db.prepare("UPDATE recording_segments SET storage_state='upload_failed',storage_error=? WHERE id=?").run(code, segment.id);
+        this.lastError = code;
         return false;
       }
     }
@@ -839,7 +861,10 @@ export class NetworkRecordingStorageService {
       if (segment.storage_state === 'uploading') {
         try {
           verifiedBytes = await verifyRemoteFile(profile, segment.remote_path, expectedBytes);
-        } catch { /* unfinished upload is replaced from the intact local spool */ }
+        } catch (error) {
+          if (isSmbAuthPause(error)) throw error;
+          /* unfinished upload is replaced from the intact local spool */
+        }
       }
       if (!(verifiedBytes > 0)) {
         await upload(profile, localPath, segment.remote_path);

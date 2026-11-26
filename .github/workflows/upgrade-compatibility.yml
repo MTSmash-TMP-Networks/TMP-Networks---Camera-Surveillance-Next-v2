@@ -22,6 +22,7 @@ jobs:
       - name: Verify network recording backpressure, atomic upload claims and retention safety
         run: |
           node --check backend/src/services/NetworkRecordingStorageService.js
+          node --check backend/src/services/recording/SmbAuthGuard.js
           node --check backend/src/services/recording/RecordingCompressionService.js
           node --test backend/test-node/network-recording-storage-regression.test.mjs backend/test-node/recording-storage-integrity-regression.test.mjs
       - name: Validate the Compose V2 plugin inside the updater image
