@@ -507,8 +507,15 @@ function safeUploadSource(segment) {
   const source = path.resolve(segment.file_path || '');
   // A failed or interrupted compression may still own the last good copy.
   // Do not transfer/delete it until compression recovery has resolved this.
-  return isRecordingStoragePath(source, { allowRoot: false }) &&
-    !fs.existsSync(source + '.compression-backup') && !fs.existsSync(source + '.compressing');
+  if (!isRecordingStoragePath(source, { allowRoot: false }) ||
+      fs.existsSync(source + '.compression-backup') || fs.existsSync(source + '.compressing')) return false;
+  try {
+    const stat = fs.lstatSync(source);
+    return stat.isFile() && isRecordingStoragePath(fs.realpathSync(source), { allowRoot: false });
+  } catch (error) {
+    // Missing local source may be a recoverable, already completed upload.
+    return error?.code === 'ENOENT';
+  }
 }
 
 function uploadPolicy() {

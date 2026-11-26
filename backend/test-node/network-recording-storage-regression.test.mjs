@@ -52,8 +52,8 @@ test('compression does not race the network transfer worker', () => {
   assert.match(policy, /c\.status IN \('completed','skipped','failed'\)/);
   assert.match(policy, /r\.status IN \('recording','ready','ready_with_gaps'\)/);
   assert.match(storage, /claimNetworkUpload\(db, segment\.id, policy, safeUploadSource\)/);
-  assert.match(storage, /!fs\.existsSync\(source \+ '\.compression-backup'\)/);
-  assert.match(storage, /!fs\.existsSync\(source \+ '\.compressing'\)/);
+  assert.match(storage, /fs\.existsSync\(source \+ '\.compression-backup'\) \|\| fs\.existsSync\(source \+ '\.compressing'\)\) return false/);
+  assert.match(storage, /stat\.isFile\(\) && isRecordingStoragePath\(fs\.realpathSync\(source\)/);
   assert.ok(compression.indexOf('const transient = this.reconcileTransientFiles()') < compression.indexOf('if (!config.recordingCompressionEnabled) return;'));
 });
 

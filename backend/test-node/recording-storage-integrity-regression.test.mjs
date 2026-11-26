@@ -29,13 +29,16 @@ test('retention protects recording rows while compression or upload is unfinishe
 
 test('network upload is verified and local cleanup happens before terminal remote state', () => {
   const source = read('backend/src/services/NetworkRecordingStorageService.js');
-  const start = source.indexOf('async uploadSegment(segment)');
+  const start = source.indexOf('async uploadSegment(segment,');
   const end = source.indexOf('async materializeSegment(segment)', start);
   const block = source.slice(start, end);
   const verify = block.indexOf('verifyRemoteFile(profile, segment.remote_path, expectedBytes)');
   const removeLocal = block.indexOf('await fs.promises.rm(localPath');
   const markRemote = block.lastIndexOf("storage_state='remote'");
+  assert.ok(start >= 0 && end > start);
   assert.ok(verify >= 0);
+  const finalVerify = block.lastIndexOf('verifyRemoteFile(profile, segment.remote_path, expectedBytes)');
+  assert.ok(finalVerify < removeLocal && finalVerify > 0);
   assert.ok(removeLocal > verify);
   assert.ok(markRemote > removeLocal);
   assert.match(source, /async reconcile\(/);
