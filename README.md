@@ -28,7 +28,7 @@
 
 Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
 
-**Aktuelle Version:** `2.20.108` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+**Aktuelle Version:** `2.20.109` · **Installationsart:** Docker · **Oberflächensprachen:** 24
 
 ## Funktionen
 
@@ -201,3 +201,7 @@ Ein vollständiger Kalendertag (00:00–24:00) ist weiterhin auswählbar. Die Ob
 ### Aufnahmeplayer mit durchgehender Zeitachse (2.20.106)
 
 Ein Klick auf die Tagesübersicht öffnet einen Player mit der Zeitachse des gesamten gewählten Kalendertags dieser Kamera. Vorhandene Aufnahmezeiten sind farbig markiert, Lücken bleiben sichtbar. Der Regler, die Pfeiltasten und die Sprungschaltflächen ermöglichen Vor- und Rücksprünge auch innerhalb eines Aufnahmeblocks. Beim Öffnen einer einzelnen Aufnahme steht deren gesamter abgeschlossener Zeitraum zur Verfügung; auch im lokalen mobilen Player. Eine unveränderliche HLS-Wiedergabeliste verbindet die Blöcke ohne erneute Videokodierung. Die MP4-Behördenexporte bleiben unverändert. Ein neuer Playeraufruf aktualisiert die Liste mit inzwischen abgeschlossenen Blöcken.
+
+### Netzwerkarchivierung bei Speicherdruck (ab 2.20.109)
+
+Fertige Aufnahmeblöcke dürfen nach zehn Minuten Wartezeit auf die optionale Hintergrundkomprimierung direkt archiviert werden, solange sie nicht bereits komprimiert werden. Bei knappem lokalem Speicher (standardmäßig unter 2 GiB) oder einem Upload-Rückstau ab 512 MiB erhalten direkte SMB-/SFTP-Übertragungen Priorität. Zwei parallele Übertragungen im Normalbetrieb, bis zu vier bei Speicherdruck. Eine lokale Kopie wird erst nach erfolgreicher Übertragung und Größenprüfung entfernt. Die Parameter sind über `.env.example` dokumentiert. Ein nicht erreichbares Netzwerkziel kann weiterhin lokalen Speicher belegen.

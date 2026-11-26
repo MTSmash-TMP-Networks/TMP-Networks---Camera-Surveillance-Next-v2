@@ -1,3 +1,11 @@
+## 2.20.109 – Netzwerkarchivierung vor Komprimierungsrückstau schützen
+
+- Fertige SMB-/SFTP-Aufnahmeblöcke werden bei knapper lokaler Festplatte (mindestens 2 GiB Reserve), ab 512 MiB Rückstau oder nach zehn Minuten Wartezeit ohne weitere Komprimierung zur Archivierung freigegeben.
+- Begrenzt parallele Übertragungen auf zwei im Normalbetrieb und bis zu vier unter Speicherdruck. Konfigurierbare Grenzwerte und Druckstatus im Speicher-Runtime-Status.
+- Atomare SQLite-Upload-Übernahme mit erneuter Prüfung des Komprimierungsstatus; in Bearbeitung befindliche und noch nicht sicher wiederhergestellte Blöcke bleiben geschützt. Komprimierungs-Recovery auch bei deaktivierter Komprimierung.
+- Unverändertes Sicherheitsprinzip: lokaler Aufnahmeblock bleibt bis zur erfolgreichen Übertragung und Größenprüfung erhalten. Kein Löschen ausstehender Aufnahmen zur Platzgewinnung.
+- SQLite-Regressionstests für Wartezeit, Speicherknappheit, konkurrierende Komprimierung und begrenzte parallele Uploads.
+
 ## 2.20.108 – Automatische Rotation der Update-Sicherungen
 
 - Begrenzt abgeschlossene, verifizierbare automatische Update-Sicherungen in `data/backups` und `data/updates/backups` gemeinsam auf die zwei neuesten Stände; ein älterer referenzierter Rollback-Punkt bleibt zusätzlich geschützt.

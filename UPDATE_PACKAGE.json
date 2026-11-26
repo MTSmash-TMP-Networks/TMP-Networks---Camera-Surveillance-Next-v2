@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.108",
+  "version": "2.20.109",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.108",
-  "summary": "Automatische Bereinigung alter Update-Sicherungen bei geschütztem Rollback.",
-  "createdAt": "2026-11-26T10:00:00+01:00",
+  "title": "TMP Camera Surveillance Next 2.20.109",
+  "summary": "Netzwerkaufnahme-Upload erhält Vorrang bei Komprimierungsrückstau und Speicherdruck.",
+  "createdAt": "2026-11-26",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Keep two most recent validated automatic update backups across both roots",
-    "Protect referenced rollback, manual archives, unverified backups, symlinks and nested mounts",
-    "Run retention on updater startup and around updates, with legacy post-update bridge",
-    "Regression tests for retention and legacy hook"
+    "Adaptive network upload priority under disk pressure and long compression wait",
+    "Atomic SQLite claims exclude active compression and unsafe scratch files",
+    "Bounded concurrency of two to four uploads",
+    "Compression recovery even when compression disabled"
   ],
   "preserve": [
     ".env",
@@ -33,12 +33,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.108",
-  "packageId": "tmp-camera-surveillance-next-2.20.108",
+  "name": "TMP Camera Surveillance Next v2.20.109",
+  "packageId": "tmp-camera-surveillance-next-2.20.109",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Rotate validated automatic update backups across primary and fallback storage; preserve rollback checkpoints and manual archives.",
+  "description": "Bounded parallel network archival with time- and disk-pressure-based compression bypass and atomic upload claims.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Zwei neueste verifizierbare automatische Update-Sicherungen bleiben erhalten, zusätzlich der aktuell referenzierte Rollback-Stand. Bereinigung bei Updater-Start sowie vor und nach Updates. Alte Update-Agenten nutzen beim ersten Update den vorhandenen Abschluss-Hook, sofern aktiv. Manuelle Vollsicherungen und Kameraaufnahmen werden nicht gelöscht.",
-  "fileCount": 522
+  "releaseNotes": "Fertige Aufnahmeblöcke können bei weniger als 2 GiB Reserve, ab 512 MiB Rückstau oder nach zehn Minuten Wartezeit direkt auf SMB/SFTP übertragen werden. Zwei bzw. bis zu vier parallele Übertragungen. Laufende Komprimierung geschützt; lokale Kopie erst nach erfolgreicher Größenprüfung entfernen.",
+  "fileCount": 523
 }

@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next **2.20.108** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.109** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
 
 ## Before you start: disk and backups
 
@@ -246,9 +246,9 @@ Passwords are encrypted server-side with the installation credential key and sto
 
 ### How network recording works
 
-The active FFmpeg writer deliberately keeps the current block in the local recording spool. A finalized block is first queued for the same background compression pipeline used by local recordings. Each finalized block is eligible for compression immediately, even while the same or another camera continues recording. The active `.partial` block is never touched. The network-storage worker waits until compression has completed, has intentionally been skipped (for example because the block is already efficient or below the configured minimum size), is disabled, or has exhausted its configured retry attempts. Only then is the finalized block transferred to the selected SMB or SFTP target.
+The active FFmpeg writer deliberately keeps the current block in the local recording spool. Finalized blocks may be queued for optional background compression; recording activity and system load can pause that worker. Starting with 2.20.109, the network-storage worker prioritizes verified archival over compression when free disk space falls below the reserve (at least 2 GiB), the pending backlog reaches 512 MiB, or a finalized block has waited ten minutes. Compression-disabled installations also upload without recompression. Two concurrent uploads normally and up to four under pressure are permitted. A block actively being compressed or with unresolved compression scratch files remains protected. The active `.partial` block is never touched.
 
-This order prevents direct network storage from bypassing recording compression while still protecting the active writer from short network interruptions and remote filesystem semantics. Background compression uses one low-priority worker thread and a constrained H.264 CRF profile with a default 2500 kbit/s video ceiling (`RECORDING_COMPRESSION_MAX_VIDEO_BITRATE_KBPS`) so high-bitrate camera streams cannot remain unnecessarily large in the archive. The original local spool copy remains available until the remote upload has been verified.
+This policy protects the active writer from short network interruptions without making archival depend indefinitely on optional recompression. Background compression retains its existing low-priority H.264 profile when resources allow. Original uncompressed blocks may occupy more space on the NAS. The local spool copy remains available until the remote upload has been verified. Set `NETWORK_RECORDING_COMPRESSION_MAX_WAIT_MS`, `NETWORK_RECORDING_UPLOAD_RESERVE_BYTES`, `NETWORK_RECORDING_UPLOAD_BACKLOG_BYTES`, `NETWORK_RECORDING_UPLOAD_CONCURRENCY` and `NETWORK_RECORDING_UPLOAD_PRESSURE_CONCURRENCY` in `.env` to tune the policy. The NAS must remain reachable; this policy does not discard pending recordings to reclaim space.
 
 After a verified upload:
 
@@ -575,7 +575,7 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.108 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.109 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
 
 
 ### Kamera-Encoderdiagnose (ab v2.20.43)

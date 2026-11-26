@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next – Installation und Betrieb (Deutsch)
 
-**Stand:** 2.20.108 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
+**Stand:** 2.20.109 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
 
 Diese Anleitung richtet sich an neue Installationen und Administratoren bestehender Installationen. Die [englische Detailanleitung](../INSTALLATION.md), [Update-Kompatibilität](UPGRADE_COMPATIBILITY.md), [Plattformhinweise](COMPATIBILITY.md) und [Datenschutzhinweise](PRIVACY_AND_DATA_PROCESSING.md) ergänzen sie. Die private Plesk-PHP-Cloud-WebApp wird **nicht** aus diesem GitHub-Repository installiert.
 
@@ -234,7 +234,7 @@ Die Ausgabe kann sensible Infrastrukturinformationen enthalten. Zugangstokens, R
 - Betriebssystem, Docker, Browser und Software aktuell halten.
 - Datenschutz- und Einwilligungsanforderungen der jeweiligen Einsatzorte beachten.
 
-**Hinweis:** Technische Angaben spiegeln die Version 2.20.108 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
+**Hinweis:** Technische Angaben spiegeln die Version 2.20.109 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
 
 ### Behördenexport als MP4 (2.20.105)
 
@@ -243,3 +243,7 @@ Das ZIP enthält `export.mp4`, `manifest.json` und `README.txt`. ZIP entpacken u
 ### Durchgehender Aufnahmeplayer (2.20.106)
 
 In der Tagesübersicht öffnet ein Klick die vollständige Tageszeitachse der ausgewählten Kamera. Farbige Bereiche markieren vorhandene Aufnahmen, graue Bereiche Aufnahmelücken. Der zusätzliche Regler und die Sprungtasten ermöglichen Vor- und Zurückspulen innerhalb der verfügbaren Blöcke. Einzeln geöffnete Aufnahmen zeigen ihren gesamten abgeschlossenen Aufnahmezeitraum. Neu abgeschlossene Blöcke werden beim erneuten Öffnen berücksichtigt.
+
+### Upload-Priorität bei Rückstau (2.20.109)
+
+Die optionale Hintergrundkomprimierung blockiert den SMB-/SFTP-Upload nicht mehr unbegrenzt. Unter 2 GiB freiem Speicher (oder einer höheren konfigurierten Reserve), ab 512 MiB Rückstau oder zehn Minuten Wartezeit werden fertige Blöcke ohne weitere Komprimierung archiviert. Der aktuell komprimierte Block und nicht bereinigte Komprimierungs-Zwischendateien bleiben geschützt. Normalerweise laufen zwei, bei Speicherdruck bis zu vier Übertragungen parallel. Erst nach verifizierter Übertragung wird die lokale Kopie entfernt. Bei nicht erreichbarem Netzwerkspeicher werden ausstehende Aufnahmen nicht für diese Bereinigung gelöscht. Die Originalblöcke können mehr Platz auf dem NAS beanspruchen. Die Grenzwerte stehen in `.env.example`; vorhandene explizite Komprimierungseinstellungen bleiben unverändert.
