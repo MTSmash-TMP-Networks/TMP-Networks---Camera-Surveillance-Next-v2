@@ -12,6 +12,7 @@ import { recordingRepository } from '../recordingRepository.js';
 import { assessProbe, probeMedia } from './BlockArchive.js';
 import { buildRecordingCompressionArgs } from './RecordingCompressionCommand.js';
 import { isRecordingStoragePath } from './RecordingStoragePaths.js';
+import { NETWORK_UPLOAD_BYPASS_REASON } from './NetworkUploadPolicy.js';
 
 function nowIso() { return new Date().toISOString(); }
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
@@ -203,11 +204,13 @@ class RecordingCompressionService {
   }
 
   start() {
-    if (this.running || !config.recordingCompressionEnabled) return;
-    this.running = true;
-    this.lastBusyAt = Date.now();
+    if (this.running) return;
+    // Recovery is required even when the operator disables recompression.
     const transient = this.reconcileTransientFiles();
     db.prepare("UPDATE recording_compression_jobs SET status='queued', started_at=NULL, updated_at=? WHERE status='processing'").run(nowIso());
+    if (!config.recordingCompressionEnabled) return;
+    this.running = true;
+    this.lastBusyAt = Date.now();
     const legacyRequeued = this.requeueOversizedLegacySkips();
     // Backfill must never schedule the worker itself. In 2.16.4 the first
     // enqueue() shortened the configured startup delay to roughly 250 ms and
@@ -250,10 +253,11 @@ class RecordingCompressionService {
       FROM recording_compression_jobs j
       JOIN recording_segments s ON s.recording_id=j.recording_id AND s.segment_index=j.segment_index
       WHERE j.status='skipped'
+        AND COALESCE(j.error,'')<>?
         AND s.status IN ('ready','recovered')
         AND COALESCE(s.storage_state,'local') IN ('local','pending','upload_failed')
         AND COALESCE(s.size_bytes,0)>0
-        AND COALESCE(s.duration_seconds,0)>0`).all();
+        AND COALESCE(s.duration_seconds,0)>0`).all(NETWORK_UPLOAD_BYPASS_REASON);
     const audioKbps = Number(config.recordingCompressionAudioBitrateKbps || 64);
     const tolerance = 1.25;
     const now = nowIso();
