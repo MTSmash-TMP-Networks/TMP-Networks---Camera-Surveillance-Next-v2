@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next – Installation und Betrieb (Deutsch)
 
-**Stand:** 2.20.109 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
+**Stand:** 2.20.110 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
 
 Diese Anleitung richtet sich an neue Installationen und Administratoren bestehender Installationen. Die [englische Detailanleitung](../INSTALLATION.md), [Update-Kompatibilität](UPGRADE_COMPATIBILITY.md), [Plattformhinweise](COMPATIBILITY.md) und [Datenschutzhinweise](PRIVACY_AND_DATA_PROCESSING.md) ergänzen sie. Die private Plesk-PHP-Cloud-WebApp wird **nicht** aus diesem GitHub-Repository installiert.
 
@@ -234,7 +234,7 @@ Die Ausgabe kann sensible Infrastrukturinformationen enthalten. Zugangstokens, R
 - Betriebssystem, Docker, Browser und Software aktuell halten.
 - Datenschutz- und Einwilligungsanforderungen der jeweiligen Einsatzorte beachten.
 
-**Hinweis:** Technische Angaben spiegeln die Version 2.20.109 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
+**Hinweis:** Technische Angaben spiegeln die Version 2.20.110 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
 
 ### Behördenexport als MP4 (2.20.105)
 
@@ -246,4 +246,8 @@ In der Tagesübersicht öffnet ein Klick die vollständige Tageszeitachse der au
 
 ### Upload-Priorität bei Rückstau (2.20.109)
 
-Die optionale Hintergrundkomprimierung blockiert den SMB-/SFTP-Upload nicht mehr unbegrenzt. Unter 2 GiB freiem Speicher (oder einer höheren konfigurierten Reserve), ab 512 MiB Rückstau oder zehn Minuten Wartezeit werden fertige Blöcke ohne weitere Komprimierung archiviert. Der aktuell komprimierte Block und nicht bereinigte Komprimierungs-Zwischendateien bleiben geschützt. Normalerweise laufen zwei, bei Speicherdruck bis zu vier Übertragungen parallel. Erst nach verifizierter Übertragung wird die lokale Kopie entfernt. Bei nicht erreichbarem Netzwerkspeicher werden ausstehende Aufnahmen nicht für diese Bereinigung gelöscht. Die Originalblöcke können mehr Platz auf dem NAS beanspruchen. Die Grenzwerte stehen in `.env.example`; vorhandene explizite Komprimierungseinstellungen bleiben unverändert.
+Die optionale Hintergrundkomprimierung blockiert den SMB-/SFTP-Upload nicht mehr unbegrenzt. Unter 2 GiB freiem Speicher (oder einer höheren konfigurierten Reserve), ab 512 MiB Rückstau oder zehn Minuten Wartezeit werden fertige Blöcke ohne weitere Komprimierung archiviert. Der aktuell komprimierte Block und nicht bereinigte Komprimierungs-Zwischendateien bleiben geschützt. Normalerweise laufen zwei, bei Speicherdruck bis zu vier Upload-Aufträge parallel. Ab 2.20.110 werden SMB-Client-Aufrufe an denselben Server zum Kontoschutz serialisiert. Erst nach verifizierter Übertragung wird die lokale Kopie entfernt. Bei nicht erreichbarem Netzwerkspeicher werden ausstehende Aufnahmen nicht für diese Bereinigung gelöscht. Die Originalblöcke können mehr Platz auf dem NAS beanspruchen. Die Grenzwerte stehen in `.env.example`; vorhandene explizite Komprimierungseinstellungen bleiben unverändert.
+
+### SMB-Kontoschutz (ab 2.20.110)
+
+Nach einer abgelehnten SMB-Anmeldung (z. B. `NT_STATUS_LOGON_FAILURE`, gesperrtes Konto oder abgelaufenes Kennwort) setzt die Anwendung alle weiteren SMB-Verbindungsversuche zum betreffenden konfigurierten Servernamen bzw. zur IP-Adresse für 60 Minuten aus. Die Sperrfrist wird in der Systemdatenbank gespeichert. Uploads, Abrufe, manuelle Verbindungstests und Löschoperationen nutzen dieselbe Sperre. Das Frontend zeigt unter Aufnahmen → Speicher den frühesten nächsten Versuch an. Aufnahmen werden lokal gepuffert, solange ausreichend Speicher vorhanden ist; bereits archivierte Daten bleiben erhalten. Andere Speicherziele und SFTP sind nicht betroffen. SMB-Client-Aufrufe zum selben Server werden seriell ausgeführt, um parallele Fehlanmeldungen zu verhindern. Unterschiedliche Host-Aliase werden nicht automatisch als derselbe Server erkannt. Nach Ablauf wird automatisch erneut versucht. Bei einer dauerhaften NAS-Sperre oder falschen Zugangsdaten muss das Problem am NAS bzw. in den Speicherprofilen behoben werden.

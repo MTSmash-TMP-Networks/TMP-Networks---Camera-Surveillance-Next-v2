@@ -142,6 +142,7 @@ backend/src/services/recording/RecordingScheduler.js
 backend/src/services/recording/RecordingStoragePaths.js
 backend/src/services/recording/RetentionManager.js
 backend/src/services/recording/RetentionPolicy.js
+backend/src/services/recording/SmbAuthGuard.js
 backend/src/services/recording/ZipStoreWriter.js
 backend/src/services/recordingRepository.js
 backend/src/services/remoteProxyPolicy.js

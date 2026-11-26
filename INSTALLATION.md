@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next **2.20.109** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.110** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
 
 ## Before you start: disk and backups
 
@@ -246,7 +246,7 @@ Passwords are encrypted server-side with the installation credential key and sto
 
 ### How network recording works
 
-The active FFmpeg writer deliberately keeps the current block in the local recording spool. Finalized blocks may be queued for optional background compression; recording activity and system load can pause that worker. Starting with 2.20.109, the network-storage worker prioritizes verified archival over compression when free disk space falls below the reserve (at least 2 GiB), the pending backlog reaches 512 MiB, or a finalized block has waited ten minutes. Compression-disabled installations also upload without recompression. Two concurrent uploads normally and up to four under pressure are permitted. A block actively being compressed or with unresolved compression scratch files remains protected. The active `.partial` block is never touched.
+The active FFmpeg writer deliberately keeps the current block in the local recording spool. Finalized blocks may be queued for optional background compression; recording activity and system load can pause that worker. Starting with 2.20.109, the network-storage worker prioritizes verified archival over compression when free disk space falls below the reserve (at least 2 GiB), the pending backlog reaches 512 MiB, or a finalized block has waited ten minutes. Compression-disabled installations also upload without recompression. Two concurrent upload jobs normally and up to four under pressure are permitted. Since 2.20.110, SMB client invocations to a single configured host are serialized for account protection. A block actively being compressed or with unresolved compression scratch files remains protected. The active `.partial` block is never touched.
 
 This policy protects the active writer from short network interruptions without making archival depend indefinitely on optional recompression. Background compression retains its existing low-priority H.264 profile when resources allow. Original uncompressed blocks may occupy more space on the NAS. The local spool copy remains available until the remote upload has been verified. Set `NETWORK_RECORDING_COMPRESSION_MAX_WAIT_MS`, `NETWORK_RECORDING_UPLOAD_RESERVE_BYTES`, `NETWORK_RECORDING_UPLOAD_BACKLOG_BYTES`, `NETWORK_RECORDING_UPLOAD_CONCURRENCY` and `NETWORK_RECORDING_UPLOAD_PRESSURE_CONCURRENCY` in `.env` to tune the policy. The NAS must remain reachable; this policy does not discard pending recordings to reclaim space.
 
@@ -575,7 +575,7 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.109 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.110 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
 
 
 ### Kamera-Encoderdiagnose (ab v2.20.43)
@@ -594,3 +594,7 @@ The ZIP contains `export.mp4`, `manifest.json` and `README.txt`. Extract it and 
 ### Archive playback (2.20.106)
 
 The day view opens one chronological HLS player for the selected camera and day. The additional wall-clock slider permits forward and backward seeking across finalized recordings; gaps are shown and skipped. Reopen playback to include newly finalized blocks. A directly opened recording shows its complete finalized range. No MP4 preparation is required for playback.
+
+### SMB authentication protection (2.20.110)
+
+After a rejected SMB authentication attempt (including logon failure, account lockout or expired credentials), the server pauses further SMB commands to the same configured host for 60 minutes. The cooldown is persisted in SQLite and also covers playback, export, retention deletion and manual connection tests. Different configured host aliases are not automatically unified. SMB client invocations to that host are serialized, while other targets and SFTP remain independent. The storage page reports the earliest retry time, refreshed every ten seconds. Finished recordings remain in the local spool until a verified upload succeeds; ensure sufficient disk capacity during an outage. Wait for the cooldown to expire and resolve incorrect credentials or NAS-side lockouts before testing again. If an expired password is changed, older storage profiles may also require credential maintenance.

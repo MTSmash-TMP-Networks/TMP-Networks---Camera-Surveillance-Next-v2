@@ -1,3 +1,11 @@
+## 2.20.110 – SMB-Kontoschutz und automatische Anmeldesperre
+
+- Eine abgelehnte SMB-Anmeldung aktiviert eine 60-minütige Sperrfrist für alle SMB-Aufrufe zum selben konfigurierten Server. Erkennung von falschen Zugangsdaten, Kontosperren und abgelaufenen Kennwörtern.
+- SQLite-persistente Sperrfrist über Backend-Neustarts hinweg. Verhindert wiederholte Anmeldungen auch durch Wiedergabe, Export, Aufbewahrungsbereinigung und manuelle Tests.
+- SMB-Client-Aufrufe je Server serialisiert; andere Speicherziele und SFTP bleiben unabhängig. Ausstehende Aufnahmen bleiben lokal bis zum verifizierten Upload.
+- Speicherstatus mit Warnung und frühestem Wiederholungszeitpunkt in allen 24 Sprachen. Automatische Statusaktualisierung ohne Überschreiben der Formulareingaben.
+- Regressionstests für parallele Fehlanmeldungen, Persistenz, Ablauf und unabhängige Speicherziele.
+
 ## 2.20.109 – Netzwerkarchivierung vor Komprimierungsrückstau schützen
 
 - Fertige SMB-/SFTP-Aufnahmeblöcke werden bei knapper lokaler Festplatte (mindestens 2 GiB Reserve), ab 512 MiB Rückstau oder nach zehn Minuten Wartezeit ohne weitere Komprimierung zur Archivierung freigegeben.
