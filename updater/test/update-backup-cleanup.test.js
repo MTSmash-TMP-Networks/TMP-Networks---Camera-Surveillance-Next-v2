@@ -97,3 +97,19 @@ test('legacy post-update script and current updater call the same retention poli
   assert.match(hook,/node \.\/scripts\/update-backup-cleanup\.mjs --post-update/);
   assert.equal(spawnSync('sh',['-n',new URL('scripts/docker-cache-cleanup.sh',root).pathname]).status,0);
 });
+
+
+test('the existing updater post-update shell hook actually runs retention before Docker cleanup', async t => {
+  const f = await fixture(t);
+  const a = await f.make(20), b = await f.make(21), c = await f.make(22);
+  await f.setStatus({state:'running',phase:'cleanup',progress:99,backupId:c.id});
+  const result = spawnSync('sh',[new URL('../../scripts/docker-cache-cleanup.sh',import.meta.url).pathname,'post-update'],{
+    env:{...process.env,DATA_DIR:f.root,TMP_CAMERA_CLEANUP_LOG:path.join(f.root,'cleanup.log'),
+      TMP_CAMERA_BACKUP_RETENTION_HANDLED:'0',UPDATER_DOCKER_CACHE_CLEANUP:'false'},
+    encoding:'utf8',timeout:15000,
+  });
+  assert.equal(result.status,0,result.stderr||result.stdout);
+  assert.match(result.stdout,/1 alte Update-Sicherungen entfernt/);
+  assert.equal(await exists(a.location),false);
+  assert.ok(await exists(b.location) && await exists(c.location));
+});

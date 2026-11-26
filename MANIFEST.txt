@@ -497,6 +497,7 @@ scripts/repair-compose-project.sh
 scripts/repair-updater.sh
 scripts/repair-webrtc-host.sh
 scripts/test-docker-bootstrap.sh
+scripts/update-backup-cleanup.mjs
 start.sh
 stop.sh
 tools/tmp-device-pack/README.md
@@ -517,4 +518,5 @@ updater/test/compose-project.test.js
 updater/test/container-status.test.js
 updater/test/docker-cache-cleanup.test.js
 updater/test/docker-universal-compat.test.js
+updater/test/update-backup-cleanup.test.js
 updater/test/updater-recovery.test.js
