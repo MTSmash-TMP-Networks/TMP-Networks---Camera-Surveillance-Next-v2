@@ -1,16 +1,15 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.106",
+  "version": "2.20.107",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.106",
-  "summary": "Durchgehender Aufnahmeplayer mit Zeitachse des ganzen Tages und sekundengenauen Sprüngen.",
-  "createdAt": "2026-11-24T18:00:00+01:00",
+  "title": "TMP Camera Surveillance Next 2.20.107",
+  "summary": "Ebenenfehler beim Scrollen in der Live-Ansicht korrigiert.",
+  "createdAt": "2026-11-26T09:40:00+01:00",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Whole-day authenticated HLS VOD snapshots with timestamp discontinuities",
-    "Wall-clock slider, visible gaps and precise intra-block and cross-session seeks",
-    "Single recording and local mobile playback integration",
-    "Regression tests for time mapping, session ownership and real HLS decoding"
+    "Sticky header remains above live title and media controls",
+    "Opaque navigation background and isolated live-layout stacking context",
+    "Regression check for navigation, action menu and modal order"
   ],
   "preserve": [
     ".env",
@@ -33,12 +32,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.106",
-  "packageId": "tmp-camera-surveillance-next-2.20.106",
+  "name": "TMP Camera Surveillance Next v2.20.107",
+  "packageId": "tmp-camera-surveillance-next-2.20.107",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Unified authenticated HLS recording playback with a wall-clock timeline, cross-session seeking and visible gaps.",
+  "description": "Correct desktop live-view stacking order and use an opaque sticky navigation background.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Ein gemeinsamer Player für den ausgewählten Tag oder die gesamte Einzelaufnahme. Über die Uhrzeit-Zeitachse vorwärts und rückwärts springen, Aufnahmelücken sichtbar, keine Neucodierung. Neu abgeschlossene Blöcke durch erneutes Öffnen aktualisieren. MP4-Behördenexport unverändert.",
+  "releaseNotes": "Kameraüberschrift, Livebild und Steuerelemente scrollen sauber unter der oberen Navigationsleiste. Lokale Overlay-Ebenen bleiben getrennt; Aktionsmenü und Modaldialoge bleiben bedienbar. Keine Änderungen an Streams, Aufnahmen oder Export.",
   "fileCount": 520
 }
