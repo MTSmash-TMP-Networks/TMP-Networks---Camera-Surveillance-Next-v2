@@ -14,6 +14,8 @@ import { logger } from '../utils/logger.js';
 import { isRecordingStoragePath } from './recording/RecordingStoragePaths.js';
 import { networkUploadPolicy, selectNetworkUploadCandidates, claimNetworkUpload, runNetworkUploadBatch } from './recording/NetworkUploadPolicy.js';
 import { SmbAuthGuard, isSmbAuthenticationFailure, isSmbAuthPause } from './recording/SmbAuthGuard.js';
+import { SmbArchiveInventory } from './recording/SmbArchiveInventory.js';
+import { auditLogService } from './AuditLogService.js';
 
 const execFile = promisify(execFileCallback);
 const SETTINGS_KEY = 'recording_storage_mode_v2';
@@ -328,7 +330,7 @@ function smbArgs(profile, command, { authFile = null, guest = false, maxProtocol
   return args;
 }
 
-async function runSmb(profile, command, { timeout = COMMAND_TIMEOUT_MS } = {}) {
+async function runSmb(profile, command, { timeout = COMMAND_TIMEOUT_MS, maxBuffer = 1024 * 1024, beforeExec = () => {} } = {}) {
   smbAuthGuard.assertAvailable(profile);
   const ipAddress = await smbResolvedIpv4(profile.host);
   let firstError = null;
@@ -339,8 +341,9 @@ async function runSmb(profile, command, { timeout = COMMAND_TIMEOUT_MS } = {}) {
       // the slot before queued operations are permitted to proceed.
       return await smbAuthGuard.run(profile, () => smbAuthFile(profile, async (authFile, guest) => {
         try {
+          beforeExec();
           return await execFile('smbclient', smbArgs(profile, command, { authFile, guest, maxProtocol, ipAddress }), {
-            timeout, maxBuffer: 1024 * 1024, windowsHide: true,
+            timeout, maxBuffer, windowsHide: true, env: { ...process.env, LC_ALL: 'C' },
           });
         } catch (error) {
           if (isSmbAuthenticationFailure(commandOutput(error))) throw await smbCommandError(error, profile);
@@ -952,3 +955,10 @@ export class NetworkRecordingStorageService {
 }
 
 export const networkRecordingStorageService = new NetworkRecordingStorageService();
+export const smbArchiveInventory = new SmbArchiveInventory({ db, runSmb,
+  activeProfile: () => storageMode() === 'network' ? activeProfileRow() : null,
+  onFinish: result => {
+    logger.info(result, 'Manuelle SMB-Archivbereinigung beendet');
+    auditLogService.append({ actorUserId: result.actor, action: 'recording-storage.smb-cleanup', resourceType: 'recording-storage', resourceId: result.profileId, outcome: result.phase === 'finished' ? 'success' : 'failed', details: result });
+  },
+});
