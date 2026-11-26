@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next – Installation und Betrieb (Deutsch)
 
-**Stand:** 2.20.107 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
+**Stand:** 2.20.108 · Selbst gehosteter Kameraserver mit Docker, go2rtc/FFmpeg und optionalem HTTPS-Cloud-Zugang.
 
 Diese Anleitung richtet sich an neue Installationen und Administratoren bestehender Installationen. Die [englische Detailanleitung](../INSTALLATION.md), [Update-Kompatibilität](UPGRADE_COMPATIBILITY.md), [Plattformhinweise](COMPATIBILITY.md) und [Datenschutzhinweise](PRIVACY_AND_DATA_PROCESSING.md) ergänzen sie. Die private Plesk-PHP-Cloud-WebApp wird **nicht** aus diesem GitHub-Repository installiert.
 
@@ -153,7 +153,7 @@ Die Software wird bevorzugt über **Administration → Update-Center → Auf Git
 
 ## 7. Speicherplatz und Update-Backups
 
-Die Update-Sicherungen befinden sich normalerweise unter `data/backups/update-...`. Viele ältere Stände können mehrere Gigabyte beanspruchen. **Der derzeitige Updater garantiert keine automatische Rotation auf nur wenige Sicherungen.** Behalte für einen sicheren Rollback mindestens die zuletzt benötigten gültigen Stände und sichere historische Wiederherstellungspunkte extern.
+Ab 2.20.108 werden die automatischen Update-Sicherungen in `data/backups` und `data/updates/backups` gemeinsam auf die zwei neuesten verifizierbaren Stände begrenzt. Der im Update-Status referenzierte Rollback-Stand bleibt zusätzlich geschützt, falls er älter ist. Manuelle TAR-Archive, nicht eindeutig prüfbare Sicherungen, aktive Aufnahmen und die laufende Datenbank werden nicht gelöscht. Historische Wiederherstellungspunkte bei Bedarf vorher extern sichern.
 
 Vor einem Update:
 
@@ -172,7 +172,7 @@ sudo docker builder prune --all --force
 sudo docker image prune --force
 ```
 
-Alte `update-*`-Ordner **erst nach Sichtprüfung der Versions-/Zeitstempel und einem externen Backup** gezielt löschen; aktuell benötigte Rollback-Sicherungen aufbewahren. Keine pauschalen `rm -rf data/`, keine manuelle Löschung unter `/var/lib/containerd` und **niemals** `docker system prune --volumes` als vermeintliche Reparatur. Docker-Caches und Versions-Backups sind unterschiedliche Speicherbereiche.
+Die automatische Bereinigung erfolgt beim Start des neuen Updaters sowie vor und nach Updates. Beim ersten Update auf diese Version greift sie bereits über den vorhandenen Docker-Bereinigungs-Hook, sofern dieser aktiviert ist. Mit installiertem Node.js kann `node scripts/update-backup-cleanup.mjs --dry-run` im Projektverzeichnis die Löschkandidaten anzeigen, ohne etwas zu löschen. `--offline-apply` ausschließlich im Wartungsbetrieb bei gestopptem Updater und ohne laufendes Update oder Rollback verwenden. Keine pauschalen `rm -rf data/`, keine manuelle Löschung unter `/var/lib/containerd` und **niemals** `docker system prune --volumes` als vermeintliche Reparatur. Manuelle Vollsicherungen gegebenenfalls getrennt auf externe Datenträger verschieben.
 
 Ein System mit weniger als einigen Gigabyte freiem Platz ist für einen vollständigen neuen Docker-Build ungeeignet. Im Zweifel die Systemdisk vergrößern beziehungsweise Docker-Daten auf ein ausreichend großes Laufwerk verschieben, bevor das Update wiederholt wird.
 
@@ -234,7 +234,7 @@ Die Ausgabe kann sensible Infrastrukturinformationen enthalten. Zugangstokens, R
 - Betriebssystem, Docker, Browser und Software aktuell halten.
 - Datenschutz- und Einwilligungsanforderungen der jeweiligen Einsatzorte beachten.
 
-**Hinweis:** Technische Angaben spiegeln die Version 2.20.107 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
+**Hinweis:** Technische Angaben spiegeln die Version 2.20.108 wider. Die tatsächlich installierte Softwareversion erscheint im Webfrontend bzw. in der Datei `VERSION`. Ältere Installationen können abweichende Menüs oder Funktionen besitzen.
 
 ### Behördenexport als MP4 (2.20.105)
 

@@ -34,6 +34,17 @@ docker_host() {
   return 127
 }
 
+# Upgrade bridge: old updater containers deliberately survive an update.
+# Their existing post-update hook runs this newly installed host script only
+# after the new application has passed its health and version checks.
+if [ "$MODE" = post-update ] && [ "${TMP_CAMERA_BACKUP_RETENTION_HANDLED:-0}" != 1 ] && command -v node >/dev/null 2>&1; then
+  if backup_summary="$(node ./scripts/update-backup-cleanup.mjs --post-update 2>&1)"; then
+    log_line "$backup_summary"
+  else
+    log_line 'Update backup cleanup failed and was ignored.'
+  fi
+fi
+
 ENABLED="${UPDATER_DOCKER_CACHE_CLEANUP:-$(read_env_value UPDATER_DOCKER_CACHE_CLEANUP)}"
 [ -n "$ENABLED" ] || ENABLED=true
 if is_false "$ENABLED"; then

@@ -1,6 +1,6 @@
 {
   "name": "tmp-camera-updater",
-  "version": "2.20.107",
+  "version": "2.20.108",
   "private": true,
   "type": "module",
   "scripts": {

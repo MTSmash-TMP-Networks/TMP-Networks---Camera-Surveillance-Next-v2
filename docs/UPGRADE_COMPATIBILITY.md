@@ -2,7 +2,7 @@
 
 ## Stabiler Direktupdate-Pfad
 
-- Unterstuetzter alter Grundstand: **2.20.32** (bekannte Dateistruktur und historische Update-Validatoren); Ziel dieses Releases: **2.20.107**.
+- Unterstuetzter alter Grundstand: **2.20.32** (bekannte Dateistruktur und historische Update-Validatoren); Ziel dieses Releases: **2.20.108**.
 - Alle Voll-Update-Pakete sind selbstenthaltend (Backend, Frontend, Updater, Konfiguration, Migrationen) und werden unveraendert sowohl als herunterladbares ZIP als auch als GitHub-Source-ZIP geprueft.
 - Ab 2.20.32 keine Zwischenrelease-Pflicht: Versionsnummern dienen der Ordnung, nicht als Zwang zum inkrementellen Patchen.
 - Vor v2.20.32 ist eine getestete Legacy-Bridge erforderlich. Es gibt **keine** Zusicherung beliebiger uralter Versionsstaende.
@@ -14,7 +14,7 @@
 3. Die Felder `minimumVersion`, `minVersion`, `compatibleFrom`, `fromVersion` stehen auf dem aeltesten **tatsaechlich geprueften** Direktupgrade-Baseline-Stand, nicht auf der unmittelbaren Vorgängerversion. Bei inkompatiblen Schema-Aenderungen die Mindestversion anheben und eine Bruecke anbieten.
 4. Neue Datenbank-/Konfigurationsmigrationen muessen vor der Freigabe mit dem aeltesten unterstuetzten Zustand getestet werden. Alte Docker-Updater kennen moeglicherweise neue Syntax nicht; deshalb bleibt der Payload im alten JSON-/ZIP-Schema.
 5. `FILES.sha256` muss genau jede Datei ausser sich selbst abdecken. `MANIFEST.txt` und `UPDATE_PACKAGE.json` muessen denselben Bestand melden. GitHub-Quellarchive enthaelt keine unversionierten Dateien.
-6. `.env`, `.git` und `data/` werden nie vom Update überschrieben oder geloescht; der Updater erstellt vor jeder Installation ein Backup und faehrt bei Fehlern einen Rollback.
+6. `.env`, `.git` und `data/` werden vom Update nicht ueberschrieben; der Updater erstellt vor jeder Installation ein Backup und faehrt bei Fehlern einen Rollback. Die einzige neue Aufraeumregel unter `data/` betrifft verifizierte, nicht mehr benoetigte automatische Update-Sicherungen; die zwei neuesten und die referenzierte Rollback-Sicherung bleiben erhalten. Manuelle Archive und Aufnahmen werden nicht entfernt.
 7. Der Updater wird nicht innerhalb seines eigenen laufenden Updateprozesses ausgetauscht. Fuer einen noch aelteren Updater mit bereits bekannten Kompatibilitaetsproblemen ist ein separat verifizierter Bootstrap/Host-Rebuild erforderlich.
 
 ## Fehlerbehandlung
