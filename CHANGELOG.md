@@ -1,3 +1,10 @@
+## 2.20.113 – Vollständige gedrosselte SMB-Altdateibereinigung
+
+- Zusätzlich zur 200-Dateien-Vorschau steht ein separat bestätigter Auftrag für den gesamten ermittelten Altbestand zur Verfügung. Nur Dateien des bestätigten unveränderlichen Scans sind berechtigt.
+- Hintergrundbereinigung mit normalem SMB-Kontoschutz, jeweils 50 Dateien und zusätzlicher fünfsekündiger Pause; Live-Referenzen, Dateimetadaten, aktives Profil und Administratorberechtigung werden vor jeder Löschung erneut geprüft.
+- Fortschritt in Dateien und logischen Bytes, jederzeit stoppbar, Fehler stoppen den Auftrag. Keine automatische Wiederaufnahme nach Backend-Neustart: erneuter Scan und Bestätigung erforderlich. Keine Wildcards oder rekursiven Löschbefehle.
+- Alle 24 Oberflächensprachen; Regressionstests für mehr als 200 Kandidaten, begrenzte API-Vorschau und Abbruch an Gruppenübergängen.
+
 ## 2.20.112 – SMB-Bestandsübersicht und sichere Archivbereinigung
 
 - SMB-Freigabekapazität, freier Speicher, echte logische Dateigrößen und größte Verzeichnisse direkt aus dem aktiven Kamera-Zielordner ermitteln.

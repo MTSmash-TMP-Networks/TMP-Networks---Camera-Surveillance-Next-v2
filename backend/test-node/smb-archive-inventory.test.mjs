@@ -137,7 +137,7 @@ test('real Samba guest share: enumerate and remove only the confirmed test orpha
   assert.equal(scanned.phase,'ready',JSON.stringify(scanned));
   assert.equal(scanned.result.buckets.orphan.count,1);
   assert.equal(scanned.result.buckets.referenced.count,1);
-  inventory.startCleanup(started.id,'admin',()=>true);
+  inventory.startCleanup(started.id,'admin',()=>true,'all');
   const finished=await new Promise((resolve,reject)=>{
     const start=Date.now();const timer=setInterval(()=>{const s=inventory.status();if(['finished','failed'].includes(s.phase)){clearInterval(timer);resolve(s);}else if(Date.now()-start>20000){clearInterval(timer);reject(new Error('cleanup timeout'));}},50);
   });
