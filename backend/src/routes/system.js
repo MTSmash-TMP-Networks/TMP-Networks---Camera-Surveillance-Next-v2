@@ -91,9 +91,10 @@ systemRouter.post('/recording-storage/inventory/scan', (req, res) => {
   res.status(202).json(recordingStorageService.scanInventory(req.user.sub));
 });
 systemRouter.post('/recording-storage/inventory/cleanup', (req, res) => {
-  const input = z.object({ id: z.string().uuid(), confirmation: z.literal('DELETE_PREVIEWED_ORPHANS') }).strict().parse(req.body || {});
+  const input = z.object({ id: z.string().uuid(), confirmation: z.enum(['DELETE_PREVIEWED_ORPHANS','DELETE_ALL_SCANNED_ORPHANS']) }).strict().parse(req.body || {});
   if (demoModeSettingsService.status().readOnly) throw new AppError(403, 'DEMO_READ_ONLY', 'Demo mode');
-  res.status(202).json(recordingStorageService.cleanInventory(input.id, req.user.sub, () => !demoModeSettingsService.status().readOnly));
+  const scope = input.confirmation === 'DELETE_ALL_SCANNED_ORPHANS' ? 'all' : 'preview';
+  res.status(202).json(recordingStorageService.cleanInventory(input.id, req.user.sub, () => !demoModeSettingsService.status().readOnly, scope, req.user.ver));
 });
 systemRouter.post('/recording-storage/inventory/stop', (req, res) => {
   const input = z.object({ id: z.string().uuid() }).strict().parse(req.body || {});
