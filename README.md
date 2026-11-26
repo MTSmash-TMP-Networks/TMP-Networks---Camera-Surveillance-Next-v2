@@ -28,7 +28,7 @@
 
 Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
 
-**Aktuelle Version:** `2.20.107` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+**Aktuelle Version:** `2.20.108` · **Installationsart:** Docker · **Oberflächensprachen:** 24
 
 ## Funktionen
 
@@ -130,7 +130,7 @@ Der Updater prüft Release-Manifest und SHA-256-Prüfsummen, erstellt einen Wied
 
 - `.env`, `data/`, Kameradaten und Aufnahmen unbedingt erhalten.
 - Genügend freien Platz auf dem Docker-Dateisystem bereitstellen.
-- Alte `data/backups/update-*`-Sicherungen bewusst verwalten. Eine Docker-Cache-Bereinigung entfernt diese **nicht**.
+- Automatische Update-Sicherungen unter `data/backups` und `data/updates/backups` werden ab 2.20.108 auf die zwei neuesten verifizierbaren Stände begrenzt. Ein benötigter Rollback-Stand bleibt zusätzlich geschützt. Manuelle TAR-Sicherungen und Aufnahmen werden nicht gelöscht.
 - Direktupdates ab **2.20.32** folgen den dokumentierten Kompatibilitätsregeln; ältere Versionen benötigen gegebenenfalls einen geprüften Zwischenschritt.
 - Kein unkontrolliertes `git pull` über eine laufende Installation ausführen.
 

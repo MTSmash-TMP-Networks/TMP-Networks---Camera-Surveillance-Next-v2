@@ -1,12 +1,12 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next **2.20.107** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.108** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
 
 ## Before you start: disk and backups
 
 Plan separate capacity for the operating system, Docker images/build layers, update snapshots, local recording spool and optional network recording cache. As an operational planning figure, **40 GB or more for the OS/Docker/update workspace** and **6–8 GB free during an update** are advisable; actual requirements depend on camera count and image size. A 15-GB root partition can fill after repeated updates, even when the Docker build cache is empty.
 
-Update snapshots accumulate in `data/backups/update-*`. The current updater does **not guarantee automatic retention of just two or three snapshots**. Inspect and archive older snapshots externally; do not delete the currently required rollback checkpoint. See [Disk space and safe update-backup management](#disk-space-and-safe-update-backup-management) below.
+Starting with 2.20.108, automatic update snapshots in `data/backups` and `data/updates/backups` are rotated to the two most recent validated backups. The rollback checkpoint referenced by update status is protected even if older. Manual full TAR archives, recording data and ambiguous or unverified snapshots are never deleted. See [Disk space and safe update-backup management](#disk-space-and-safe-update-backup-management) below.
 
 `data/`, `.env`, the SQLite database and camera recordings are persistent, not temporary build files. Never run `docker system prune --volumes` or `rm -rf data/` to solve a build-space error.
 
@@ -543,7 +543,7 @@ sudo docker builder prune --all --force
 sudo docker image prune --force
 ```
 
-**Before deleting any `update-*` directory:** inspect its timestamp/version, preserve at least the rollback states required for your deployment, and copy historical snapshots to external storage if needed. A previous real installation accumulated dozens of 170+ MB snapshots and nearly 7 GB in `data/backups`. The updater's rollback and SQLite/configuration recovery depend on these snapshots. Do not delete a snapshot just because its version number is lower.
+**Automatic retention (2.20.108):** the updater checks both backup directories on startup and before and after updates. Existing older updater containers invoke the new post-update cleanup through their existing Docker cleanup hook when enabled. Two validated automatic snapshots are retained, plus any older rollback checkpoint currently referenced by status; ambiguous IDs, unverified directories, nested mounts and manual TAR archives are protected. Retention does not touch active recordings, the active database, or configuration. With Node.js installed on the host, run `node scripts/update-backup-cleanup.mjs --dry-run` from the project directory to preview the plan without deleting anything. `--offline-apply` is reserved for maintenance with the updater stopped and no update/rollback in progress. If manual TAR backups dominate disk usage, move or archive them separately after checking their contents.
 
 Do not remove Docker internals under `/var/lib/containerd` or `/var/lib/docker` manually. If sufficient free disk capacity cannot be restored safely, expand the disk or relocate Docker/project data before retrying the update.
 
@@ -575,7 +575,7 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.107 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.108 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
 
 
 ### Kamera-Encoderdiagnose (ab v2.20.43)

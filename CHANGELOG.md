@@ -1,3 +1,11 @@
+## 2.20.108 – Automatische Rotation der Update-Sicherungen
+
+- Begrenzt abgeschlossene, verifizierbare automatische Update-Sicherungen in `data/backups` und `data/updates/backups` gemeinsam auf die zwei neuesten Stände; ein älterer referenzierter Rollback-Punkt bleibt zusätzlich geschützt.
+- Bereinigung beim Updater-Start sowie vor und nach Updates; kompatibler Post-Update-Hook für weiterlaufende ältere Agenten, sofern deren Docker-Cache-Bereinigung aktiv ist.
+- Schutz vor unklaren Backup-IDs, unvollständigen Metadaten, Symlink-Verzeichnissen, verschachtelten Mounts und laufenden Rollbacks. Manuelle TAR-Archive, Aufnahmen, aktive Datenbank und Konfiguration bleiben unangetastet.
+- Die Rollback-Auswahl berücksichtigt beide Backup-Verzeichnisse. Das Skript unterstützt eine zerstörungsfreie Vorschau mit `--dry-run`.
+- Tests mit temporären Sicherungen für Aufbewahrung, Löschschutz, laufende Rollbacks und den bisherigen Abschluss-Hook.
+
 ## 2.20.107 – Ebenenfehler in der Live-Ansicht behoben
 
 - Die fixierte obere Navigation bleibt beim vertikalen Scrollen vor der Kameraüberschrift, den Live-Bedienelementen und dem Videobild. Undurchsichtiger Navigationshintergrund verhindert durchscheinende Texte.

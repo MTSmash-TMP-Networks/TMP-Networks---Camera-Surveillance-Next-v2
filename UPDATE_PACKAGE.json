@@ -1,15 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.107",
+  "version": "2.20.108",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.107",
-  "summary": "Ebenenfehler beim Scrollen in der Live-Ansicht korrigiert.",
-  "createdAt": "2026-11-26T09:40:00+01:00",
+  "title": "TMP Camera Surveillance Next 2.20.108",
+  "summary": "Automatische Bereinigung alter Update-Sicherungen bei geschütztem Rollback.",
+  "createdAt": "2026-11-26T10:00:00+01:00",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Sticky header remains above live title and media controls",
-    "Opaque navigation background and isolated live-layout stacking context",
-    "Regression check for navigation, action menu and modal order"
+    "Keep two most recent validated automatic update backups across both roots",
+    "Protect referenced rollback, manual archives, unverified backups, symlinks and nested mounts",
+    "Run retention on updater startup and around updates, with legacy post-update bridge",
+    "Regression tests for retention and legacy hook"
   ],
   "preserve": [
     ".env",
@@ -32,12 +33,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.107",
-  "packageId": "tmp-camera-surveillance-next-2.20.107",
+  "name": "TMP Camera Surveillance Next v2.20.108",
+  "packageId": "tmp-camera-surveillance-next-2.20.108",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Correct desktop live-view stacking order and use an opaque sticky navigation background.",
+  "description": "Rotate validated automatic update backups across primary and fallback storage; preserve rollback checkpoints and manual archives.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Kameraüberschrift, Livebild und Steuerelemente scrollen sauber unter der oberen Navigationsleiste. Lokale Overlay-Ebenen bleiben getrennt; Aktionsmenü und Modaldialoge bleiben bedienbar. Keine Änderungen an Streams, Aufnahmen oder Export.",
-  "fileCount": 520
+  "releaseNotes": "Zwei neueste verifizierbare automatische Update-Sicherungen bleiben erhalten, zusätzlich der aktuell referenzierte Rollback-Stand. Bereinigung bei Updater-Start sowie vor und nach Updates. Alte Update-Agenten nutzen beim ersten Update den vorhandenen Abschluss-Hook, sofern aktiv. Manuelle Vollsicherungen und Kameraaufnahmen werden nicht gelöscht.",
+  "fileCount": 522
 }
