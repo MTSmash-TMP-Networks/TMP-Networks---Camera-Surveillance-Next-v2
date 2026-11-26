@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
-import { SmbAuthGuard, SMB_AUTH_COOLDOWN_MS, SMB_AUTH_FAILED, SMB_AUTH_COOLDOWN, isSmbAuthenticationFailure } from '../src/services/recording/SmbAuthGuard.js';
+import { SmbAuthGuard, SMB_AUTH_COOLDOWN_MS, SMB_AUTH_FAILED, SMB_AUTH_COOLDOWN, isSmbAuthenticationFailure, smbSessionGapMs } from '../src/services/recording/SmbAuthGuard.js';
 import { networkUploadPolicy, selectNetworkUploadCandidates, claimNetworkUpload, runNetworkUploadBatch, NETWORK_UPLOAD_BYPASS_REASON } from '../src/services/recording/NetworkUploadPolicy.js';
 
 const root = resolve(fileURLToPath(new URL('../..', import.meta.url)));
@@ -199,9 +199,47 @@ test('paused profile IDs do not starve eligible uploads to another storage targe
 
 test('all SMB commands, including manual tests and remote deletion, pass the same auth guard', () => {
   const source=read('backend/src/services/NetworkRecordingStorageService.js');
-  assert.match(source,/return smbAuthGuard\.run\(profile, \(\) => smbAuthFile/);
+  assert.match(source,/return await smbAuthGuard\.run\(profile, \(\) => smbAuthFile/);
+  assert.match(source,/await smbAuthGuard\.run\(profile, \(\) => probeTcp/);
   assert.match(source,/if \(isSmbAuthenticationFailure\(commandOutput\(error\)\)\) throw await smbCommandError/);
   assert.match(source,/if \(isSmbAuthPause\(error\)\) throw error;/);
   assert.match(source,/selectNetworkUploadCandidates\(db, policy, blockedProfileIds\)/);
   assert.match(source,/authCooldowns,/);
+});
+
+
+test('SMB sessions leave a quiet interval after completion, including after ordinary errors', async t => {
+  const db = new DatabaseSync(':memory:');
+  t.after(() => db.close());
+  db.exec('CREATE TABLE system_settings(key TEXT PRIMARY KEY,value TEXT,updated_at TEXT)');
+  let clock = 0;
+  const sleeps = [], starts = [];
+  const guard = new SmbAuthGuard(db, {
+    sessionGapMs: 1000, monotonicNow: () => clock,
+    sleep: async ms => { sleeps.push(ms); clock += ms; },
+  });
+  const a = { protocol: 'smb', host: 'NAS.EXAMPLE.', username: 'one', port: 445 };
+  const alias = { ...a, host: 'nas.example', username: 'two', port: 139 };
+  const b = { ...a, host: 'other-nas' };
+  const results = await Promise.allSettled([
+    guard.run(a, async () => { starts.push(clock); clock += 125; }),
+    guard.run(alias, async () => { starts.push(clock); clock += 50; throw new Error('ordinary I/O failure'); }),
+    guard.run(a, async () => { starts.push(clock); }),
+  ]);
+  assert.deepEqual(starts, [0, 1125, 2175]);
+  assert.deepEqual(sleeps, [1000, 1000]);
+  assert.equal(results[1].status, 'rejected');
+  assert.equal(results[2].status, 'fulfilled');
+  // Another server is independent and does not inherit this server's gap.
+  assert.equal(await guard.run(b, async () => clock), 2175);
+  clock += 1000;
+  assert.equal(await guard.run(a, async () => clock), 3175);
+  assert.deepEqual(sleeps, [1000, 1000]);
+});
+test('SMB session-gap configuration defaults to a second and cannot disable pacing', () => {
+  assert.equal(smbSessionGapMs(''), 1000);
+  assert.equal(smbSessionGapMs('invalid'), 1000);
+  assert.equal(smbSessionGapMs('0'), 250);
+  assert.equal(smbSessionGapMs('2000'), 2000);
+  assert.equal(smbSessionGapMs('999999'), 10000);
 });

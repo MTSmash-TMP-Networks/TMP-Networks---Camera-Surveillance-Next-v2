@@ -269,7 +269,12 @@ async function smbCommandError(error, profile) {
   if (/could not resolve|name or service not known|temporary failure in name resolution|nt_status_bad_network_name.*name resolution/.test(output)) {
     return new AppError(422, 'NETWORK_STORAGE_HOST_UNRESOLVED', 'Der SMB-Servername konnte nicht aufgeloest werden.');
   }
-  const probe = await probeTcp(profile.host, profile.port);
+  // Existing directories are expected during archival; do not open an
+  // extra diagnostic TCP connection for a definitive name collision.
+  if (/nt_status_object_name_collision|nt_status_object_name_exists/.test(output)) {
+    return new AppError(409, 'NETWORK_STORAGE_REMOTE_EXISTS', 'Der SMB-Zielpfad existiert bereits.');
+  }
+  const probe = await smbAuthGuard.run(profile, () => probeTcp(profile.host, profile.port));
   if (!probe.resolved) return new AppError(422, 'NETWORK_STORAGE_HOST_UNRESOLVED', 'Der SMB-Servername konnte nicht aufgeloest werden.');
   if (!probe.reachable) return new AppError(422, 'NETWORK_STORAGE_PORT_UNREACHABLE', 'Der konfigurierte SMB-Port ist aus dem Backend nicht erreichbar.');
   if (/connection refused|connection timed out|no route to host|network is unreachable|connection closed|connection reset|failed to connect|nt_status_host_unreachable|nt_status_connection|nt_status_io_timeout/.test(output)) {
@@ -324,23 +329,32 @@ function smbArgs(profile, command, { authFile = null, guest = false, maxProtocol
 }
 
 async function runSmb(profile, command, { timeout = COMMAND_TIMEOUT_MS } = {}) {
-  return smbAuthGuard.run(profile, () => smbAuthFile(profile, async (authFile, guest) => {
-    const ipAddress = await smbResolvedIpv4(profile.host);
-    let firstError = null;
-    for (const maxProtocol of ['SMB3', 'SMB2']) {
-      try {
-        return await execFile('smbclient', smbArgs(profile, command, { authFile, guest, maxProtocol, ipAddress }), {
-          timeout, maxBuffer: 1024 * 1024, windowsHide: true,
-        });
-      } catch (error) {
-        firstError ||= error;
-        if (isSmbAuthenticationFailure(commandOutput(error))) throw await smbCommandError(error, profile);
-        if (maxProtocol === 'SMB3' && isSmbProtocolNegotiationFailure(error)) continue;
-        throw await smbCommandError(error, profile);
-      }
+  smbAuthGuard.assertAvailable(profile);
+  const ipAddress = await smbResolvedIpv4(profile.host);
+  let firstError = null;
+  for (const maxProtocol of ['SMB3', 'SMB2']) {
+    try {
+      // Every actual client invocation, including protocol fallback, must
+      // take its own paced slot. Authentication errors are classified inside
+      // the slot before queued operations are permitted to proceed.
+      return await smbAuthGuard.run(profile, () => smbAuthFile(profile, async (authFile, guest) => {
+        try {
+          return await execFile('smbclient', smbArgs(profile, command, { authFile, guest, maxProtocol, ipAddress }), {
+            timeout, maxBuffer: 1024 * 1024, windowsHide: true,
+          });
+        } catch (error) {
+          if (isSmbAuthenticationFailure(commandOutput(error))) throw await smbCommandError(error, profile);
+          throw error;
+        }
+      }));
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      firstError ||= error;
+      if (maxProtocol === 'SMB3' && isSmbProtocolNegotiationFailure(error)) continue;
+      throw await smbCommandError(error, profile);
     }
-    throw await smbCommandError(firstError, profile);
-  }));
+  }
+  throw await smbCommandError(firstError, profile);
 }
 
 function sftpTargetArgs(profile, batchFile) {
@@ -630,6 +644,7 @@ export class NetworkRecordingStorageService {
         cacheMaxBytes: CACHE_MAX_BYTES,
         uploadPressure: this.lastUploadPressure,
         authCooldowns,
+        smbSessionGapMs: smbAuthGuard.sessionGapMs,
         lastError: this.lastError,
         lastTransferAt: this.lastTransferAt,
         lastReconcileAt: this.lastReconcileAt,

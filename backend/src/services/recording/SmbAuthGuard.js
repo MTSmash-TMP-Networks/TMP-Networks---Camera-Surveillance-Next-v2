@@ -1,7 +1,14 @@
 import { createHash } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
+import { performance } from 'node:perf_hooks';
 import { AppError } from '../../utils/errors.js';
 
 export const SMB_AUTH_COOLDOWN_MS = 60 * 60 * 1000;
+export function smbSessionGapMs(value = process.env.NETWORK_RECORDING_SMB_SESSION_GAP_MS) {
+  const number = Number(value);
+  return value == null || String(value).trim() === '' || !Number.isFinite(number)
+    ? 1000 : Math.max(250, Math.min(10000, Math.floor(number)));
+}
 export const SMB_AUTH_FAILED = 'NETWORK_STORAGE_AUTH_FAILED';
 export const SMB_AUTH_COOLDOWN = 'NETWORK_STORAGE_AUTH_COOLDOWN';
 
@@ -21,13 +28,18 @@ export function smbServerKey(profile) {
 const settingKey = (key) => 'recording_smb_auth_cooldown_v1:' + createHash('sha256').update(key).digest('hex');
 
 export class SmbAuthGuard {
-  constructor(db, { now = Date.now, onPause = () => {}, onPersistError = () => {} } = {}) {
+  constructor(db, { now = Date.now, onPause = () => {}, onPersistError = () => {},
+    sessionGapMs = smbSessionGapMs(), monotonicNow = () => performance.now(), sleep = delay } = {}) {
     this.db = db;
     this.now = now;
     this.onPause = onPause;
     this.onPersistError = onPersistError;
     this.memory = new Map();
     this.tails = new Map();
+    this.sessionGapMs = smbSessionGapMs(sessionGapMs);
+    this.monotonicNow = monotonicNow;
+    this.sleep = sleep;
+    this.completedAt = new Map();
   }
 
   status(profile) {
@@ -71,10 +83,23 @@ export class SmbAuthGuard {
     const previous = this.tails.get(key) || Promise.resolve();
     const result = previous.then(async () => {
       this.assertAvailable(profile);
+      // A session has to finish before the quiet interval starts. Use a
+      // monotonic clock so NTP/wall-clock changes cannot shorten the gap.
+      const completed = this.completedAt.get(key);
+      if (completed !== undefined) {
+        let remaining = completed + this.sessionGapMs - this.monotonicNow();
+        while (remaining > 0) {
+          await this.sleep(Math.ceil(remaining));
+          remaining = completed + this.sessionGapMs - this.monotonicNow();
+        }
+      }
+      this.assertAvailable(profile);
       try { return await operation(); }
       catch (error) {
         if (error?.code === SMB_AUTH_FAILED) this.pause(profile);
         throw error;
+      } finally {
+        this.completedAt.set(key, this.monotonicNow());
       }
     });
     const tail = result.then(() => undefined, () => undefined);
