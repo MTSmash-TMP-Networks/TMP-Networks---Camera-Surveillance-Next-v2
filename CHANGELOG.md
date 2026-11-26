@@ -1,3 +1,9 @@
+## 2.20.107 – Ebenenfehler in der Live-Ansicht behoben
+
+- Die fixierte obere Navigation bleibt beim vertikalen Scrollen vor der Kameraüberschrift, den Live-Bedienelementen und dem Videobild. Undurchsichtiger Navigationshintergrund verhindert durchscheinende Texte.
+- Live-Layout und Medien-Overlays bilden eine eigene lokale Stapelebene; das Aktionsmenü bleibt bedienbar, Modaldialoge und Vollbild bleiben unverändert.
+- Regressionstest für Stapelebenen und Hintergrund. Keine Änderungen an Kamera-Ingest, Aufnahme oder MP4-Export.
+
 ## 2.20.106 – Durchgehende Aufnahmezeitachse im Player
 
 - Tagesübersicht: ein gemeinsamer HLS-VOD-Player für die abgeschlossenen Aufnahmeblöcke des ausgewählten Kalendertags und der gewählten Kamera, auch über mehrere Aufnahmesitzungen hinweg.

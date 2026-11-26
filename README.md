@@ -28,7 +28,7 @@
 
 Die Software kann innerhalb des eigenen Netzwerks betrieben werden. Für den optionalen HTTPS-Fernzugriff steht eine **separat installierte private Cloud-WebApp** zur Verfügung. Die private PHP-Portaldatei gehört bewusst **nicht** zum GitHub-Repository.
 
-**Aktuelle Version:** `2.20.106` · **Installationsart:** Docker · **Oberflächensprachen:** 24
+**Aktuelle Version:** `2.20.107` · **Installationsart:** Docker · **Oberflächensprachen:** 24
 
 ## Funktionen
 

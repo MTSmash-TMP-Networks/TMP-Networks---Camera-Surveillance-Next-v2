@@ -46,3 +46,19 @@ test('role-aware navigation is centralized and keeps every established route', (
   assert.match(navigation, /adminOnly: true/);
   for (const route of expectedRoutes) assert.ok(navigation.includes(`to: '${route}'`), `missing ${route}`);
 });
+
+
+test('sticky navigation stays above live titles and media overlays without hiding page action menus', () => {
+  const header = css.match(/\.tmp-app-header\.header\{\s*position:sticky;([^}]+)\}/)?.[1] || '';
+  const liveHeader = css.match(/\.live-page-header\{position:relative;z-index:(\d+)\}/);
+  const z = Number(header.match(/z-index:\s*(\d+)/)?.[1]);
+  assert.match(header, /top:0;/);
+  assert.ok(liveHeader && z > Number(liveHeader[1]) && Number(liveHeader[1]) > 0);
+  assert.match(header, /background:#071521;/);
+  assert.match(header, /(?:^|[\s;])backdrop-filter:none;/);
+  assert.match(header, /-webkit-backdrop-filter:none;/);
+  assert.match(css, /\.live-page \.live-layout\{isolation:isolate\}/);
+  assert.match(css, /\.action-menu-popover\{position:absolute;z-index:100;/);
+  const modal = css.match(/\.video-modal\{position:fixed;[^}]*z-index:(\d+)/);
+  assert.ok(modal && Number(modal[1]) > z, 'Recording modal must stay above the shell header');
+});
