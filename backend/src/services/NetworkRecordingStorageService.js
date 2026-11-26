@@ -343,7 +343,7 @@ async function runSmb(profile, command, { timeout = COMMAND_TIMEOUT_MS, maxBuffe
         try {
           beforeExec();
           return await execFile('smbclient', smbArgs(profile, command, { authFile, guest, maxProtocol, ipAddress }), {
-            timeout, maxBuffer, windowsHide: true, env: { ...process.env, LC_ALL: 'C' },
+            timeout, maxBuffer, windowsHide: true, env: { ...process.env, LC_ALL: 'C.UTF-8' },
           });
         } catch (error) {
           if (isSmbAuthenticationFailure(commandOutput(error))) throw await smbCommandError(error, profile);

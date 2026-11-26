@@ -58,7 +58,7 @@ export function parseSmbArchiveListing(stdout, root) {
     entries.push({ path, name, attributes, bytes, modified, mtime, isDirectory });
     if (entries.length > SCAN_LIMIT) throw fail('SMB_INVENTORY_LIMIT');
   }
-  if (!capacity) throw fail();
+  if (!capacity || visited.size !== directories.size) throw fail();
   return { entries, capacity, directories: directories.size - 1 };
 }
 

@@ -23,6 +23,86 @@ function storageError(error, t) {
 
 function defaultPort(protocol) { return protocol === 'sftp' ? 22 : 445; }
 
+
+function formatArchiveBytes(value) {
+  let number = Number(value || 0), unit = 0;
+  const units = ['B','KiB','MiB','GiB','TiB','PiB'];
+  while (number >= 1024 && unit < units.length - 1) { number /= 1024; unit++; }
+  return number.toLocaleString(undefined, { maximumFractionDigits: unit ? 2 : 0 }) + ' ' + units[unit];
+}
+
+function SmbArchiveInventoryPanel({ profile, disabled, t }) {
+  const [job, setJob] = useState(null);
+  const [working, setWorking] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
+  const [error, setError] = useState('');
+  const busy = ['scanning','cleaning'].includes(job?.phase);
+  useEffect(() => {
+    let mounted = true;
+    api.recordingStorageInventory().then(value => { if (mounted) setJob(value); }).catch(() => {});
+    return () => { mounted = false; };
+  }, [profile.id]);
+  useEffect(() => {
+    if (!busy) return;
+    let mounted = true;
+    const timer = setInterval(() => api.recordingStorageInventory().then(value => {
+      if (mounted) setJob(value);
+    }).catch(() => {}), 2000);
+    return () => { mounted = false; clearInterval(timer); };
+  }, [busy]);
+  useEffect(() => { setConfirmed(false); }, [job?.id, job?.phase, profile.id]);
+  async function action(fn) {
+    setWorking(true); setError('');
+    try { setJob(await fn()); }
+    catch (cause) { setError(storageError(cause, t)); }
+    finally { setWorking(false); }
+  }
+  const result = job?.profileId === profile.id ? job?.result : null;
+  const preview = result?.preview || [];
+  const progress = job?.progress;
+  const ready = job?.phase === 'ready' && Boolean(result) && Date.parse(job.expiresAt) > Date.now();
+  const stat = (label, value, detail) => <article><small>{label}</small><strong>{value}</strong><span>{detail}</span></article>;
+  const count = value => Number(value || 0).toLocaleString();
+  return <div className="storage-status-card">
+    <header><div><Database/><span><strong>{t('recordings.storage.inventory.title')}</strong><small>{profile.host}/{profile.share}/{profile.basePath}</small></span></div>
+      <button className="secondary-button" type="button" disabled={disabled || busy || working} onClick={() => action(api.scanRecordingStorageInventory)}><RefreshCw className={job?.phase === 'scanning' ? 'spin' : ''}/>{job?.phase === 'scanning' ? t('recordings.storage.inventory.scanning') : t('recordings.storage.inventory.scan')}</button>
+    </header>
+    <p>{t('recordings.storage.inventory.description')}</p>
+    {error && <div className="form-error">{error}</div>}
+    {job?.error && <div className="form-error">{t('recordings.storage.inventory.error')} ({job.error})</div>}
+    {result && <>
+      <small>{new Date(job.startedAt).toLocaleString()} · {t('recordings.storage.inventory.folders')}: {count(result.directories)}</small>
+      <div className="storage-metrics">
+        {stat(t('recordings.storage.inventory.capacity'),formatArchiveBytes(result.capacity.totalBytes),t('recordings.storage.inventory.used')+': '+formatArchiveBytes(result.capacity.usedBytes))}
+        {stat(t('recordings.storage.inventory.free'),formatArchiveBytes(result.capacity.freeBytes),'SMB')}
+        {stat(t('recordings.storage.inventory.archive'),formatArchiveBytes(result.bytes),count(result.count))}
+        {stat(t('recordings.storage.inventory.referenced'),formatArchiveBytes(result.buckets.referenced.bytes),count(result.buckets.referenced.count))}
+        {stat(t('recordings.storage.inventory.orphan'),formatArchiveBytes(result.buckets.orphan.bytes),count(result.buckets.orphan.count))}
+        {stat(t('recordings.storage.inventory.protected'),formatArchiveBytes(result.buckets.protected.bytes),count(result.buckets.protected.count))}
+        {stat(t('recordings.storage.inventory.other'),formatArchiveBytes(result.buckets.other.bytes),count(result.buckets.other.count))}
+      </div>
+      {result.topFolders.length > 0 && <details>
+        <summary>{t('recordings.storage.inventory.folders')} (20)</summary>
+        <div style={{maxHeight:240,overflow:'auto'}}>{result.topFolders.map(folder => <div key={folder.path} style={{display:'flex',justifyContent:'space-between',gap:12,padding:'5px 0',overflowWrap:'anywhere'}}><span>{folder.path}</span><strong>{formatArchiveBytes(folder.bytes)} · {count(folder.count)}</strong></div>)}</div>
+      </details>}
+      {preview.length > 0 && <details open>
+        <summary>{t('recordings.storage.inventory.preview')} · {count(preview.length)} / {count(result.buckets.orphan.count)} · {formatArchiveBytes(result.previewBytes)}</summary>
+        <div style={{maxHeight:300,overflow:'auto',fontSize:'0.85rem'}}>{preview.map(entry => <div key={entry.path} style={{display:'flex',justifyContent:'space-between',gap:12,padding:'5px 0',overflowWrap:'anywhere'}}><span>{entry.path}<br/>{new Date(entry.mtime).toLocaleString()}</span><strong>{formatArchiveBytes(entry.bytes)}</strong></div>)}</div>
+      </details>}
+      {ready && preview.length > 0 && <div className="storage-credential-hint" style={{display:'block'}}>
+        <label style={{display:'flex',alignItems:'flex-start',gap:8}}><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} disabled={disabled || working}/><span>{t('recordings.storage.inventory.confirm')}</span></label>
+        <button className="secondary-button" type="button" disabled={!confirmed || disabled || working} onClick={() => action(() => api.cleanupRecordingStorageInventory(job.id))}>{t('recordings.storage.inventory.clean')} ({count(preview.length)})</button>
+      </div>}
+    </>}
+    {progress && <div role="status">
+      <strong>{job.phase === 'cleaning' ? t('recordings.storage.inventory.cleaning') : t('recordings.storage.inventory.finished')}</strong>
+      <p>{count(progress.deleted)} / {count(progress.total)} · {formatArchiveBytes(progress.deletedBytes)} · {t('recordings.storage.inventory.skipped')}: {count(progress.skipped)} · {t('recordings.storage.transferFailed')}: {count(progress.failed)}</p>
+      <progress max={progress.total} value={progress.deleted+progress.skipped+progress.failed}/>
+      {job.phase === 'cleaning' && <button className="secondary-button" type="button" disabled={working} onClick={() => action(() => api.stopRecordingStorageInventory(job.id))}>{t('recordings.storage.inventory.stop')}</button>}
+    </div>}
+  </div>;
+}
+
 export function RecordingStorageSettings({ canConfigure = false }) {
   const { t } = useI18n();
   const [overview, setOverview] = useState(null);
@@ -188,6 +268,8 @@ export function RecordingStorageSettings({ canConfigure = false }) {
         <article><small>{t('recordings.storage.localSpool')}</small><strong>{t('recordings.storage.spoolActive')}</strong><span>{runtime.localSpool || '/data/recordings'}</span></article>
       </div>
     </div>
+
+    {canConfigure && overview?.mode === 'network' && profile?.protocol === 'smb' && <SmbArchiveInventoryPanel key={profile.id} profile={profile} disabled={saving || testing || authCooldowns.length > 0} t={t}/>}
 
     <div className="storage-info-grid">
       <article><Wifi/><div><strong>{t('recordings.storage.directTitle')}</strong><p>{t('recordings.storage.directText')}</p></div></article>
