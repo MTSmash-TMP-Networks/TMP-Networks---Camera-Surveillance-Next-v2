@@ -1,6 +1,6 @@
 # TMP Camera Surveillance Next - Installation Guide
 
-This guide covers a new installation of TMP Camera Surveillance Next **2.20.110** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
+This guide covers a new installation of TMP Camera Surveillance Next **2.20.111** and routine maintenance. For a step-by-step German guide, see [INSTALLATION_DE.md](docs/INSTALLATION_DE.md). The independently installed private Plesk PHP cloud portal is never distributed through this repository.
 
 ## Before you start: disk and backups
 
@@ -575,7 +575,7 @@ See README.md (Intel N97 / Intel iGPU). The opt-in workflow runs an isolated har
 
 ### Versionsuebergreifende Aktualisierung
 
-Ab v2.20.32 kann auf v2.20.110 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
+Ab v2.20.32 kann auf v2.20.111 anhand der aktuellen Kompatibilitätsprüfungen via GitHub oder ZIP aktualisiert werden. Das Update-Center verifiziert SHA-256 und die Freigabe der Pfade; Backup und Rollback sind verpflichtend. Vor v2.20.32 einen getesteten Brueckenschritt einplanen. Siehe `docs/UPGRADE_COMPATIBILITY.md`.
 
 
 ### Kamera-Encoderdiagnose (ab v2.20.43)
@@ -598,3 +598,5 @@ The day view opens one chronological HLS player for the selected camera and day.
 ### SMB authentication protection (2.20.110)
 
 After a rejected SMB authentication attempt (including logon failure, account lockout or expired credentials), the server pauses further SMB commands to the same configured host for 60 minutes. The cooldown is persisted in SQLite and also covers playback, export, retention deletion and manual connection tests. Different configured host aliases are not automatically unified. SMB client invocations to that host are serialized, while other targets and SFTP remain independent. The storage page reports the earliest retry time, refreshed every ten seconds. Finished recordings remain in the local spool until a verified upload succeeds; ensure sufficient disk capacity during an outage. Wait for the cooldown to expire and resolve incorrect credentials or NAS-side lockouts before testing again. If an expired password is changed, older storage profiles may also require credential maintenance.
+
+Since 2.20.111 each new SMB session to the same configured host waits at least one second after the preceding session finishes by default. Protocol fallback and diagnostic TCP probes share the same pacing; disk pressure does not bypass it. Configure `NETWORK_RECORDING_SMB_SESSION_GAP_MS` (250–10000 ms, default 1000). Other hosts and SFTP remain independent. Short recording blocks or a slow NAS can increase the local backlog; monitor free space and storage status. The 60-minute authentication cooldown remains in effect.

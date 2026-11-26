@@ -1,3 +1,10 @@
+## 2.20.111 – Vorbeugende SMB-Verbindungspausen
+
+- Standardmäßig mindestens 1000 ms Ruhezeit zwischen dem Ende und dem Beginn aufeinanderfolgender SMB-Sitzungen zum selben konfigurierten Host; einstellbar zwischen 250 und 10000 ms.
+- SMB2-Fallback und diagnostische TCP-Probes unterliegen derselben Begrenzung. Bei bereits vorhandenen Zielordnern wird keine zusätzliche Diagnoseverbindung geöffnet.
+- Gilt auch unter Speicherdruck, für Wiedergabe, Export, Löschung und manuelle Tests. Andere Hosts und SFTP bleiben unabhängig.
+- 60-minütige Anmeldesperre und verifizierte Archivierung bleiben erhalten. Der Runtime-Status meldet die eingestellte Pause; Tests decken Fehler, Host-Isolation und Zeitabstände ab.
+
 ## 2.20.110 – SMB-Kontoschutz und automatische Anmeldesperre
 
 - Eine abgelehnte SMB-Anmeldung aktiviert eine 60-minütige Sperrfrist für alle SMB-Aufrufe zum selben konfigurierten Server. Erkennung von falschen Zugangsdaten, Kontosperren und abgelaufenen Kennwörtern.

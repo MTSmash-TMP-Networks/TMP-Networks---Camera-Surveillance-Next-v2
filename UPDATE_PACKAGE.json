@@ -1,16 +1,16 @@
 {
   "product": "tmp-camera-surveillance-next",
-  "version": "2.20.110",
+  "version": "2.20.111",
   "minimumVersion": "2.20.32",
-  "title": "TMP Camera Surveillance Next 2.20.110",
-  "summary": "SMB-Kontoschutz: 60 Minuten Anmeldepause nach einer abgelehnten Anmeldung.",
+  "title": "TMP Camera Surveillance Next 2.20.111",
+  "summary": "Vorbeugender SMB-Schutz durch zeitlich getrennte Verbindungsaufbauten.",
   "createdAt": "2026-11-26",
   "changelogFile": "CHANGELOG.md",
   "changes": [
-    "Persistent 60-minute SMB authentication cooldown after rejection",
-    "Serialize SMB sessions per configured host; skip blocked upload profiles",
-    "Show warning and next retry time in all 24 languages",
-    "Regression tests for concurrency, persistence, expiration and isolation"
+    "Minimum one-second quiet interval between SMB sessions per configured host",
+    "Pace negotiation fallback and TCP diagnostics; avoid redundant collision probes",
+    "Keep authentication cooldown and verified archival under disk pressure",
+    "Configurable interval and regression tests for timing, errors and host isolation"
   ],
   "preserve": [
     ".env",
@@ -33,12 +33,12 @@
   "allowReinstall": true,
   "changelog": "CHANGELOG.md",
   "requiresRestart": true,
-  "name": "TMP Camera Surveillance Next v2.20.110",
-  "packageId": "tmp-camera-surveillance-next-2.20.110",
+  "name": "TMP Camera Surveillance Next v2.20.111",
+  "packageId": "tmp-camera-surveillance-next-2.20.111",
   "fromVersion": "2.20.32",
   "compatibleFrom": "2.20.32",
-  "description": "Persistent server-scoped SMB authentication cooldown, serialized SMB client invocations, and translated storage status.",
+  "description": "Preventive per-host SMB session pacing, including protocol fallback and diagnostic TCP connections, with persistent authentication cooldown.",
   "minVersion": "2.20.32",
-  "releaseNotes": "Nach SMB-Authentifizierungsfehler werden weitere Anmeldungen zum selben Server 60 Minuten ausgesetzt, auch bei Neustart. Schutz für Uploads, Wiedergabe, Exporte und manuelle Tests. Anzeige des frühesten Wiederholungszeitpunkts in 24 Sprachen. SMB-Aufrufe je Server serialisiert; lokale Aufnahmeblöcke bleiben bis zum verifizierten Upload erhalten.",
+  "releaseNotes": "SMB-Sitzungen zum selben konfigurierten Server erhalten standardmäßig eine Sekunde Ruhezeit nach jeder Sitzung. Einstellbar über NETWORK_RECORDING_SMB_SESSION_GAP_MS. Auch Fallback und Diagnose unterliegen der Pause; keine Ausnahme bei Speicherdruck. 60-minütige Kontoschutzpause bleibt aktiv. Lokale Aufnahmeblöcke werden erst nach erfolgreicher Übertragung und Größenprüfung entfernt.",
   "fileCount": 524
 }
