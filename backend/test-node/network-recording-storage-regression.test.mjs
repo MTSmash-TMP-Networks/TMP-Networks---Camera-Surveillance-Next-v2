@@ -148,6 +148,7 @@ test('SMB authentication failures include account-lock and expired credentials, 
   for (const code of ['LOGON_FAILURE','WRONG_PASSWORD','NO_SUCH_USER','ACCOUNT_LOCKED_OUT','ACCOUNT_DISABLED','ACCOUNT_EXPIRED','PASSWORD_EXPIRED','PASSWORD_MUST_CHANGE','ACCOUNT_RESTRICTION','INVALID_LOGON_HOURS']) {
     assert.equal(isSmbAuthenticationFailure('session setup failed: NT_STATUS_'+code), true, code);
   }
+  assert.equal(isSmbAuthenticationFailure('session setup failed: NT_STATUS_ACCESS_DENIED'), true);
   for (const code of ['ACCESS_DENIED','BAD_NETWORK_NAME','IO_TIMEOUT','NOT_SUPPORTED','OBJECT_NAME_NOT_FOUND']) {
     assert.equal(isSmbAuthenticationFailure('NT_STATUS_'+code), false, code);
   }

@@ -43,3 +43,13 @@ test('recording storage React sources only use materialized storage i18n keys', 
   }
   assert.deepEqual([...referenced].sort(), [...RECORDING_STORAGE_MESSAGE_KEYS].sort());
 });
+
+
+test('SMB account protection displays its retry timestamp without resetting form edits', () => {
+  const source = readFileSync(sources[0], 'utf8');
+  assert.match(source, /runtime\.authCooldowns/);
+  assert.match(source, /<time dateTime=\{target\.retryAt\}>/);
+  assert.match(source, /NETWORK_STORAGE_AUTH_COOLDOWN/);
+  assert.match(source, /setInterval\(\(\) => \{\s*api\.recordingStorage\(\)\.then/);
+  assert.match(source, /clearInterval\(timer\)/);
+});

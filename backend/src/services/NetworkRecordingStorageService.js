@@ -249,13 +249,13 @@ async function probeTcp(host, port, timeoutMs = 3500) {
 async function smbCommandError(error, profile) {
   if (error instanceof AppError) return error;
   if (error?.code === 'ENOENT') return new AppError(500, 'NETWORK_STORAGE_CLIENT_MISSING', 'Der SMB-Client ist im Backend nicht verfuegbar.');
-  if (error?.killed || error?.signal === 'SIGTERM' || error?.code === 'ETIMEDOUT') return new AppError(504, 'NETWORK_STORAGE_TIMEOUT', 'Zeitueberschreitung beim Zugriff auf den SMB-Server.');
   const output = commandOutput(error);
-  if (/nt_status_bad_network_name|nt_status_no_such_device|tree connect failed.*bad_network_name/.test(output)) {
-    return new AppError(422, 'NETWORK_STORAGE_SHARE_NOT_FOUND', 'Die SMB-Freigabe wurde auf dem Server nicht gefunden.');
-  }
   if (isSmbAuthenticationFailure(output)) {
     return new AppError(422, 'NETWORK_STORAGE_AUTH_FAILED', 'Anmeldung am SMB-Server fehlgeschlagen.');
+  }
+  if (error?.killed || error?.signal === 'SIGTERM' || error?.code === 'ETIMEDOUT') return new AppError(504, 'NETWORK_STORAGE_TIMEOUT', 'Zeitueberschreitung beim Zugriff auf den SMB-Server.');
+  if (/nt_status_bad_network_name|nt_status_no_such_device|tree connect failed.*bad_network_name/.test(output)) {
+    return new AppError(422, 'NETWORK_STORAGE_SHARE_NOT_FOUND', 'Die SMB-Freigabe wurde auf dem Server nicht gefunden.');
   }
   if (/permission denied|access denied|nt_status_access_denied|nt_status_privilege_not_held/.test(output)) {
     return new AppError(422, 'NETWORK_STORAGE_PERMISSION_DENIED', 'Der SMB-Benutzer hat nicht die erforderlichen Rechte.');

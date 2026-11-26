@@ -6,7 +6,7 @@ export const SMB_AUTH_FAILED = 'NETWORK_STORAGE_AUTH_FAILED';
 export const SMB_AUTH_COOLDOWN = 'NETWORK_STORAGE_AUTH_COOLDOWN';
 
 export function isSmbAuthenticationFailure(output) {
-  return /nt_status_(?:logon_failure|wrong_password|no_such_user|account_locked_out|account_disabled|account_expired|account_restriction|password_expired|password_must_change|invalid_logon_hours|invalid_workstation|logon_type_not_granted|invalid_account_name|authentication_firewall_failed)\b|logon failure|authentication failed|invalid password|login failed|account (?:is )?locked(?: out)?|password (?:has )?expired/i.test(String(output || ''));
+  return /session setup failed:\s*nt_status_access_denied\b|nt_status_(?:logon_failure|wrong_password|no_such_user|account_locked_out|account_disabled|account_expired|account_restriction|password_expired|password_must_change|invalid_logon_hours|invalid_workstation|logon_type_not_granted|invalid_account_name|authentication_firewall_failed)\b|logon failure|authentication failed|invalid password|login failed|account (?:is )?locked(?: out)?|password (?:has )?expired/i.test(String(output || ''));
 }
 export function isSmbAuthPause(error) {
   return error?.code === SMB_AUTH_FAILED || error?.code === SMB_AUTH_COOLDOWN;
